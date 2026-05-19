@@ -3423,18 +3423,41 @@ function exportCSV() {
 }
 
 function exportDataJSON() {
+  // 1. Force flush any active typing in the journal or session scratchpad to memory 
+  const journalEl = document.getElementById('journal-text');
+  if (journalEl) sv('t2_journal', journalEl.value);
+  
+  const activeNotesEl = document.getElementById('active-notes');
+  if (activeNotesEl && activeSession) {
+      activeSession.notes = activeNotesEl.value;
+      sv('t2_activeSession', activeSession);
+  }
+  
+  // 2. Ensure absolute latest settings state is pushed
+  sv('t2_settings', settings);
+
   const data = {};
   for(let i=0; i<localStorage.length; i++) {
       const k = localStorage.key(i);
       if(k.startsWith('t2_')) {
-          data[k] = localStorage.getItem(k);
+          try {
+              // Parse strings back into native objects so the exported file 
+              // is a clean, hierarchical, and easily readable JSON document.
+              data[k] = JSON.parse(localStorage.getItem(k));
+          } catch(e) {
+              // Fallback for primitive strings
+              data[k] = localStorage.getItem(k);
+          }
       }
   }
+  
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `tether-backup-${ds(new Date())}.json`;
+  a.download = `tether-full-backup-${ds(new Date())}.json`;
+  document.body.appendChild(a); // Required for full browser compatibility
   a.click();
+  document.body.removeChild(a);
 }
 
 function importDataJSON(e) {
@@ -3447,13 +3470,28 @@ function importDataJSON(e) {
           let imported = 0;
           for(const key in data) {
               if(key.startsWith('t2_')) {
-                  localStorage.setItem(key, data[key]);
+                  let parsedVal;
+                  
+                  // Backwards compatibility check: Older Tether versions exported raw JSON strings.
+                  // This safely detects and unwraps old backups while perfectly handling the new structure.
+                  if (typeof data[key] === 'string') {
+                      try {
+                          parsedVal = JSON.parse(data[key]);
+                      } catch(err) {
+                          parsedVal = data[key]; // It's just a normal string
+                      }
+                  } else {
+                      parsedVal = data[key];
+                  }
+                  
+                  // Tether's ld() and sv() functions rely on stringified storage.
+                  localStorage.setItem(key, JSON.stringify(parsedVal));
                   imported++;
               }
           }
           if(imported > 0) {
-              showCustomModal("Restore Complete", "Data imported successfully. The app will now reload.", [
-                  {text: "Reload", cls: "btn-primary", onClick: () => window.location.reload()}
+              showCustomModal("Restore Complete", `Successfully fully restored ${imported} data modules. The app will now reload to apply your history, settings, and calendar data.`, [
+                  {text: "Reload App", cls: "btn-primary", onClick: () => window.location.reload()}
               ]);
           } else {
               showCustomModal("Error", "No valid Tether data found in this file.", [{text: "OK"}]);
