@@ -1,0 +1,3470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tether v.Theta</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0c10;
+  --bg2: rgba(19, 20, 26, 0.65);
+  --bg3: rgba(28, 29, 38, 0.65);
+  --bg4: rgba(37, 38, 50, 0.5);
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #eeeae0;
+  --text2: #9a9890;
+  --text3: #55554f;
+  --accent: #d4a843;
+  --accent2: #b88a2e;
+  --accent-bg: rgba(212,168,67,0.1);
+  --accent-border: rgba(212,168,67,0.25);
+  --green: #5caa7f;
+  --green-bg: rgba(92,170,127,0.1);
+  --green-border: rgba(92,170,127,0.25);
+  --red: #e05e5e;
+  --red-bg: rgba(224,94,94,0.1);
+  --red-border: rgba(224,94,94,0.25);
+  --amber: #d4a843;
+  --amber-bg: rgba(0, 0, 0, 0.697);
+  --purple: #a275ff;
+  --sidebar-w: 260px;
+  --radius: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --text-grad: linear-gradient(45deg, #d4a843, #b88a2e, #ffdf85, #d4a843);
+}
+
+/* Day Mode Variables */
+[data-mode="day"] {
+  --bg: #0d1a2e;
+  --bg2: rgba(17, 32, 53, 0.65);
+  --bg3: rgba(23, 40, 64, 0.65);
+  --border: rgba(100,180,255,0.1);
+  --border2: rgba(100,180,255,0.18);
+  --text: #d8eaf8;
+  --text2: #7aabb8;
+  --text3: #3a6070;
+  --accent: #4a9fc4;
+  --accent2: #3882a4;
+  --accent-bg: rgba(74,159,196,0.1);
+  --accent-border: rgba(74,159,196,0.25);
+  --text-grad: linear-gradient(45deg, #4a9fc4, #3882a4, #87ceeb, #4a9fc4);
+}
+
+/* SWIRL ANIMATION & THEMES */
+@keyframes gradientSwirl {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body[data-theme]:not([data-theme="high-contrast"]) {
+  background-size: 300% 300%;
+  animation: gradientSwirl 20s ease infinite;
+}
+
+body[data-theme="swirly-temple"] {
+  background-image: linear-gradient(45deg, #1a0000, #4d0000, #000000, #800000);
+  --text-grad: linear-gradient(45deg, #ff4d4d, #cc0000, #ff9999, #ff4d4d);
+  --accent: #ff4d4d; --accent2: #cc0000;
+  --accent-bg: rgba(255, 77, 77, 0.15); --accent-border: rgba(255, 77, 77, 0.4);
+  --text: #ffe6e6; --text2: #ff9999; --text3: #cc6666;
+}
+body[data-theme="galactic-grape"] {
+  background-image: linear-gradient(45deg, #1a0033, #4d0066, #2d004d, #9933ff);
+  --text-grad: linear-gradient(45deg, #cc99ff, #9933ff, #e6ccff, #cc99ff);
+  --accent: #cc99ff; --accent2: #9933ff;
+  --accent-bg: rgba(204, 153, 255, 0.15); --accent-border: rgba(204, 153, 255, 0.4);
+  --text: #f2e6ff; --text2: #d9b3ff; --text3: #b366ff;
+}
+body[data-theme="lemon-loopz"] {
+  background-image: linear-gradient(45deg, #333300, #669900, #1a1a00, #99cc00);
+  --text-grad: linear-gradient(45deg, #ffff66, #ccff33, #ffffff, #ffff66);
+  --accent: #ffff66; --accent2: #ccff33;
+  --accent-bg: rgba(255, 255, 102, 0.15); --accent-border: rgba(255, 255, 102, 0.4);
+  --text: #ffffe6; --text2: #ffff99; --text3: #cccc33;
+}
+body[data-theme="baja-blazed"] {
+  background-image: linear-gradient(45deg, #002233, #005580, #00111a, #0099cc);
+  --text-grad: linear-gradient(45deg, #4dd2ff, #0099cc, #b3ecff, #4dd2ff);
+  --accent: #4dd2ff; --accent2: #0099cc;
+  --accent-bg: rgba(77, 210, 255, 0.15); --accent-border: rgba(77, 210, 255, 0.4);
+  --text: #e6f9ff; --text2: #b3ecff; --text3: #4dd2ff;
+}
+body[data-theme="genderfluid"] {
+  background-image: linear-gradient(45deg, #ff75a0, #ffffff, #be18d6, #000000, #3336ff);
+  --text-grad: linear-gradient(45deg, #ff75a0, #ffffff, #be18d6, #8c8cff, #ff75a0);
+  --bg2: rgba(10, 10, 15, 0.85); --bg3: rgba(20, 20, 25, 0.85);
+  --accent: #ff75a0; --accent2: #be18d6;
+  --accent-bg: rgba(255, 117, 160, 0.15); --accent-border: rgba(255, 117, 160, 0.4);
+  --text: #ffffff; --text2: #e6e6e6; --text3: #ff75a0;
+}
+body[data-theme="trans"] {
+  background-image: linear-gradient(45deg, #5bcefa, #f5a9b8, #ffffff, #f5a9b8, #5bcefa);
+  --text-grad: linear-gradient(45deg, #5bcefa, #f5a9b8, #ffffff, #f5a9b8, #5bcefa);
+  --bg2: rgba(10, 15, 20, 0.85); --bg3: rgba(20, 25, 30, 0.85);
+  --accent: #5bcefa; --accent2: #f5a9b8;
+  --accent-bg: rgba(91, 206, 250, 0.15); --accent-border: rgba(91, 206, 250, 0.4);
+  --text: #ffffff; --text2: #e0f4ff; --text3: #f5a9b8;
+}
+body[data-theme="non-binary"] {
+  background-image: linear-gradient(45deg, #fcf434, #ffffff, #9c59d1, #2c2c2c);
+  --text-grad: linear-gradient(45deg, #fcf434, #ffffff, #9c59d1, #c0c0c0);
+  --bg2: rgba(15, 10, 15, 0.85); --bg3: rgba(25, 20, 25, 0.85);
+  --accent: #fcf434; --accent2: #9c59d1;
+  --accent-bg: rgba(252, 244, 52, 0.15); --accent-border: rgba(252, 244, 52, 0.4);
+  --text: #ffffff; --text2: #fcfcfc; --text3: #fcf434;
+}
+
+/* HIGH CONTRAST THEME OVERRIDES */
+body[data-theme="high-contrast"] {
+  --bg: #000000; --bg2: #111111; --bg3: #222222; --bg4: #333333;
+  --border: #ffffff; --border2: #aaaaaa;
+  --text: #ffffff; --text2: #dddddd; --text3: #bbbbbb;
+  --accent: #ffff00; --accent2: #cccc00; --accent-bg: rgba(255,255,0,0.15); --accent-border: #ffff00;
+  --green: #00ff00; --green-bg: rgba(0,255,0,0.15); --green-border: #00ff00;
+  --red: #ff3333; --red-bg: rgba(255,51,51,0.15); --red-border: #ff3333;
+  --amber: #ffaa00; --amber-bg: rgba(255,170,0,0.15);
+  --purple: #ff00ff;
+  background-image: none !important;
+  --text-grad: none !important;
+}
+body[data-theme="high-contrast"] .glass { backdrop-filter: none; -webkit-backdrop-filter: none; }
+body[data-theme="high-contrast"] .card, 
+body[data-theme="high-contrast"] .stat, 
+body[data-theme="high-contrast"] .modal,
+body[data-theme="high-contrast"] input,
+body[data-theme="high-contrast"] select,
+body[data-theme="high-contrast"] textarea,
+body[data-theme="high-contrast"] .cal-cell > div,
+body[data-theme="high-contrast"] .toast { 
+  border: 2px solid var(--border) !important; 
+  box-shadow: none !important; 
+}
+body[data-theme="high-contrast"] .btn-ghost { border: 2px solid var(--border); }
+body[data-theme="high-contrast"] .btn-primary { border: 2px solid var(--accent); background: var(--accent); color: #000; }
+body[data-theme="high-contrast"] .logo { background-image: none; -webkit-background-clip: unset; -webkit-text-fill-color: unset; color: var(--accent); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background-color: var(--bg); color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6; display: flex; transition: background-color 0.4s, color 0.4s, font-size 0.3s;
+}
+
+/* LARGE TEXT A11Y */
+body.large-text { font-size: 16px; }
+body.large-text .nav-item { font-size: 14px; }
+body.large-text .text-sm { font-size: 14px; }
+body.large-text .btn { font-size: 14px; }
+
+/* Glassmorphism Classes */
+.glass {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w); min-width: var(--sidebar-w);
+  background: var(--bg2); border-right: 0.5px solid var(--border);
+  display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 10;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.logo {
+  font-family: 'Unbounded', sans-serif; font-size: 24px; font-weight: 800;
+  padding: 28px 20px 8px; letter-spacing: -0.5px;
+  background-image: var(--text-grad);
+  background-size: 300% 300%;
+  animation: gradientSwirl 6s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--accent);
+}
+.logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 2px; padding: 0 20px 24px; text-transform: uppercase; }
+
+.nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border-radius: var(--radius); cursor: pointer; color: var(--text2);
+  font-size: 12px; font-weight: 700; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: none; background: none; text-align: left; width: 100%;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); transform: translateX(4px); }
+.nav-item:active { transform: scale(0.95); }
+.nav-item.active { background: var(--accent-bg); color: var(--accent); border: 0.5px solid var(--accent-border); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+/* EMERGENCY BUTTON */
+.emergency-wrap { padding: 16px; margin-top: auto; }
+.emergency-btn {
+  width: 100%; padding: 20px 12px; border-radius: var(--radius-lg);
+  background: var(--red); border: none;
+  color: #fff; font-family: 'Unbounded', sans-serif; font-size: 14px;
+  font-weight: 800; cursor: pointer; letter-spacing: 1px;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; box-shadow: 0 4px 15px rgba(224,94,94,0.3);
+}
+.emergency-btn:hover { background: #ff6b6b; transform: scale(1.03) translateY(-2px); box-shadow: 0 6px 20px rgba(224,94,94,0.5); }
+.emergency-btn:active { transform: scale(0.97); }
+
+/* ── MAIN ── */
+.main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative; }
+.topbar {
+  display: flex; align-items: center; gap: 16px; padding: 20px 32px;
+  border-bottom: 0.5px solid var(--border); background: var(--bg2); flex-shrink: 0;
+}
+.hamburger-btn { display: none; background: transparent; border: none; font-size: 24px; color: var(--text); cursor: pointer; padding: 0; outline: none; }
+.topbar-title { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 600; }
+.topbar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+.mode-badge { padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: 700; font-family: 'Unbounded', sans-serif; letter-spacing: 1px; }
+.mode-badge.night { background: rgba(212,168,67,0.15); color: var(--amber); border: 0.5px solid rgba(212,168,67,0.3); }
+.mode-badge.day { background: rgba(74,159,196,0.15); color: #4a9fc4; border: 0.5px solid rgba(74,159,196,0.3); }
+.mode-badge.custom-theme-badge { background: var(--accent-bg); color: var(--accent); border: 0.5px solid var(--accent-border); }
+
+.content { flex: 1; overflow-y: auto; padding: 32px; display: none; }
+.content.active { display: block; }
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; }
+
+/* ── CARDS & LAYOUT ── */
+.card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; position: relative; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-color: var(--border2); }
+.card-title { font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--text3); text-transform: uppercase; margin-bottom: 20px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat { background: var(--bg3); border-radius: var(--radius); padding: 18px 20px; border: 0.5px solid var(--border); transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+.stat:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-color: var(--accent); }
+.stat.ok { border-color: var(--green-border); }
+.stat.warn { border-color: rgba(212,168,67,0.3); }
+.stat.danger { border-color: var(--red-border); }
+.stat-label { font-size: 10px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+.stat-value { font-family: 'Unbounded', sans-serif; font-size: 28px; font-weight: 800; color: var(--text); }
+.stat-value.ok { color: var(--green); }
+.stat-value.warn { color: var(--amber); }
+.stat-value.danger { color: var(--red); }
+
+.two-col { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
+
+/* Clearance Progress Bar */
+.clearance-progress-bg { background: var(--bg4); height: 8px; border-radius: 4px; overflow: hidden; margin-top: 12px; border: 1px solid var(--border2); }
+.clearance-progress-fill { height: 100%; transition: width 0.5s ease, background-color 0.5s ease; border-radius: 4px; }
+
+/* Alerts */
+.alert { display: flex; align-items: flex-start; gap: 12px; padding: 14px 18px; border-radius: var(--radius); margin-bottom: 12px; font-size: 13px; line-height: 1.5; }
+.alert.ok { background: var(--green-bg); border: 0.5px solid var(--green-border); color: var(--green); }
+.alert.warn { background: var(--amber-bg); border: 0.5px solid rgba(212,168,67,0.3); color: var(--amber); }
+.alert.danger { background: var(--red-bg); border: 0.5px solid var(--red-border); color: var(--red); }
+
+/* Lock Overrides Cards */
+.lock-action-card {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.lock-action-card:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.lock-action-card.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(1); }
+.lock-action-icon { font-size: 32px; margin-bottom: 12px; }
+.lock-action-title { font-family: 'Unbounded', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.lock-action-qty { font-size: 12px; color: var(--accent); font-weight: bold; margin-bottom: 8px; }
+.lock-action-desc { font-size: 11px; color: var(--text3); line-height: 1.4; }
+
+/* Buttons */
+.btn { cursor: pointer; border-radius: var(--radius); font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; padding: 12px 20px; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: none; outline: none; text-align: center; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.btn:active:not(:disabled) { transform: scale(0.92); }
+.btn-ghost { background: var(--bg3); color: var(--text2); border: 0.5px solid var(--border2); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.btn-sm { padding: 8px 14px; font-size: 10px; }
+.btn-block { width: 100%; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 15px var(--accent-border); }
+.btn-primary:disabled { background: var(--bg3); color: var(--text3); border: 1px solid var(--border2); transform: none; box-shadow: none; }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 0.5px solid var(--red-border); }
+.btn-danger:hover:not(:disabled) { background: rgba(224,94,94,0.2); transform: translateY(-2px); box-shadow: 0 4px 12px var(--red-border); }
+.btn-danger-solid { background: var(--red); color: white; }
+
+/* Forms */
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 11px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;}
+input, select, textarea {
+  background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius);
+  color: var(--text); font-family: 'Space Mono', monospace; font-size: 14px; padding: 12px 16px;
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none;
+}
+input[type="range"] { padding: 0; background: transparent; border: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+
+/* Feeling Buttons */
+.feel-grid { display: flex; gap: 4px; margin-top: 8px; }
+.feel-btn {
+  flex: 1; padding: 12px 0; border-radius: 8px; border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text2); font-family: 'Unbounded', sans-serif;
+  font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; font-size: 12px;
+}
+.feel-btn:hover { transform: translateY(-3px) scale(1.05); }
+.feel-btn:active { transform: scale(0.9); }
+.feel-btn[data-val="1"]:hover, .feel-btn[data-val="2"]:hover { border-color: #ff4d4d; color: #ff4d4d; }
+.feel-btn[data-val="3"]:hover, .feel-btn[data-val="4"]:hover { border-color: #ff9933; color: #ff9933; }
+.feel-btn[data-val="5"]:hover, .feel-btn[data-val="6"]:hover { border-color: #ffd633; color: #ffd633; }
+.feel-btn[data-val="7"]:hover, .feel-btn[data-val="8"]:hover { border-color: #99e699; color: #99e699; }
+.feel-btn[data-val="9"]:hover, .feel-btn[data-val="10"]:hover { border-color: #33cc33; color: #33cc33; }
+
+.feel-btn.active[data-val="1"], .feel-btn.active[data-val="2"] { background: rgba(255,77,77,0.2); border-color: #ff4d4d; color: #ff4d4d; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,77,77,0.2); }
+.feel-btn.active[data-val="3"], .feel-btn.active[data-val="4"] { background: rgba(255,153,51,0.2); border-color: #ff9933; color: #ff9933; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,153,51,0.2); }
+.feel-btn.active[data-val="5"], .feel-btn.active[data-val="6"] { background: rgba(255,214,51,0.2); border-color: #ffd633; color: #ffd633; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,214,51,0.2); }
+.feel-btn.active[data-val="7"], .feel-btn.active[data-val="8"] { background: rgba(153,230,153,0.2); border-color: #99e699; color: #99e699; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(153,230,153,0.2); }
+.feel-btn.active[data-val="9"], .feel-btn.active[data-val="10"] { background: rgba(51,204,51,0.2); border-color: #33cc33; color: #33cc33; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(51,204,51,0.2); }
+
+/* Checkboxes */
+.check-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: all 0.2s; }
+.check-row:hover { background: var(--bg4); padding-left: 8px; border-radius: 8px; }
+.check-row:last-child { border-bottom: none; }
+.check-box { width: 24px; height: 24px; border: 2px solid var(--border2); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.check-box.checked { background: var(--accent); border-color: var(--accent); color: #000; transform: scale(1.1); }
+.check-text { flex: 1; font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* Active Session Display */
+.session-active-card { background: var(--accent-bg); border: 1px solid var(--accent-border); text-align: center; padding: 40px; border-radius: var(--radius-xl); position: relative; }
+.session-active-title { font-family: 'Unbounded', sans-serif; font-size: 24px; font-weight: 800; color: var(--accent); margin-bottom: 12px; }
+.session-stats-row { display: flex; justify-content: center; gap: 32px; margin: 24px 0; }
+.session-stat { display: flex; flex-direction: column; gap: 8px; }
+.session-stat-val { font-family: 'Unbounded', sans-serif; font-size: 32px; font-weight: 800; }
+.session-stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Timer Display */
+.timer-display { font-family: 'Unbounded', sans-serif; font-size: 64px; font-weight: 800; text-align: center; letter-spacing: -2px; margin: 16px 0; color: var(--text3); }
+.timer-display.active { color: var(--accent); }
+.timer-display.expired { color: var(--green); }
+
+/* Dynamic Draw Sequence Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+.modal-overlay.open { display: flex; flex-direction: column; }
+.draw-circle {
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center;
+  font-family: 'Unbounded', sans-serif; font-size: 48px; font-weight: 800; color: var(--accent);
+  transition: all 0.5s ease-in-out; margin: 40px auto; box-shadow: 0 0 40px rgba(212,168,67,0.2);
+}
+.draw-circle.breathing-in { transform: scale(1.5); border-color: var(--green); color: var(--green); box-shadow: 0 0 60px rgba(92,170,127,0.4); }
+.draw-circle.holding { transform: scale(1.4); border-color: var(--amber); color: var(--amber); }
+.draw-circle.exhaling { transform: scale(1); border-color: var(--text2); color: var(--text2); }
+.draw-instruction { font-size: 24px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 20px; font-family: 'Unbounded', sans-serif; }
+
+@keyframes breathe-anim {
+  0%, 100% { transform: scale(1); border-color:var(--text2); color:var(--text2); box-shadow: 0 0 20px rgba(154,152,144,0.1); }
+  28% { transform: scale(1.4); border-color:var(--green); color:var(--green); box-shadow: 0 0 60px rgba(92,170,127,0.4); }
+  57% { transform: scale(1.4); border-color:var(--amber); color:var(--amber); box-shadow: 0 0 60px rgba(212,168,67,0.3); }
+}
+
+/* Toast Notifications */
+.toast-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 10px; z-index: 3000; }
+.toast { background: var(--accent); color: #000; padding: 16px 24px; border-radius: var(--radius-lg); font-family: 'Unbounded', sans-serif; font-weight: 700; font-size: 13px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); animation: toast-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; display: flex; align-items: center; gap: 12px; }
+.toast.water { background: #4a9fc4; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(40px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* Modals */
+.modal { background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius-xl); padding: 40px; max-width: 600px; width: 90%; animation: modal-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; overflow-y: auto; position: relative;}
+@keyframes modal-in { from { transform: scale(0.9) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+.modal-title { font-family: 'Unbounded', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 12px; }
+
+/* General utility */
+.flex { display: flex; } .flex-col { display: flex; flex-direction: column; } .flex-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; } .mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; } .mb-24 { margin-bottom: 24px; }
+.ml-auto { margin-left: auto; } .text-center { text-align: center; } .text-muted { color: var(--text3); }
+.empty { text-align: center; color: var(--text3); padding: 40px; font-size: 14px; background: var(--bg3); border-radius: var(--radius); border: 1px dashed var(--border2); }
+
+/* Settings Toggles */
+.toggle-row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 0.5px solid var(--border); }
+.toggle-label { flex: 1; font-size: 13px; color: var(--text2); cursor: pointer; display: block; }
+.toggle { position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track { position: absolute; inset: 0; background: var(--bg4); border-radius: 12px; border: 2px solid var(--border2); transition: all 0.2s; }
+.toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+.toggle.purple-toggle input:checked + .toggle-track { background: var(--purple); border-color: var(--purple); }
+.toggle-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: var(--text3); border-radius: 50%; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.toggle input:checked ~ .toggle-thumb { transform: translateX(20px); background: #000; }
+.num-input { width: 80px; text-align: center; font-size: 16px; font-weight: bold; }
+
+/* Calendar Details Pane */
+.cal-details { background: var(--bg3); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+.cal-cell { position: relative; }
+.cal-badge { position: absolute; top: 2px; right: 2px; font-size: 10px; line-height: 1; text-shadow: 0px 1px 3px rgba(0,0,0,0.5); pointer-events: none; }
+.selected-cal-day { box-shadow: 0 0 0 3px var(--accent) !important; transform: scale(1.05); z-index: 5; }
+
+/* Emergency Grounding */
+.grounding-box { background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border2); margin-bottom: 24px; text-align: left; }
+.grounding-step { margin-bottom: 12px; font-size: 14px; color: var(--text); }
+.grounding-num { font-family: 'Unbounded', sans-serif; font-weight: 800; color: var(--accent); font-size: 18px; margin-right: 8px; }
+
+/* Banner */
+.gamma-banner {
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 800;
+  text-align: center;
+  padding: 12px;
+  font-family: 'Unbounded', sans-serif;
+  letter-spacing: 2px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--accent-border);
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* Mobile Adjustments */
+.mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.mobile-overlay.open { display: block; }
+@media (max-width: 768px) {
+  .hamburger-btn { display: block; }
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); z-index: 100; width: 280px; }
+  .sidebar.open { transform: translateX(0); }
+  .topbar { padding: 16px; }
+  .content { padding: 16px; }
+  .two-col { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .session-stats-row { flex-direction: column; gap: 16px; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .modal { padding: 24px; }
+}
+</style>
+</head>
+<body data-mode="night">
+
+<div class="toast-container" id="toast-container"></div>
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Generic Custom Modal -->
+<div class="modal-overlay glass" id="custom-modal" style="z-index: 5000;">
+  <div class="modal glass" id="custom-modal-content">
+    <div class="modal-title" id="custom-modal-title"></div>
+    <div id="custom-modal-body" class="mb-24" style="color:var(--text2);font-size:14px;line-height:1.6;"></div>
+    <div class="flex-row" id="custom-modal-buttons" style="justify-content:flex-end; gap:12px;"></div>
+  </div>
+</div>
+
+<!-- Guide Modal -->
+<div class="modal-overlay glass" id="guide-modal" style="z-index: 4500;">
+  <div class="modal glass" style="max-width:800px; padding:40px; text-align:left;">
+    <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom:24px;">
+       <div class="modal-title" style="margin:0;">📖 How To Use Tether</div>
+       <button class="btn btn-ghost btn-sm" onclick="closeGuideModal()">Close Guide</button>
+    </div>
+    
+    <p class="text-sm text-muted mb-24">Tether is a mindful cannabis consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive smoking habits.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">1. The Core Loop</h3>
+    <p class="text-sm text-muted mb-24">Complete your <strong>Pre-Flight Routine</strong> checks to unlock your daily session. Once started, take your hits and utilize the wait timer. Use the scratchpad to log your thoughts during the session. When finished, hit <strong>End Session & Log</strong> to recap your feelings and record the history permanently.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">2. Day vs. Night Mode</h3>
+    <p class="text-sm text-muted mb-24">Tether automatically transitions between modes at 6:00 PM. Day sessions have significantly longer mandatory wait times between hits and strict monthly limits to prevent daytime dependency. Limits for these can be modified in Settings.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">3. Quick Hits ⚡</h3>
+    <p class="text-sm text-muted mb-24">Need a tiny microdose? A Quick Hit bypasses your daily Pre-Flight routines entirely and doesn't count as a full day/night session limit. However, it enforces a strict <strong>Low Dose only</strong> policy, and has its own weekly limit. <strong style="color:var(--amber)">Warning:</strong> taking a Quick Hit during a Tolerance Break will bypass locks and reset your T-break progress entirely.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">4. Locks & "Fuck It" Passes</h3>
+    <p class="text-sm text-muted mb-24">When you reach your limits (weekly max, rest days, or manual breaks), the dashboard locks you out. You are given a limited number of "Fuck It" passes per month to override these hard locks and start a session anyway. However, bypassing a lock flags your calendar with a warning icon and resets your monthly automatic T-break tracker.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">5. Emergency Grounding</h3>
+    <p class="text-sm text-muted mb-24">If you ever get too high, green out, or feel anxious, hit the red <strong>🛑 EMERGENCY STOP</strong> button in the sidebar. It provides immediate guided breathing visuals, a 5-4-3-2-1 sensory grounding exercise, and easy access to your emergency comfort links.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">6. Clearance Tracking</h3>
+    <p class="text-sm text-muted mb-16">The Clearance tab shows estimated clear times for saliva and urine tests based on your exact final hit time. These windows are purely estimates, but they dynamically shift depending on your tolerance setting and the THC% of the last pen you used.</p>
+  </div>
+</div>
+
+<!-- Draw Sequence Modal -->
+<div class="modal-overlay glass" id="draw-modal">
+  <div class="draw-instruction" id="draw-instruction">Get Ready...</div>
+  <div class="draw-circle" id="draw-circle">3</div>
+  <div class="text-center mt-24">
+    <button class="btn btn-ghost" onclick="cancelDraw()">Cancel Hit</button>
+  </div>
+</div>
+
+<!-- Config Session/Hit Modal -->
+<div class="modal-overlay glass" id="config-modal">
+  <div class="modal glass">
+    <div class="modal-title" id="config-title">Configure Hit</div>
+    <div class="form-group mb-16" id="config-pen-group">
+      <label>Select Pen</label>
+      <select id="config-pen" class="glass"></select>
+    </div>
+    <div class="form-group mb-16">
+      <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label style="margin:0;">Select Dose</label>
+        <button class="btn btn-ghost btn-sm" onclick="openDoseGuide()" style="padding:2px 6px; font-size:10px;">[?] Guide</button>
+      </div>
+      <select id="config-dose" class="glass" onchange="checkDoseWarning()">
+        <!-- Filled dynamically from settings -->
+      </select>
+      <div id="dose-warning" class="alert warn" style="display:none; margin-top:8px;">
+        <span class="alert-icon">⚠</span>
+        <span>High doses in Daytime mode are not recommended. Proceed with caution.</span>
+      </div>
+    </div>
+    
+    <div class="form-group mb-24" id="config-feel-section">
+      <label>How are you feeling right now?</label>
+      <div class="feel-grid" id="config-feel-grid"></div>
+      <input type="hidden" id="config-feel-val" value="5">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+        <span>Awful</span><span>Great</span>
+      </div>
+    </div>
+
+    <div class="flex-row" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeConfigModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="startDrawSequence()">Begin Sequence →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Initial Pen Setup Modal -->
+<div class="modal-overlay glass" id="setup-modal">
+  <div class="modal glass">
+    <div class="modal-title" style="color:var(--accent)">Welcome to Tether.</div>
+    <p class="mb-24" style="color:var(--text2)">Let's personalize your experience. Add your name and your first pen to start tracking. If you're new here, we'll show you a quick guide after setup!</p>
+    <div class="form-group mb-16"><label>Your Name</label><input type="text" id="setup-user-name" placeholder="e.g. John" class="glass"></div>
+    <div class="form-group mb-16"><label>Pen Name</label><input type="text" id="setup-pen-name" placeholder="e.g. Purple Space Dust" class="glass"></div>
+    
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" step="0.1" class="glass"></div>
+      <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="setup-pen-cbd" placeholder="0" step="0.1" class="glass"></div>
+      <div class="form-group mb-16"><label>CBN % (Optional)</label><input type="number" id="setup-pen-cbn" placeholder="0" step="0.1" class="glass"></div>
+    </div>
+    
+    <div class="form-group mb-16"><label>Notes / Terpenes (Optional)</label><input type="text" id="setup-pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
+
+    <div class="form-group mb-24"><label>Your THC Tolerance</label>
+        <select id="setup-user-tolerance" class="glass">
+            <option value="low">Low (Beginner / Sensitive)</option>
+            <option value="medium" selected>Medium (Regular)</option>
+            <option value="high">High (Daily / Frequent)</option>
+        </select>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="completeSetup()">Start Using Tether</button>
+  </div>
+</div>
+
+<!-- Past Session Logging Modal -->
+<div class="modal-overlay glass" id="past-modal">
+  <div class="modal glass">
+    <div class="modal-title">Log Past Session</div>
+    <p class="text-muted text-sm mb-16">Retroactively log a session you forgot to track. THC will be estimated based on an average dose.</p>
+    
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Date</label><input type="date" id="past-date" class="glass"></div>
+      <div class="form-group mb-16"><label>Time</label><input type="time" id="past-time" class="glass"></div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Select Pen</label><select id="past-pen" class="glass"></select></div>
+      <div class="form-group mb-16"><label>Total Hits Taken</label><input type="number" id="past-hits" value="1" min="1" max="20" class="glass"></div>
+    </div>
+
+    <div class="form-group mb-24">
+      <label>Final Feeling</label>
+      <div class="feel-grid" id="past-feel-grid"></div>
+      <input type="hidden" id="past-feel-val" value="5">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+        <span>Awful</span><span>Great</span>
+      </div>
+    </div>
+
+    <div class="flex-row" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closePastSessionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePastSession()">Save Past Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Emergency Modal -->
+<div class="modal-overlay glass" id="emergency-modal">
+  <div class="modal glass" id="em-dynamic-content">
+     <!-- Injected via JS -->
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar glass" id="sidebar">
+  <div class="logo">TETHER v.&theta;</div>
+  <div class="gamma-banner">Marijuana usage tracker</div>
+
+  <nav class="nav mt-16">
+    <button class="nav-item active" onclick="switchTab('dashboard')"><span class="nav-icon">◈</span> Dashboard</button>
+    <button class="nav-item" onclick="switchTab('recap')"><span class="nav-icon">≡</span> Session Recap</button>
+    <button class="nav-item" onclick="switchTab('history')"><span class="nav-icon">◷</span> History</button>
+    <button class="nav-item" onclick="switchTab('stats')"><span class="nav-icon">📊</span> Statistics</button>
+    <button class="nav-item" onclick="switchTab('calendar')"><span class="nav-icon">▦</span> Calendar</button>
+    <button class="nav-item" onclick="switchTab('clearance')"><span class="nav-icon">🧪</span> Clearance Tests</button>
+    <button class="nav-item" onclick="switchTab('pens')"><span class="nav-icon">🖊</span> Pens & Dosing</button>
+    <button class="nav-item" onclick="switchTab('routine')"><span class="nav-icon">✓</span> Pre-Flight Routine</button>
+    <button class="nav-item" onclick="switchTab('todo')"><span class="nav-icon">◎</span> Tasks & Journal</button>
+    <button class="nav-item" onclick="switchTab('goals')"><span class="nav-icon">🎯</span> Goals</button>
+    <button class="nav-item" onclick="switchTab('guide')"><span class="nav-icon">📖</span> Rules & Guide</button>
+    <button class="nav-item" onclick="switchTab('settings')"><span class="nav-icon">⚙</span> Settings</button>
+  </nav>
+
+  <div class="emergency-wrap">
+    <button class="emergency-btn" onclick="openEmergency()">🛑 EMERGENCY STOP</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar glass">
+    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-right">
+      <div class="mode-badge night" id="mode-badge">☽ NIGHT MODE</div>
+      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="content active" id="tab-dashboard">
+    <!-- Greeting Card -->
+    <div class="card glass" style="padding: 24px 32px; background: linear-gradient(135deg, var(--bg2) 0%, var(--bg3) 100%);">
+      <div style="font-family:'Unbounded', sans-serif; font-size:20px; font-weight:800; color:var(--text); margin-bottom:8px;" id="greeting-txt">Good evening.</div>
+      <div style="color:var(--text2); font-size:13px; margin-bottom:16px;" id="greeting-date">--</div>
+      <div style="font-style:italic; color:var(--text3); font-size:12px; border-left:3px solid var(--accent); padding-left:12px;" id="greeting-quote"></div>
+    </div>
+
+    <div class="stat-grid" id="dash-stats"></div>
+    
+    <!-- Dashboard Lock / Break State -->
+    <div class="card glass text-center" id="dashboard-lock" style="display:none; border-color:var(--red);">
+      <h2 style="font-family:'Unbounded',sans-serif; color:var(--red); font-size:28px; margin-bottom:12px;" id="lock-title">Session Locked.</h2>
+      <p style="color:var(--text2); margin-bottom:24px;" id="lock-msg">Your session features are currently locked.</p>
+      <div class="timer-display" id="lock-countdown">--:--:--</div>
+      
+      <!-- Overrides Container -->
+      <div id="lock-overrides-container"></div>
+    </div>
+
+    <!-- Active/Idle Dashboard Content -->
+    <div class="two-col" id="dashboard-main-content">
+      <!-- Left Column: Session Control -->
+      <div>
+        <div class="card glass" id="session-card-idle">
+          <div class="card-title">Start a Session</div>
+          <div class="text-muted mb-16 text-sm">Complete your daily routine and pre-flight checks to unlock your session features.</div>
+          <div id="preflight-list" class="mb-24 flex-col gap-8"></div>
+          
+          <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" disabled onclick="openConfigModal(true, 'normal')">Start Session</button>
+            <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Quick Hit ⚡</button>
+          </div>
+        </div>
+
+        <div class="card glass" id="session-card-active" style="display:none; border-color:var(--accent);">
+          <div class="session-active-card glass">
+            <div class="session-active-title">Session in Progress</div>
+            <div class="text-sm text-muted mb-16" id="active-pen-name"></div>
+            
+            <div class="session-stats-row" style="margin-bottom:12px;">
+              <div class="session-stat">
+                <span class="session-stat-val" id="active-hits">0</span>
+                <span class="session-stat-lbl">Hits Taken</span>
+              </div>
+              <div class="session-stat">
+                <span class="session-stat-val" id="active-thc">0</span>
+                <span class="session-stat-lbl">Est. mg THC</span>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <div class="timer-display" id="active-duration" style="font-size:36px; color:var(--text2); margin-bottom:4px; margin-top:8px;">00:00</div>
+                <div class="session-stat-lbl text-center">Total Session Time</div>
+            </div>
+
+            <div class="timer-display" id="wait-timer">--:--</div>
+            <div class="text-muted text-sm mb-16" id="wait-timer-lbl">Wait before next hit</div>
+
+            <div style="font-family:'Unbounded',sans-serif; font-size:13px; color:var(--accent); margin-bottom:24px;" id="hits-remaining-txt"></div>
+
+            <div class="flex-row" style="justify-content:center; gap:12px;">
+              <button class="btn btn-primary" id="btn-take-hit" style="padding:16px 24px;" onclick="openConfigModal(false, 'normal')">+ Take Another Hit</button>
+              <button class="btn btn-ghost" id="btn-add-time" style="padding:16px 24px;" onclick="addTimeToWait()">+ 5 Mins</button>
+            </div>
+
+            <div class="alert ok mt-16 text-center" style="justify-content:center; border:1px dashed var(--green-border); background:rgba(92,170,127,0.05); color:var(--green);">
+              <span style="font-weight:700;">💧 Friendly Reminder: Keep drinking water!</span>
+            </div>
+            
+            <div class="form-group mt-24 text-left">
+              <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom:4px;">
+                 <label style="color:var(--text3); font-size:10px; margin:0;" id="active-notes-lbl">Session Scratchpad</label>
+                 <button class="btn btn-ghost btn-sm" style="padding:4px 8px; font-size:9px;" onclick="insertTimestamp('active-notes')">⏱ Timestamp</button>
+              </div>
+              <textarea id="active-notes" rows="4" placeholder="Write thoughts here as your session progresses. They will carry over to your final recap." oninput="saveActiveNotes()" class="glass" style="border-color:var(--border2); font-size:13px;"></textarea>
+            </div>
+          </div>
+
+          <!-- MEDIA LOG (Only in Active Session) -->
+          <div class="mt-16 glass" style="background:var(--bg3); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); text-align:left;">
+            <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+               <label style="color:var(--text3); font-size:10px; margin:0; font-weight:700; text-transform:uppercase; letter-spacing:1px;">Media / Videos Watched</label>
+               <button class="btn btn-ghost btn-sm" style="padding:4px 8px; font-size:9px;" onclick="openMediaModal()">+ Add Review</button>
+            </div>
+            <div id="active-media-list"></div>
+          </div>
+          
+          <div class="mt-16 glass" style="background:var(--bg3); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); text-align:center;">
+             <div class="text-sm text-muted mb-8">While you wait, why not:</div>
+             <div style="font-family:'Unbounded',sans-serif; font-size:13px; color:var(--text);" id="active-recommendation"></div>
+          </div>
+
+          <button class="btn btn-ghost btn-block mt-16" style="padding:16px; border-color:var(--red-border); color:var(--red);" onclick="endSession()">End Session & Log</button>
+        </div>
+      </div>
+
+      <!-- Right Column: Recent -->
+      <div>
+        <div class="card glass">
+          <div class="card-title">Recent Sessions</div>
+          <div id="dash-recent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION RECAP -->
+  <div class="content" id="tab-recap">
+    <div class="card glass" id="recap-empty">
+      <div class="empty">No session is currently awaiting recap. Start and end a session on the dashboard first.</div>
+    </div>
+
+    <div id="recap-form" style="display:none;">
+      <div class="card glass" style="border-color:var(--accent);">
+        <div class="card-title" style="color:var(--accent);">Session Recap & Log</div>
+        <div class="text-muted mb-24 text-sm">Review your session data and log how you feel to finalize it.</div>
+        
+        <div class="two-col mb-24">
+          <div class="stat glass"><div class="stat-label">Total Hits</div><div class="stat-value" id="recap-hits">0</div></div>
+          <div class="stat glass"><div class="stat-label">Total Est. THC</div><div class="stat-value" id="recap-thc">0mg</div></div>
+        </div>
+
+        <div class="form-group mb-24">
+          <label>Final Feeling</label>
+          <div class="feel-grid" id="recap-feel-grid"></div>
+          <input type="hidden" id="recap-feel-val" value="5">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+            <span>Awful</span><span>Great</span>
+          </div>
+        </div>
+
+        <div class="form-group mb-24">
+          <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
+             <label style="margin:0;">Overall Session Notes</label>
+             <button class="btn btn-ghost btn-sm" style="padding:4px 8px; font-size:9px;" onclick="insertTimestamp('recap-notes')">⏱ Timestamp</button>
+          </div>
+          <textarea id="recap-notes" class="glass" rows="6" placeholder="Did it help? Any side effects? Your session scratchpad has been brought over."></textarea>
+        </div>
+
+        <div class="flex-row">
+          <button class="btn btn-ghost" onclick="cancelRecap()">Discard Session</button>
+          <button class="btn btn-primary ml-auto" style="padding:16px 32px;" onclick="saveRecap()">Save & Log Session</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="content" id="tab-history">
+    <div class="card glass">
+      <div class="flex-row mb-16">
+        <div class="card-title" style="margin-bottom:0;">All Sessions</div>
+        <button class="btn btn-ghost btn-sm ml-auto" onclick="openPastSessionModal()">+ Log Past Session</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="content" id="tab-stats">
+    <div class="card glass">
+      <div class="card-title">Lifetime Statistics</div>
+      <div class="stat-grid" id="stats-grid"></div>
+    </div>
+    <div class="card glass mt-24">
+      <div class="card-title">Favorite Pen</div>
+      <div id="stats-favorite-pen" class="text-center" style="padding: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="content" id="tab-calendar">
+    <div class="two-col">
+      <div class="card glass">
+        <div class="flex-row mb-24">
+          <button class="btn btn-ghost" onclick="calPrev()">← Prev</button>
+          <div style="flex:1;text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;font-size:18px" id="cal-month-lbl"></div>
+          <button class="btn btn-ghost" onclick="calNext()">Next →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:var(--text3);margin-bottom:8px;">
+          <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+        </div>
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
+        <div class="flex-row mt-24" style="justify-content:center; gap:16px;">
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:var(--bg3);border:1px solid var(--border2)"></div><span class="text-sm text-muted">Sober</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(74,159,196,0.4)"></div><span class="text-sm text-muted">Day</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(212,168,67,0.4)"></div><span class="text-sm text-muted">Night</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(224,94,94,0.4)"></div><span class="text-sm text-muted">Both</span></div>
+        </div>
+      </div>
+      
+      <div class="cal-details glass" id="cal-details-pane">
+        <div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEARANCE TESTS -->
+  <div class="content" id="tab-clearance">
+      <div class="card glass text-center mb-24">
+         <div class="text-sm text-muted mb-8 text-uppercase" style="letter-spacing:1px;font-weight:bold;">Time Since Last Hit</div>
+         <div style="font-size: 42px; font-weight: 800; font-family: 'Unbounded', sans-serif; color: var(--accent); letter-spacing: -1px;" id="cl-time-elapsed">--:--:--</div>
+         <div class="text-sm text-muted mt-8" id="cl-pen-used"></div>
+      </div>
+
+      <div class="card glass mb-24" style="border-color: var(--border2); background: var(--bg3);">
+           <div class="flex-row" style="justify-content: space-between;">
+               <div class="text-sm text-muted"><strong>Tolerance Factor:</strong> <span id="cl-metrics-tol">--</span></div>
+               <div class="text-sm text-muted"><strong>Last THC:</strong> <span id="cl-metrics-thc">--</span></div>
+               <div class="text-sm text-muted"><strong>Metabolic Multiplier:</strong> <span id="cl-metrics-multiplier">--</span></div>
+           </div>
+           <p class="text-xs text-muted mt-8" style="font-style:italic; font-size:11px;">Windows dynamically adjust based on your tolerance setting and the THC% of your last pen.</p>
+      </div>
+
+      <div class="two-col">
+          <div class="card glass">
+              <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Saliva / Mouth Swab</div></div>
+              <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-saliva-status">--</div>
+              <div class="text-sm text-muted" id="cl-saliva-desc"></div>
+              <div class="clearance-progress-bg">
+                  <div class="clearance-progress-fill" id="cl-saliva-bar"></div>
+              </div>
+          </div>
+
+          <div class="card glass">
+              <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Urine Test</div></div>
+              <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-urine-status">--</div>
+              <div class="text-sm text-muted" id="cl-urine-desc"></div>
+              <div class="clearance-progress-bg">
+                  <div class="clearance-progress-fill" id="cl-urine-bar"></div>
+              </div>
+          </div>
+      </div>
+      
+      <div class="alert warn mt-24">
+         <span class="alert-icon">⚠️</span>
+         <span><strong>Disclaimer:</strong> This clearance calculator provides estimates based on pharmacokinetic models, your tolerance, and THC percentage. Individual metabolism, body fat, and hydration significantly affect real-world outcomes. Do not rely on this for legal or employment purposes.</span>
+      </div>
+  </div>
+
+  <!-- PENS & DOSING -->
+  <div class="content" id="tab-pens">
+    <div class="two-col">
+      <div>
+        <div class="card glass">
+          <div class="card-title">Pen & Dosage Database</div>
+          <div id="pen-db-list" class="flex-col gap-16"></div>
+        </div>
+        
+        <div class="card glass mt-24" id="graveyard-card">
+          <div class="card-title">Graveyard 🫡🥀</div>
+          <p class="text-sm text-muted mb-16">Pens that have run their course. May they rest in peace.</p>
+          <div id="graveyard-list" class="flex-col gap-16"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card glass">
+          <div class="card-title">Add New Pen</div>
+          <div class="form-row">
+            <div class="form-group"><label>Name</label><input type="text" id="pen-name" placeholder="e.g. Alaskan Thunderfuck" class="glass"></div>
+            <div class="form-group"><label>THC %</label><input type="number" id="pen-thc" placeholder="75" step="0.1" class="glass"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>CBD % (Optional)</label><input type="number" id="pen-cbd" placeholder="0" step="0.1" class="glass"></div>
+            <div class="form-group"><label>CBN % (Optional)</label><input type="number" id="pen-cbn" placeholder="0" step="0.1" class="glass"></div>
+            <div class="form-group"><label>Notes/Terpenes</label><input type="text" id="pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm mt-16" onclick="addPen()">+ Add Pen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROUTINE & PREFLIGHT -->
+  <div class="content" id="tab-routine">
+    <div class="two-col">
+      <div class="card glass">
+        <div class="card-title">Pre-Flight Routine</div>
+        <p class="text-sm text-muted mb-16">This is your unified daily routine and safety checklist. Everything here must be checked off before you can unlock a session on the Dashboard.</p>
+        <div id="routine-list"></div>
+        <button class="btn btn-ghost btn-sm mt-16" onclick="resetRoutine()">Reset Checks</button>
+      </div>
+      <div class="card glass">
+        <div class="card-title">Customize Checks</div>
+        <div class="form-group mb-16"><label>New Routine Item / Check</label><input type="text" id="new-habit-input" placeholder="e.g. Drink a glass of water" class="glass"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addHabit()">+ Add Requirement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASKS & JOURNAL -->
+  <div class="content" id="tab-todo">
+    <div class="two-col">
+      <div>
+        <div class="card glass">
+          <div class="card-title">Pending Tasks</div>
+          <p class="text-sm text-muted mb-16">Things to keep you occupied during wait times or while high.</p>
+          <div class="flex-row mb-16">
+             <input type="text" id="new-todo-input" placeholder="e.g. Organize my desk" class="glass" style="flex:1;">
+             <button class="btn btn-ghost btn-sm" onclick="addTodo()">+ Add</button>
+          </div>
+          <div id="todo-list"></div>
+        </div>
+        
+        <div class="card glass mt-24">
+          <div class="card-title">Vibe Check / Songs</div>
+          <p class="text-sm text-muted mb-16">Music to listen to during your session.</p>
+          <div class="flex-row mb-16">
+             <input type="text" id="new-song-input" placeholder="e.g. Pink Floyd - Time" class="glass" style="flex:1;">
+             <button class="btn btn-ghost btn-sm" onclick="addSong()">+ Add</button>
+          </div>
+          <div id="song-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card glass">
+          <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+             <div class="card-title" style="margin:0;">Personal Notes / Journal</div>
+             <button class="btn btn-ghost btn-sm" style="padding:4px 8px; font-size:9px;" onclick="insertTimestamp('journal-text')">⏱ Add Timestamp</button>
+          </div>
+          <p class="text-sm text-muted mb-16">A scratchpad for thoughts, ideas, or reflections. Auto-saves.</p>
+          <textarea id="journal-text" class="glass" rows="18" placeholder="Write here..." oninput="saveJournal()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOALS -->
+  <div class="content" id="tab-goals">
+    <div class="card glass">
+      <div class="card-title">Self-Improvement Goals</div>
+      <p class="text-sm text-muted mb-16">Set custom milestones and self-improvement goals for yourself.</p>
+      <div class="flex-row mb-24">
+         <input type="text" id="new-goal-input" placeholder="e.g. Read 2 books this month" class="glass" style="flex:1;">
+         <button class="btn btn-primary btn-sm" onclick="addGoal()">+ Add Goal</button>
+      </div>
+      <div id="goals-list" class="flex-col gap-8"></div>
+    </div>
+  </div>
+
+  <!-- RULES & GUIDE -->
+  <div class="content" id="tab-guide">
+    <div class="card glass">
+      <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+         <div class="card-title" style="margin:0;">My Golden Rules</div>
+         <button class="btn btn-primary btn-sm" onclick="openGuideModal()">📖 Read the Guide</button>
+      </div>
+      <p class="text-sm text-muted mb-16">Set personal rules and boundaries for your consumption. Review these regularly.</p>
+      
+      <div id="rules-list" class="mb-24 flex-col gap-8"></div>
+
+      <div class="flex-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+         <input type="text" id="new-rule-input" placeholder="e.g. Always finish responsibilities first." class="glass" style="flex:1;">
+         <button class="btn btn-ghost btn-sm" onclick="addRule()">+ Add Rule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="content" id="tab-settings">
+    <div class="two-col">
+      <div>
+        <div class="card glass">
+          <div class="card-title">Smoking Limits</div>
+          
+          <div class="toggle-row">
+            <label class="toggle-label" for="s-enforceWeeklyLimit">Enforce Weekly Limit Lockout</label>
+            <label class="toggle"><input type="checkbox" id="s-enforceWeeklyLimit" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-sessPerWeek">Max sessions per week</label><input class="num-input glass" type="number" id="s-sessPerWeek" min="1" max="14" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-quickHitsPerWeek">Max quick hits per week</label><input class="num-input glass" type="number" id="s-quickHitsPerWeek" min="0" max="20" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-maxHits">Max hits per session</label><input class="num-input glass" type="number" id="s-maxHits" min="1" max="20" onchange="saveSettings(true)"></div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-enforceRestDays">Enforce Rest Days Lockout</label>
+            <label class="toggle"><input type="checkbox" id="s-enforceRestDays" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-restDays">Required Rest Days (0-5)</label>
+            <input type="range" id="s-restDays" min="0" max="5" oninput="document.getElementById('restDaysLbl').innerText=this.value; saveSettings(true)" style="width:100px;">
+            <span id="restDaysLbl" style="font-weight:bold; width:20px; text-align:right;"></span>
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-autoTBreak">Auto Monthly T-Break</label>
+            <label class="toggle"><input type="checkbox" id="s-autoTBreak" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-autoTBreakWeek">Scheduled Break Week</label>
+            <select id="s-autoTBreakWeek" class="glass" onchange="saveSettings(true)">
+              <option value="1">Week 1 (Days 1-7)</option>
+              <option value="2">Week 2 (Days 8-14)</option>
+              <option value="3">Week 3 (Days 15-21)</option>
+              <option value="4">Week 4 (Days 22 to End)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-daySmokingEnabled">Enable Day Smoking</label>
+            <label class="toggle"><input type="checkbox" id="s-daySmokingEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-daySmokingDaysPerMonth">Max day-smoking days per month</label>
+            <input class="num-input glass" type="number" id="s-daySmokingDaysPerMonth" min="1" max="31" onchange="saveSettings(true)">
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-nightSmokingEnabled">Enable Night Smoking</label>
+            <label class="toggle"><input type="checkbox" id="s-nightSmokingEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+        
+        <div class="card glass mt-24" style="border-color:var(--amber);">
+          <div class="card-title" style="color:var(--amber);">"Fuck It" Override</div>
+          <p class="text-sm text-muted mb-16">Allow bypassing hard locks. Bypassing will reset your T-break period and flag your calendar.</p>
+          <div class="toggle-row">
+            <label class="toggle-label" for="s-allowFuckIt">Allow Bypassing Locks ("Fuck It" pass)</label>
+            <label class="toggle"><input type="checkbox" id="s-allowFuckIt" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-fuckItLimitPerMonth">Max bypasses per month</label>
+            <input class="num-input glass" type="number" id="s-fuckItLimitPerMonth" min="1" max="10" onchange="saveSettings(true)">
+          </div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Hit Customization</div>
+          
+          <p class="text-sm text-muted mb-16">Set how long a hit lasts per dose category. This dynamically updates THC estimation.</p>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseLow">Low Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseLow" min="1" max="15" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseMed">Medium Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseMed" min="1" max="20" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseHigh">High Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseHigh" min="1" max="20" onchange="saveSettings(true)"></div>
+          
+          <!-- Wait intervals -->
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;"><label class="toggle-label" for="s-nightWait">Night mode hit wait (minutes)</label><input class="num-input glass" type="number" id="s-nightWait" min="5" max="120" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-dayWait">Day mode hit wait (minutes)</label><input class="num-input glass" type="number" id="s-dayWait" min="30" max="480" onchange="saveSettings(true)"></div>
+          
+          <!-- Diablo mode -->
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" style="color:var(--purple)" for="s-diabloEnabled">Enable Diablo Dose</label>
+            <label class="toggle purple-toggle"><input type="checkbox" id="s-diabloEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-doseDiablo">Diablo Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseDiablo" min="5" max="30" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-diabloWait">Diablo mode wait (minutes)</label><input class="num-input glass" type="number" id="s-diabloWait" min="10" max="480" onchange="saveSettings(true)"></div>
+        </div>
+
+        <div class="card glass mt-24" style="border-color:var(--accent);">
+          <div class="card-title" style="color:var(--accent);">Restore Defaults</div>
+          <p class="text-sm text-muted mb-16">Reset all Rules, Limits, and Hit Customizations back to their default recommended values.</p>
+          <button class="btn btn-ghost btn-block" style="border-color:var(--accent); color:var(--accent);" onclick="resetUsageLimits()">Reset to Default Settings</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card glass">
+          <div class="card-title">Appearance & Accessibility</div>
+          <div class="form-group mb-16">
+            <label>App Theme</label>
+            <select id="s-theme" class="glass" onchange="saveSettings(true)">
+              <option value="auto">Auto (Day/Night Colors)</option>
+              <optgroup label="Accessibility">
+                <option value="high-contrast">High Contrast (A11y)</option>
+              </optgroup>
+              <optgroup label="Mfused Textures">
+                <option value="swirly-temple">Swirly Temple (Red/Black)</option>
+                <option value="galactic-grape">Galactic Grape (Purple)</option>
+                <option value="lemon-loopz">Lemon Loopz (Maize/Green)</option>
+                <option value="baja-blazed">Baja Blazed (Blue)</option>
+              </optgroup>
+              <optgroup label="Pride Themes">
+                <option value="genderfluid">Genderfluid Swirl</option>
+                <option value="trans">Trans Swirl</option>
+                <option value="non-binary">Non-Binary Swirl</option>
+              </optgroup>
+            </select>
+          </div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-largeText">Large Text (Accessibility)</label>
+            <label class="toggle"><input type="checkbox" id="s-largeText" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">User Profile</div>
+          <div class="form-group mb-16">
+            <label>THC Tolerance</label>
+            <select id="s-tolerance" class="glass" onchange="saveSettings(true)">
+              <option value="low">Low (Beginner / Sensitive)</option>
+              <option value="medium">Medium (Regular)</option>
+              <option value="high">High (Daily / Frequent)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Manual Schedule Break</div>
+          <p class="text-sm text-muted mb-16">Block out the dashboard to enforce a no-smoking break between dates.</p>
+          <div class="form-group mb-16"><label>Break Start</label><input type="date" id="s-breakStart" class="glass"></div>
+          <div class="form-group mb-16"><label>Break End</label><input type="date" id="s-breakEnd" class="glass"></div>
+          <div class="flex-row"><button class="btn btn-ghost btn-sm" onclick="saveBreakSchedule()">Set Break Range</button> <button class="btn btn-ghost btn-sm" onclick="clearBreakSchedule()">Clear Range</button></div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Emergency Links</div>
+          <div id="emergency-links-list" class="mb-24 flex-col gap-8"></div>
+          <hr style="border:none;border-top:0.5px solid var(--border);margin:24px 0">
+          <div class="form-row">
+            <div class="form-group"><label>Label</label><input type="text" id="el-name" placeholder="Calming Video" class="glass"></div>
+            <div class="form-group"><label>URL</label><input type="text" id="el-url" placeholder="https://..." class="glass"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="addEmergencyLink()">+ Add Link</button>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Data Backup & Recovery</div>
+          <p class="text-sm text-muted mb-16">Hard-save your entire history and settings to a JSON file, or restore from a previous backup.</p>
+          <div class="flex-row gap-16 mb-16">
+            <button class="btn btn-primary" onclick="exportDataJSON()">Export Backup</button>
+            <label class="btn btn-ghost" style="cursor:pointer;">
+              Import Backup
+              <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importDataJSON(event)">
+            </label>
+          </div>
+          
+          <hr style="border:none;border-top:0.5px solid var(--border);margin:24px 0">
+          <div class="card-title" style="color:var(--red)">Danger Zone</div>
+          <p class="text-sm text-muted mb-16">Completely erase all history, settings, and cache. This cannot be undone.</p>
+          <button class="btn btn-danger-solid btn-block" onclick="deleteAllData()">Delete All Data</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data & Quotes ───────────────────────────────────────────────────────────
+const WEED_QUOTES = [
+  "\"The biggest killer on the planet is stress and I still think the best medicine is and always has been cannabis.\" — Willie Nelson",
+  "\"I find that smoking a little weed helps to give me a little bit of a different perspective.\" — Seth Rogen",
+  "\"When you smoke the herb, it reveals you to yourself.\" — Bob Marley",
+  "\"It really puzzles me to see marijuana connected with narcotics... dope and all that crap. It's a thousand times better than whiskey - it's an assistant - a friend.\" — Louis Armstrong",
+  "\"Of course I know how to roll a joint.\" — Martha Stewart",
+  "Fun Fact: George Washington grew hemp at Mount Vernon as one of his primary crops.",
+  "Fun Fact: Cannabis has been used for medicinal purposes for over 3,000 years, dating back to ancient China.",
+  "Fun Fact: Carl Sagan was a secret advocate for marijuana use, believing it enhanced intellectual pursuits.",
+  "Fun Fact: The first e-commerce transaction ever made on the internet was a marijuana sale between students at Stanford and MIT in 1971.",
+  "Fun Fact: Bhutan is known for having marijuana grow wild almost everywhere, sometimes even feeding it to pigs to make them hungrier.",
+  "Reminder: Tolerance breaks (T-breaks) help reset your CB1 receptors, making your hits much more effective.",
+  "Reminder: Stay hydrated. Cannabis can temporarily decrease saliva production, causing cottonmouth.",
+  "Tip: Chewing on black peppercorns can help reduce marijuana-induced anxiety or paranoia thanks to the terpene caryophyllene."
+];
+const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust", "Skywalker OG", "Granddaddy Purp", "Cerebral Assassin", "Couch-Lock Supreme", "Green Crack", "Cat Piss", "Gorilla Glue", "Sour Diesel", "Northern Lights", "Blue Dream", "Girl Scout Cookies", "Strawberry Cough", "Maui Wowie", "Pineapple Express"];
+
+// ── State & Defaults ────────────────────────────────────────────────────────
+const DEFAULT_SETTINGS = { 
+  maxHits: 4, sessPerWeek: 5, quickHitsPerWeek: 3, nightWait: 15, dayWait: 120, breakStart: null, breakEnd: null, tolerance: 'medium', 
+  diabloEnabled: false, diabloWait: 240, autoTBreak: true, autoTBreakWeek: 4, 
+  enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
+  doseLow: 3, doseMed: 5, doseHigh: 7, doseDiablo: 10,
+  daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
+  allowFuckIt: true, fuckItLimitPerMonth: 2, autoTBreakBypassedMonth: -1,
+  theme: 'auto', largeText: false
+};
+
+const DEFAULT_ROUTINE = [
+  { id:'r1', text:'Drink a glass of water', done:false },
+  { id:'r2', text:'No major commitments early tomorrow', done:false },
+  { id:'r3', text:'Completed a self-care task today', done:false },
+  { id:'r4', text:'I have no major anxiety right now', done:false }
+];
+
+const DEFAULT_RULES = [
+  { id: 'ru1', text: 'Never smoke before all daily responsibilities are done.' },
+  { id: 'ru2', text: 'Use cannabis to enhance experiences, not to escape reality.' },
+  { id: 'ru3', text: 'Respect the limits you\'ve set for yourself.' }
+];
+
+function ld(k,d) { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } }
+function sv(k,v) { localStorage.setItem(k,JSON.stringify(v)); }
+
+let storedSettings = ld('t2_settings', {});
+let settings = { ...DEFAULT_SETTINGS, ...storedSettings };
+
+let username = ld('t2_username', 'User');
+let pens = ld('t2_pens', []); 
+let graveyard = ld('t2_graveyard', []);
+let sessions = ld('t2_sessions', []);
+let emergencyLinks = ld('t2_emergency', []);
+let todos = ld('t2_todos', []);
+let songs = ld('t2_songs', []);
+let goals = ld('t2_goals', []);
+let rules = ld('t2_rules', DEFAULT_RULES);
+let journalText = ld('t2_journal', '');
+let plannedBreaks = ld('t2_planned_breaks', []); 
+let fuckIts = ld('t2_fuckits', []); 
+
+let routineChecks = ld('t2_routine', DEFAULT_ROUTINE);
+
+let currentMode = 'night'; 
+let activeSession = ld('t2_activeSession', null);
+let waitTimerInterval = null;
+let lockTimerInterval = null;
+let quoteInterval = null;
+let drawSequenceState = { timeout: null, interval: null };
+let selectedCalDate = null; 
+let emStep = 0; // Emergency modal state
+let pendingConfigType = 'normal'; // Tracks if modal is for normal session or quick hit
+
+// Helper Functions
+function ds(d) {
+  const l = new Date(d.getTime() - (d.getTimezoneOffset() * 60000));
+  return l.toISOString().slice(0,10);
+}
+function today() { return ds(new Date()); }
+function fmtTime(d) { return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function weekStartFromDate(d) {
+  const date = new Date(d);
+  const dow = date.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0,0,0,0);
+  return date.getTime();
+}
+function weekStart() { return weekStartFromDate(new Date()); }
+function penById(id) { return pens.find(p=>p.id===id) || graveyard.find(p=>p.id===id); }
+function isFuckItDay(dStr = today()) { return fuckIts.includes(dStr); }
+
+function sumTHC(hitsArray, penObj) {
+  if(!penObj || !hitsArray) return 0;
+  const mgPerSec = penObj.thc / 100;
+  let total = 0;
+  hitsArray.forEach(h => { total += (h.drawSeconds * mgPerSec); });
+  return Math.round(total * 100) / 100; 
+}
+
+function getLastHitInfo() {
+  let lastHitTime = 0;
+  let lastPenId = null;
+
+  sessions.forEach(s => {
+      s.hits.forEach(h => {
+          if (h.time > lastHitTime) {
+              lastHitTime = h.time;
+              lastPenId = s.penId;
+          }
+      });
+  });
+
+  if (activeSession) {
+      activeSession.hits.forEach(h => {
+          if (h.time > lastHitTime) {
+              lastHitTime = h.time;
+              lastPenId = activeSession.penId;
+          }
+      });
+  }
+
+  return { time: lastHitTime, penId: lastPenId };
+}
+
+function randomizePenPlaceholder() {
+  const el = document.getElementById('pen-name');
+  if(el) el.placeholder = `e.g. ${WACKY_NAMES[Math.floor(Math.random()*WACKY_NAMES.length)]}`;
+}
+function rotateQuote() {
+  const seed = Math.floor(Math.random() * WEED_QUOTES.length);
+  document.getElementById('greeting-quote').innerText = WEED_QUOTES[seed];
+}
+function getFeelColorObj(val) {
+  if (val <= 2) return { bg: 'rgba(255,77,77,0.15)', border: 'rgba(255,77,77,0.5)', text: '#ff4d4d' };
+  if (val <= 4) return { bg: 'rgba(255,153,51,0.15)', border: 'rgba(255,153,51,0.5)', text: '#ff9933' };
+  if (val <= 6) return { bg: 'rgba(255,214,51,0.15)', border: 'rgba(255,214,51,0.5)', text: '#ffd633' };
+  if (val <= 8) return { bg: 'rgba(153,230,153,0.15)', border: 'rgba(153,230,153,0.5)', text: '#99e699' };
+  return { bg: 'rgba(51,204,51,0.15)', border: 'rgba(51,204,51,0.5)', text: '#33cc33' };
+}
+
+// ── Init & Mode ─────────────────────────────────────────────────────────────
+window.onload = () => {
+  if (Notification && Notification.permission === 'default') Notification.requestPermission();
+  
+  if (pens.length === 0 && graveyard.length === 0) {
+    const sm = document.getElementById('setup-modal');
+    if (sm) sm.classList.add('open');
+  }
+
+  randomizePenPlaceholder();
+  const spn = document.getElementById('setup-pen-name');
+  if (spn) spn.placeholder = `e.g. ${WACKY_NAMES[Math.floor(Math.random()*WACKY_NAMES.length)]}`;
+
+  rotateQuote();
+  if(quoteInterval) clearInterval(quoteInterval);
+  quoteInterval = setInterval(rotateQuote, 15000);
+
+  generateFeelGrid('config-feel-grid');
+  generateFeelGrid('recap-feel-grid');
+  generateFeelGrid('past-feel-grid');
+
+  const journalEl = document.getElementById('journal-text');
+  if (journalEl) journalEl.value = journalText;
+  
+  updateGlobalClock();
+  applyTheme(); 
+  setInterval(updateGlobalClock, 1000);
+
+  renderDashboard();
+  renderRoutine();
+  renderTodo();
+  renderSongs();
+  renderGoals();
+  renderPens();
+  renderRules();
+  renderSettings();
+  
+  if(activeSession && activeSession.nextHitReadyAt) {
+    startWaitTimerUI();
+  }
+};
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobile-overlay').classList.toggle('open');
+}
+
+function applyTheme() {
+   const t = settings.theme || 'auto';
+   const mb = document.getElementById('mode-badge');
+   
+   document.body.classList.toggle('large-text', settings.largeText);
+
+   if (t === 'auto') {
+      document.body.setAttribute('data-mode', currentMode);
+      document.body.removeAttribute('data-theme');
+      mb.textContent = currentMode === 'night' ? '☽ NIGHT MODE' : '☀ DAY MODE';
+      mb.className = `mode-badge ${currentMode}`;
+   } else {
+      document.body.removeAttribute('data-mode');
+      document.body.setAttribute('data-theme', t);
+      
+      let friendlyName = t.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      if (t === 'high-contrast') friendlyName = 'High Contrast';
+
+      mb.textContent = `✨ ${friendlyName} (${currentMode.toUpperCase()})`;
+      mb.className = `mode-badge custom-theme-badge`;
+   }
+}
+
+function updateGlobalClock() {
+  const now = new Date();
+  
+  const timeStr = now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ' · ' + fmtTime(now);
+  const elDate = document.getElementById('greeting-date');
+  if (elDate) elDate.innerText = timeStr;
+
+  const hr = now.getHours();
+  const newMode = (hr >= 6 && hr < 18) ? 'day' : 'night';
+  if (newMode !== currentMode) {
+    currentMode = newMode;
+    applyTheme(); 
+    renderDashboard();
+  }
+
+  if (activeSession) {
+    const durEl = document.getElementById('active-duration');
+    if (durEl) {
+      const diff = Math.floor((Date.now() - activeSession.ts) / 1000);
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
+      let durStr = "";
+      if (h > 0) durStr += String(h).padStart(2,'0') + ':';
+      durStr += String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      durEl.innerText = durStr;
+    }
+  }
+
+  const clTab = document.getElementById('tab-clearance');
+  if (clTab && clTab.classList.contains('active')) {
+      renderClearance();
+  }
+}
+
+function showCustomModal(title, msg, buttons) {
+  document.getElementById('custom-modal-title').innerText = title;
+  document.getElementById('custom-modal-body').innerHTML = msg;
+  const btnContainer = document.getElementById('custom-modal-buttons');
+  btnContainer.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls || 'btn-ghost');
+    btn.innerText = b.text;
+    btn.onclick = () => {
+      document.getElementById('custom-modal').classList.remove('open');
+      if(b.onClick) b.onClick();
+    };
+    btnContainer.appendChild(btn);
+  });
+  document.getElementById('custom-modal').classList.add('open');
+}
+
+function completeSetup() {
+  const uname = document.getElementById('setup-user-name').value.trim();
+  const pname = document.getElementById('setup-pen-name').value.trim();
+  const thc = parseFloat(document.getElementById('setup-pen-thc').value);
+  const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
+  const cbn = parseFloat(document.getElementById('setup-pen-cbn').value) || 0;
+  const notes = document.getElementById('setup-pen-notes').value.trim();
+  const tol = document.getElementById('setup-user-tolerance').value;
+
+  if(!uname || !pname || !thc) {
+    showCustomModal('Incomplete', 'Please fill out Name, Pen Name, and THC % to continue.', [{text:'OK'}]);
+    return;
+  }
+  
+  username = uname; sv('t2_username', username);
+  settings.tolerance = tol; sv('t2_settings', settings);
+  pens.push({ id: 'p'+Date.now(), name: pname, thc, cbd, cbn, notes });
+  sv('t2_pens', pens);
+  
+  document.getElementById('setup-modal').classList.remove('open');
+  renderPens();
+  renderDashboard();
+  
+  setTimeout(() => { openGuideModal(); }, 500); // Show guide after initial setup
+}
+
+function showToast(msg, isWater=false) {
+  const t = document.createElement('div');
+  t.className = 'toast glass' + (isWater ? ' water' : '');
+  t.innerHTML = `<span>${isWater ? '💧' : 'ℹ️'}</span> <span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(), 5000);
+}
+
+function insertTimestamp(id) {
+   const el = document.getElementById(id);
+   if(!el) return;
+   const ts = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+   const prefix = el.value.length > 0 && !el.value.endsWith('\n') ? '\n' : '';
+   el.value += `${prefix}[${ts}] `;
+   el.focus();
+   if(id === 'active-notes') saveActiveNotes();
+   if(id === 'journal-text') saveJournal();
+}
+
+function openGuideModal() { document.getElementById('guide-modal').classList.add('open'); }
+function closeGuideModal() { document.getElementById('guide-modal').classList.remove('open'); }
+
+// ── Dashboard Logic & Locks ─────────────────────────────────────────────────
+function togglePreflight(id) {
+  const check = routineChecks.find(c => c.id === id);
+  if(check) check.done = !check.done;
+  sv('t2_routine', routineChecks);
+  renderDashboard();
+  renderRoutine();
+}
+
+function checkAllPreflight() { return routineChecks.every(c => c.done); }
+
+function getBlockingReasons(dStr) {
+   let reasons = [];
+   const dayTs = new Date(dStr + "T12:00:00").getTime();
+   const dObj = new Date(dStr + "T12:00:00");
+
+   // 1. Manually Planned No-Smoke Day
+   if (plannedBreaks.includes(dStr)) {
+       reasons.push("Manually Planned No-Smoke Day");
+   }
+
+   // 2. Manual Break Range
+   if (settings.breakStart && settings.breakEnd) {
+       const bs = new Date(settings.breakStart + "T00:00:00").getTime();
+       const be = new Date(settings.breakEnd + "T23:59:59").getTime();
+       if (dayTs >= bs && dayTs <= be) {
+           reasons.push("Scheduled Break Range");
+       }
+   }
+
+   // 3. Auto Monthly T-Break (Custom Week Selector)
+   if (settings.autoTBreak && settings.autoTBreakBypassedMonth !== dObj.getMonth()) {
+       const day = dObj.getDate();
+       const week = settings.autoTBreakWeek || 4;
+       const daysInMo = new Date(dObj.getFullYear(), dObj.getMonth() + 1, 0).getDate();
+       let isBreakDay = false;
+
+       if (week === 1 && day >= 1 && day <= 7) isBreakDay = true;
+       else if (week === 2 && day >= 8 && day <= 14) isBreakDay = true;
+       else if (week === 3 && day >= 15 && day <= 21) isBreakDay = true;
+       else if (week === 4 && day >= 22 && day <= daysInMo) isBreakDay = true;
+
+       if (isBreakDay) {
+           reasons.push(`Auto Monthly T-Break (Week ${week})`);
+       }
+   }
+
+   // 4. Weekly Session Limit
+   if (settings.enforceWeeklyLimit) {
+       let ws = weekStartFromDate(dObj);
+       let weekSessCount = sessions.filter(s => {
+          let sts = new Date(s.ts).getTime();
+          return sts >= ws && sts < ws + 7*86400000 && !s.isQuickHit;
+       }).length;
+       if (weekSessCount >= settings.sessPerWeek) {
+           reasons.push(`Weekly Session Limit Reached (${settings.sessPerWeek})`);
+       }
+   }
+
+   // 5. Mandatory Rest Days
+   if (settings.enforceRestDays && settings.restDays > 0) {
+       let isRestDay = false;
+       for (let i = 1; i <= settings.restDays; i++) {
+           let prevDate = new Date(dayTs - i * 86400000);
+           let prevDStr = ds(prevDate);
+           const hasSess = sessions.some(s => ds(new Date(s.ts)) === prevDStr && !s.isQuickHit);
+           if (hasSess) {
+               isRestDay = true;
+           }
+       }
+       if (isRestDay) {
+           reasons.push(`Mandatory ${settings.restDays}-Day Rest Period Active`);
+       }
+   }
+
+   return { reasons };
+}
+
+function checkDailyLock() {
+  if (activeSession) return { locked: false };
+  if (isFuckItDay()) return { locked: false };
+
+  const now = new Date();
+  const todaySess = sessions.filter(s => ds(new Date(s.ts)) === ds(now) && !s.isQuickHit);
+  const hasDay = todaySess.some(s => s.mode === 'day');
+  const hasNight = todaySess.some(s => s.mode === 'night');
+
+  let getNextTarget = (hour) => {
+      let t = new Date(now);
+      t.setHours(hour, 0, 0, 0);
+      if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
+      return t.getTime();
+  };
+
+  if (currentMode === 'night') {
+      if (!settings.nightSmokingEnabled) return { locked: true, msg: "Night smoking is disabled. Waiting for morning.", endTs: getNextTarget(6) };
+      if (hasNight) return { locked: true, msg: "Good night. You've completed your session for today.", endTs: settings.daySmokingEnabled ? getNextTarget(6) : getNextTarget(18) };
+  } else if (currentMode === 'day') {
+      if (!settings.daySmokingEnabled) return { locked: true, msg: "Day smoking is disabled. Hang tight until 6 PM.", endTs: getNextTarget(18) };
+      
+      const mo = now.getMonth();
+      const yr = now.getFullYear();
+      let daySessDates = new Set();
+      sessions.forEach(s => {
+          const d = new Date(s.ts);
+          if (d.getMonth() === mo && d.getFullYear() === yr && s.mode === 'day' && !s.isQuickHit) {
+              daySessDates.add(ds(d));
+          }
+      });
+      
+      if (daySessDates.size >= settings.daySmokingDaysPerMonth && !daySessDates.has(ds(now))) {
+           return { locked: true, msg: `Monthly day-smoking limit reached (${settings.daySmokingDaysPerMonth} days). Waiting for night mode.`, endTs: getNextTarget(18) };
+      }
+      
+      if (hasDay) return { locked: true, msg: "You've already had your day session. Hang tight until night mode activates at 6 PM.", endTs: getNextTarget(18) };
+  }
+  return { locked: false };
+}
+
+function getUnlockTimeForDate(dObj) {
+    if (!settings.daySmokingEnabled) return 18; // If no day smoking, unblock at 6 PM
+    
+    const mo = dObj.getMonth();
+    const yr = dObj.getFullYear();
+    let daySessDates = new Set();
+    sessions.forEach(s => {
+        const sd = new Date(s.ts);
+        if (sd.getMonth() === mo && sd.getFullYear() === yr && s.mode === 'day' && !s.isQuickHit) {
+            daySessDates.add(ds(sd));
+        }
+    });
+    
+    if (daySessDates.size >= settings.daySmokingDaysPerMonth && !daySessDates.has(ds(dObj))) {
+        return 18; // Day limit reached, unlocks at 6 PM
+    }
+    return 6; // Fully unblocked, unlocks at 6 AM
+}
+
+function calculateUnlockTime() {
+    const now = new Date();
+    const todayStr = ds(now);
+    const dailyStatus = checkDailyLock();
+    const { reasons: todayReasons } = getBlockingReasons(todayStr);
+
+    // If there are no general locks today, and daily limit isn't hit, we are unlocked.
+    if (todayReasons.length === 0 && !dailyStatus.locked) return null;
+
+    let nextUnblockedDate = null;
+    let targetTs = null;
+
+    // Scan ahead to find the first completely unblocked day (max 60 days to prevent infinite loops)
+    for (let i = 0; i < 60; i++) {
+        let d = new Date(now.getTime() + i * 86400000);
+        let dStr = ds(d);
+        const { reasons } = getBlockingReasons(dStr);
+
+        if (i === 0) {
+            if (reasons.length === 0 && dailyStatus.locked) {
+                // Today has no long-term locks, but a daily limit lock (e.g. night-only mode).
+                // If it unlocks later today (not tomorrow), we use that exact time.
+                if (dailyStatus.endTs && dailyStatus.endTs > now.getTime() && ds(new Date(dailyStatus.endTs)) === todayStr) {
+                     targetTs = dailyStatus.endTs;
+                     break;
+                }
+            }
+            continue; // Today is otherwise blocked, keep scanning
+        } else {
+            if (reasons.length === 0) {
+                nextUnblockedDate = d;
+                break;
+            }
+        }
+    }
+
+    if (targetTs) return targetTs;
+    if (!nextUnblockedDate) return Date.now() + 60 * 86400000; // Fallback max
+
+    // Calculate exact hour (6AM or 6PM) for the first unblocked day
+    let unlockHour = getUnlockTimeForDate(nextUnblockedDate);
+    let unlockDate = new Date(nextUnblockedDate);
+    unlockDate.setHours(unlockHour, 0, 0, 0);
+
+    // Minor edge case safety
+    if (unlockDate.getTime() < now.getTime()) unlockDate.setDate(unlockDate.getDate() + 1);
+
+    return unlockDate.getTime();
+}
+
+function promptFuckIt() {
+  showCustomModal("Override Lock", "Are you sure you want to bypass your lock? This will use a 'Fuck It' pass to start a full Session.", [
+    {text: "Cancel"},
+    {text: "Yes, Override", cls: "btn-primary", onClick: () => {
+       showCustomModal("Final Warning", "Bypassing breaks entirely resets your T-break period and flags your calendar. Continue?", [
+         {text: "Cancel"},
+         {text: "FUCK IT ⚠️", cls: "btn-danger-solid", onClick: () => executeFuckIt(today())}
+       ]);
+    }}
+  ]);
+}
+
+function executeFuckIt(dStr = today()) {
+  resetTBreaks(dStr);
+  showToast("Lock bypassed.");
+  renderDashboard();
+  renderCalendar();
+}
+
+function resetTBreaks(dStr = today()) {
+  if(!fuckIts.includes(dStr)) fuckIts.push(dStr);
+  sv('t2_fuckits', fuckIts);
+  
+  settings.breakStart = null;
+  settings.breakEnd = null;
+  plannedBreaks = plannedBreaks.filter(d => d !== dStr);
+  settings.autoTBreakBypassedMonth = new Date().getMonth();
+  
+  sv('t2_settings', settings);
+  sv('t2_planned_breaks', plannedBreaks);
+}
+
+function openMediaModal() {
+   showCustomModal("Review Media", `
+     <p class="text-sm text-muted mb-16">Link a video, podcast, or song you're exploring during this session.</p>
+     <div class="form-group mb-16"><label>Title / Link</label><input type="text" id="m-title" placeholder="e.g. Kurzgesagt - Black Holes" class="glass"></div>
+     <div class="form-group mb-16"><label>Your Thoughts</label><textarea id="m-review" rows="3" placeholder="Mind-blowing concepts..." class="glass"></textarea></div>
+     <div class="form-group mb-16"><label>Rating (1-10)</label><input type="number" id="m-rating" min="1" max="10" value="10" class="num-input glass" style="width:100%;"></div>
+   `, [
+     {text: "Cancel"},
+     {text: "Save Media", cls: "btn-primary", onClick: () => {
+         const t = document.getElementById('m-title').value.trim();
+         const r = document.getElementById('m-review').value.trim();
+         const rr = document.getElementById('m-rating').value;
+         if(!t) return showToast("Title required");
+         if(!activeSession.media) activeSession.media = [];
+         activeSession.media.push({ title: t, review: r, rating: rr, time: Date.now() });
+         sv('t2_activeSession', activeSession);
+         renderDashboard();
+     }}
+   ]);
+}
+
+window.removeActiveMedia = function(idx) {
+   if(!activeSession || !activeSession.media) return;
+   activeSession.media.splice(idx, 1);
+   sv('t2_activeSession', activeSession);
+   renderDashboard();
+}
+
+function startLockCountdown(targetTs) {
+   if(lockTimerInterval) clearInterval(lockTimerInterval);
+   const tick = () => {
+      const rem = targetTs - Date.now();
+      if(rem <= 0) { renderDashboard(); return; }
+      
+      const d = Math.floor(rem / 86400000);
+      const h = Math.floor((rem % 86400000) / 3600000);
+      const m = Math.floor((rem % 3600000) / 60000);
+      const s = Math.floor((rem % 60000) / 1000);
+      
+      let str = "";
+      if (d > 0) str += `${d}d `;
+      if (h > 0 || d > 0) str += `${h}h `;
+      str += `${m}m ${s}s`;
+      
+      const el = document.getElementById('lock-countdown');
+      if (el) el.innerText = str;
+   };
+   tick();
+   lockTimerInterval = setInterval(tick, 1000);
+}
+
+function getCurrentTHCInBody(evalTime = Date.now()) {
+    let total = 0;
+    const cutoff = evalTime - (10 * 24 * 3600 * 1000); // 10 days ago to ensure complete terminal tracking
+
+    // Pharmacokinetic Constants for Robust Accuracy
+    const BIOAVAILABILITY = 0.35; // Roughly 35% of vaporized THC enters the bloodstream
+    const MG_OIL_PER_SECOND = 1.2; // Realistic vaporized oil output per second of draw
+
+    // Biphasic Decay Model Constants
+    // Represents realistic pharmacokinetics of THC (fast initial drop, slow residual trail)
+    const ALPHA_HALF_LIFE = 0.5; // Rapid distribution phase (blood to tissue/fat) - ~30 mins
+    const BETA_HALF_LIFE = 36.0; // Terminal elimination phase (clearing from fat) - ~36 hours
+    const ALPHA_WEIGHT = 0.8;    // 80% of initial payload follows rapid alpha drop
+    const BETA_WEIGHT = 0.2;     // 20% of payload enters deep tissue/slow elimination
+
+    const processHits = (hits, penId) => {
+        const pen = penById(penId);
+        if(!pen) return;
+        
+        // Convert percentage to a decimal (e.g., 85% THC -> 0.85)
+        const thcFraction = pen.thc / 100;
+
+        hits.forEach(h => {
+            if(h.time > cutoff && h.time <= evalTime) {
+                // 1. Calculate total THC vaporized during the draw
+                const totalMgVaporized = MG_OIL_PER_SECOND * h.drawSeconds * thcFraction;
+                
+                // 2. Calculate actual THC that hits the system
+                const hitMg = totalMgVaporized * BIOAVAILABILITY;
+                
+                const hoursElapsed = (evalTime - h.time) / 3600000;
+                
+                // 3. Robust biphasic exponential decay execution
+                const alphaDecay = ALPHA_WEIGHT * Math.pow(0.5, hoursElapsed / ALPHA_HALF_LIFE);
+                const betaDecay = BETA_WEIGHT * Math.pow(0.5, hoursElapsed / BETA_HALF_LIFE);
+                
+                const currentMg = hitMg * (alphaDecay + betaDecay); 
+                
+                total += currentMg;
+            }
+        });
+    };
+
+    sessions.forEach(s => processHits(s.hits, s.penId));
+    if(activeSession) processHits(activeSession.hits, activeSession.penId);
+
+    return total;
+}
+
+function renderDashboard() {
+  const dObj = new Date();
+  const hr = dObj.getHours();
+  const grt = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting-txt').innerText = `${grt}, ${username}.`;
+  
+  const ws = weekStart();
+  // Quick Hits are excluded from the main weekly session count
+  const weekSess = sessions.filter(s => new Date(s.ts).getTime() >= ws && !s.isQuickHit);
+  const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= ws && s.isQuickHit).length;
+  
+  const todaySess = sessions.filter(s => ds(new Date(s.ts)) === today());
+  
+  // Total hits and THC include quick hits for general metrics
+  let todayHits = todaySess.reduce((acc, s) => acc + s.hits.length, 0);
+  
+  let thcInBody = getCurrentTHCInBody();
+  let thcInBodyNextHour = getCurrentTHCInBody(Date.now() + 3600000);
+  let drainRatePerHour = Math.max(0, thcInBody - thcInBodyNextHour);
+  let drainRateColor = drainRatePerHour > 0 ? 'var(--green)' : 'var(--text3)';
+
+  if (activeSession) {
+    todayHits += activeSession.hits.length;
+  }
+
+  const weekCls = weekSess.length >= settings.sessPerWeek ? 'danger' : 'ok';
+  const remSess = Math.max(0, settings.sessPerWeek - weekSess.length);
+  const remSessStr = remSess === 1 ? 'session' : 'sessions';
+  
+  const qhRem = Math.max(0, settings.quickHitsPerWeek - weekQuickHits);
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat glass ${weekCls}">
+      <div class="stat-label">Remaining this week</div>
+      <div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> ${remSessStr}</span></div>
+    </div>
+    <div class="stat glass">
+      <div class="stat-label">Total Hits Today</div>
+      <div class="stat-value">${todayHits}</div>
+    </div>
+    <div class="stat glass" style="position:relative; padding-bottom: 24px;">
+      <div class="stat-label">Est. Active THC in Body</div>
+      <div class="stat-value">${thcInBody.toFixed(3)}<span class="text-sm text-muted">mg</span></div>
+      <div style="font-size:11px; margin-top:4px; font-weight:700;">
+        <span style="color:${drainRateColor};">↓ ${drainRatePerHour.toFixed(3)} mg/hr</span> <span style="color:var(--text3); font-weight:normal;">clear rate</span>
+      </div>
+      <div style="position:absolute; bottom:8px; right:12px; font-size:9px; color:var(--text3);">±15% est.</div>
+    </div>
+    <div class="stat glass ${activeSession ? 'warn' : 'ok'}">
+      <div class="stat-label">Status</div>
+      <div class="stat-value ${activeSession ? 'warn' : 'ok'}" style="font-size:20px;">
+        ${activeSession ? 'IN PROGRESS' : 'IDLE'}
+      </div>
+    </div>
+  `;
+
+  const lockPane = document.getElementById('dashboard-lock');
+  const mainPane = document.getElementById('dashboard-main-content');
+
+  const unlockTs = calculateUnlockTime();
+  if (unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay()) {
+      lockPane.style.display = 'block'; mainPane.style.display = 'none';
+
+      // Figure out the main reason for displaying message
+      const { reasons } = getBlockingReasons(today());
+      const dailyStatus = checkDailyLock();
+      let title = "Session Locked.";
+      let msg = "";
+
+      if (reasons.length > 0) {
+         title = reasons.some(r=>r.includes('Auto')) ? "Auto T-Break Active" : "Enjoy your break.";
+         msg = "Dashboard features locked. Next session avaliable 6AM that day. " + reasons.join(", ");
+      } else if (dailyStatus.locked) {
+         msg = dailyStatus.msg;
+      }
+
+      document.getElementById('lock-title').innerText = title;
+      document.getElementById('lock-msg').innerText = msg;
+      startLockCountdown(unlockTs);
+      
+      // Inject Lock Action Overrides
+      const now = new Date();
+      const usedThisMonth = fuckIts.filter(dStr => {
+          const d = new Date(dStr + "T12:00:00");
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }).length;
+
+      const fiRem = Math.max(0, settings.fuckItLimitPerMonth - usedThisMonth);
+      const oc = document.getElementById('lock-overrides-container');
+
+      let lockActionsHtml = '<div class="stat-grid" style="margin-top:32px;">';
+
+      lockActionsHtml += `
+          <div class="lock-action-card glass ${qhRem <= 0 ? 'disabled' : ''}" onclick="${qhRem > 0 ? 'openQuickHitModal()' : ''}" style="border-color: var(--accent-border);">
+              <div class="lock-action-icon">⚡</div>
+              <div class="lock-action-title" style="color: var(--accent);">Quick Hit</div>
+              <div class="lock-action-qty">${qhRem} remaining this week</div>
+              <div class="lock-action-desc">Take a single microdose hit without starting a full session. Bypasses current lock.</div>
+          </div>
+      `;
+
+      if (settings.allowFuckIt) {
+          lockActionsHtml += `
+              <div class="lock-action-card glass ${fiRem <= 0 ? 'disabled' : ''}" onclick="${fiRem > 0 ? 'promptFuckIt()' : ''}" style="border-color: rgba(224,94,94,0.3);">
+                  <div class="lock-action-icon">⚠️</div>
+                  <div class="lock-action-title" style="color: var(--amber);">"Fuck It" Pass</div>
+                  <div class="lock-action-qty">${fiRem} remaining this month</div>
+                  <div class="lock-action-desc">Completely override the lock and start a full session. Resets T-Break progress.</div>
+              </div>
+          `;
+      }
+
+      lockActionsHtml += '</div>';
+      oc.innerHTML = lockActionsHtml;
+
+      return;
+  }
+  
+  lockPane.style.display = 'none'; mainPane.style.display = 'grid';
+  if(lockTimerInterval) clearInterval(lockTimerInterval);
+
+  if (activeSession) {
+    document.getElementById('session-card-idle').style.display = 'none';
+    document.getElementById('session-card-active').style.display = 'block';
+    const pen = penById(activeSession.penId);
+    document.getElementById('active-pen-name').innerText = pen ? `${pen.name} (${activeSession.mode} mode)` : 'Unknown Pen';
+    document.getElementById('active-hits').innerText = activeSession.hits.length;
+    document.getElementById('active-thc').innerText = sumTHC(activeSession.hits, pen) + 'mg';
+
+    document.getElementById('active-notes').value = activeSession.notes || '';
+
+    const remHits = settings.maxHits - activeSession.hits.length;
+    const hitTxt = document.getElementById('hits-remaining-txt');
+    if (remHits <= 0) {
+      hitTxt.innerText = "Session limit reached.";
+      hitTxt.style.color = "var(--red)";
+      document.getElementById('btn-take-hit').disabled = true;
+      document.getElementById('btn-add-time').disabled = true;
+      document.getElementById('wait-timer').innerText = "COMPLETE";
+      document.getElementById('wait-timer').className = "timer-display expired";
+      document.getElementById('wait-timer-lbl').innerText = "Log session to clear limits.";
+    } else {
+      const hStr2 = remHits === 1 ? 'hit' : 'hits';
+      hitTxt.innerText = `${remHits} ${hStr2} remaining.`;
+      hitTxt.style.color = "var(--accent)";
+      document.getElementById('btn-take-hit').disabled = false;
+      document.getElementById('btn-add-time').disabled = false;
+    }
+
+    const mList = document.getElementById('active-media-list');
+    if(activeSession.media && activeSession.media.length > 0) {
+       mList.innerHTML = activeSession.media.map((m, i) => `
+         <div style="background:var(--bg2); padding:8px 12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border); font-size:12px;">
+           <div class="flex-row"><strong style="color:var(--accent)">${m.title}</strong><span class="ml-auto" style="font-weight:700;">⭐ ${m.rating}/10</span></div>
+           <div class="text-muted mt-8" style="font-style:italic">"${m.review}"</div>
+           <div class="text-right mt-8"><button class="btn btn-ghost btn-sm" style="font-size:9px;padding:2px 6px;" onclick="removeActiveMedia(${i})">Delete</button></div>
+         </div>
+       `).join('');
+    } else {
+       mList.innerHTML = `<div class="text-muted text-sm" style="font-style:italic;">No media logged yet.</div>`;
+    }
+
+    const recEl = document.getElementById('active-recommendation');
+    if(songs.length > 0 && Math.random() > 0.5) {
+      recEl.innerText = "Listen to: " + songs[Math.floor(Math.random()*songs.length)].text;
+    } else if(todos.length > 0 && Math.random() > 0.5) {
+      recEl.innerText = "Task: " + todos[Math.floor(Math.random()*todos.length)].text;
+    } else if(goals.length > 0 && Math.random() > 0.5) {
+      recEl.innerText = "Goal Focus: " + goals[Math.floor(Math.random()*goals.length)].text;
+    } else if(emergencyLinks.length > 0) {
+      recEl.innerHTML = `Listen: <a href="${emergencyLinks[0].url}" target="_blank" style="color:var(--accent)">${emergencyLinks[0].name}</a>`;
+    } else {
+      recEl.innerText = "Take a moment to breathe deeply.";
+    }
+
+  } else {
+    document.getElementById('session-card-idle').style.display = 'block';
+    document.getElementById('session-card-active').style.display = 'none';
+    
+    document.getElementById('preflight-list').innerHTML = routineChecks.map(c => `
+      <div class="check-row" onclick="togglePreflight('${c.id}')">
+        <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
+        <div class="check-text">${c.text}</div>
+      </div>
+    `).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
+
+    const reqsUnmet = (routineChecks.length > 0 && !checkAllPreflight());
+    document.getElementById('btn-start-session').disabled = reqsUnmet;
+    
+    const btnQhIdle = document.getElementById('btn-quick-hit-idle');
+    if (btnQhIdle) {
+        btnQhIdle.disabled = (qhRem <= 0);
+        btnQhIdle.innerText = `Quick Hit ⚡ (${qhRem} left)`;
+        btnQhIdle.title = "Does NOT start a full session";
+    }
+  }
+
+  const recent = sessions.slice().sort((a,b)=>b.ts-a.ts).slice(0,5);
+  const rEl = document.getElementById('dash-recent');
+  if(!recent.length) rEl.innerHTML = '<div class="empty">No history yet.</div>';
+  else {
+    rEl.innerHTML = recent.map(s => {
+      const p = penById(s.penId) || {name: 'Deleted'};
+      const hStr = s.hits.length === 1 ? 'hit' : 'hits';
+      const isQuick = s.isQuickHit ? '⚡' : '';
+      return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
+        <div style="font-weight:700; margin-bottom:4px;">${p.name} ${isQuick} <span class="mode-badge ${s.mode}" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
+        <div class="text-sm text-muted">${fmtDate(s.ts)} · ${s.hits.length} ${hStr} · ~${s.thc}mg</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function fmtDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString([], {month:'short', day:'numeric'});
+}
+
+// ── Draw Sequence & Quick Hit Logic ─────────────────────────────────────────
+function openDoseGuide() {
+  showCustomModal("Dose Guide", `
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--green); border-radius:4px;">
+        <strong style="color:var(--green)">Low Dose (${settings.doseLow}s)</strong>
+        <div class="text-sm text-muted mt-8">Perfect for beginners or a light buzz. Enhances mood without heavy impairment. Easy to control.</div>
+      </div>
+      <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--amber); border-radius:4px;">
+        <strong style="color:var(--amber)">Medium Dose (${settings.doseMed}s)</strong>
+        <div class="text-sm text-muted mt-8">Standard recreational hit. Noticeable euphoria and body relaxation.</div>
+      </div>
+      <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--red); border-radius:4px;">
+        <strong style="color:var(--red)">High Dose (${settings.doseHigh}s)</strong>
+        <div class="text-sm text-muted mt-8">For experienced users. Heavy psychoactive effects, potential couch-lock and dry mouth.</div>
+      </div>
+      ${settings.diabloEnabled ? `
+      <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--purple); border-radius:4px;">
+        <strong style="color:var(--purple)">Diablo Dose (${settings.doseDiablo}s)</strong>
+        <div class="text-sm text-muted mt-8">Extreme intensity. Fast onset, heavy effects. Prepare for a launch. Not recommended for daytime use.</div>
+      </div>` : ''}
+    </div>
+  `, [{text: "Close"}]);
+}
+
+function checkDoseWarning() {
+  const d = document.getElementById('config-dose').value;
+  const w = document.getElementById('dose-warning');
+  if (d === 'diablo') {
+    w.className = 'alert danger';
+    w.innerHTML = '<span class="alert-icon">⚠️</span><span>Not for the faint of heart. Do at your own risk.</span>';
+    w.style.display = 'flex';
+  } else if (currentMode === 'day' && d === 'high') {
+    w.className = 'alert warn';
+    w.innerHTML = '<span class="alert-icon">⚠</span><span>High doses in Daytime mode are not recommended. Proceed with caution.</span>';
+    w.style.display = 'flex';
+  } else {
+    w.style.display = 'none';
+  }
+}
+
+function openQuickHitModal() { 
+   const { reasons } = getBlockingReasons(today());
+   
+   // Check if the user already had a session today of the current mode
+   const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
+   const hasHadSession = modeSessToday.length > 0;
+
+   if (reasons.length > 0) {
+       let msg = "You are currently locked out or enforcing a T-Break. Taking a Quick Hit will bypass your locks and flag your calendar. Are you sure you want to reset?";
+       if (hasHadSession) {
+           msg = `You've already had a session (${currentMode}). ` + msg;
+       }
+       showCustomModal("⚠️ T-Break Warning", msg, [
+           {text: "Cancel"},
+           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => forceOpenQuickHit(true)}
+       ]);
+   } else if (hasHadSession) {
+       showCustomModal("⚠️ Already Smoked", `You've already had a session (${currentMode}). Continue with a Quick Hit?`, [
+           {text: "Cancel"},
+           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => forceOpenQuickHit(false)}
+       ]);
+   } else {
+       forceOpenQuickHit(false);
+   }
+}
+
+function forceOpenQuickHit(willReset) {
+    window.pendingQuickHitReset = willReset;
+    openConfigModal(true, 'quick');
+}
+
+function openConfigModal(isNewSession, type = 'normal') {
+  if (pens.length === 0) return showCustomModal("Add Pen", "Please add a pen in the Pens tab first.", [{text:"OK"}]);
+  if (isNewSession && emergencyLinks.length === 0) {
+    showCustomModal("Safety First", "⚠️ No emergency links set. These are vital for safety. Set them now?", [
+      {text: "Not Now"},
+      {text: "Set Links", cls: "btn-primary", onClick: () => switchTab('settings')}
+    ]);
+    return;
+  }
+  
+  if (activeSession && activeSession.nextHitReadyAt && Date.now() < activeSession.nextHitReadyAt) {
+    showCustomModal("Wait Timer", "Your wait timer is not finished yet. Are you sure you want to take a hit early?", [
+      {text: "Cancel"},
+      {text: "Yes, Hit Early", cls: "btn-primary", onClick: () => { openConfigModalBypass(isNewSession, type); }}
+    ]);
+    return;
+  }
+  
+  if (isNewSession && type === 'normal') {
+    const hour = new Date().getHours();
+    if (hour >= 22 || hour < 4) {
+      showCustomModal("Late Night Warning", "Are you sure you should be smoking this late? Sleep may be disturbed.", [
+        {text: "Cancel"},
+        {text: "Continue", cls: "btn-primary", onClick: () => openConfigModalBypass(isNewSession, type)}
+      ]);
+      return;
+    }
+  }
+
+  openConfigModalBypass(isNewSession, type);
+}
+
+function openConfigModalBypass(isNewSession, type) {
+  if (type === 'normal' && activeSession && activeSession.hits.length >= settings.maxHits) {
+    showCustomModal("Limit Reached", "You have reached your session limit.", [{text:"OK"}]);
+    return;
+  }
+
+  pendingConfigType = type;
+  document.getElementById('config-title').innerText = (type === 'quick') ? "Quick Hit (No Session)" : (isNewSession ? "Start Session" : "Take a Hit");
+  document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
+  if (isNewSession) document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  
+  if (type === 'quick') {
+      document.getElementById('config-dose').innerHTML = `<option value="low">Low Dose (${settings.doseLow}s)</option>`;
+      document.getElementById('config-dose').value = 'low';
+      document.getElementById('config-feel-section').style.display = 'block'; 
+  } else {
+      document.getElementById('config-dose').innerHTML = `
+        <option value="low">Low Dose (${settings.doseLow}s)</option>
+        <option value="medium" selected>Medium Dose (${settings.doseMed}s)</option>
+        <option value="high">High Dose (${settings.doseHigh}s)</option>
+        <option value="diablo" id="opt-diablo" style="display:${settings.diabloEnabled ? 'block' : 'none'};">Diablo Dose (${settings.doseDiablo}s)</option>
+      `;
+      if (!settings.diabloEnabled && document.getElementById('config-dose').value === 'diablo') {
+          document.getElementById('config-dose').value = 'medium';
+      }
+      document.getElementById('config-feel-section').style.display = 'block';
+  }
+
+  selectFeel(5, 'config-feel-grid');
+  checkDoseWarning();
+  document.getElementById('config-modal').classList.add('open');
+}
+
+function closeConfigModal() { document.getElementById('config-modal').classList.remove('open'); }
+
+function startDrawSequence() {
+  const isNew = !activeSession;
+  const penId = isNew ? document.getElementById('config-pen').value : activeSession.penId;
+  const dose = document.getElementById('config-dose').value;
+  const feeling = parseInt(document.getElementById('config-feel-val').value);
+  
+  if (pendingConfigType !== 'quick' && feeling < 5) {
+    showCustomModal("Mood Check", "⚠️ Low headspace detected. Getting high right now might worsen your mood. Are you sure you want to continue?", [
+      {text: "Cancel", onClick: () => closeConfigModal() },
+      {text: "Continue", cls: "btn-primary", onClick: () => { closeConfigModal(); executeSequence(isNew, penId, dose, feeling, pendingConfigType); }}
+    ]);
+    return;
+  }
+
+  closeConfigModal();
+  executeSequence(isNew, penId, dose, feeling, pendingConfigType);
+}
+
+function executeSequence(isNew, penId, dose, feeling, type) {
+  if (type === 'normal' && isNew) {
+    activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, hits: [], notes: "", media: [], nextHitReadyAt: null };
+  }
+  
+  let drawSecs = settings.doseMed; let holdSecs = settings.doseMed + 1;
+  if(dose === 'low') { drawSecs = settings.doseLow; holdSecs = settings.doseLow + 1; }
+  if(dose === 'high') { drawSecs = settings.doseHigh; holdSecs = settings.doseHigh + 1; }
+  if(dose === 'diablo') { drawSecs = settings.doseDiablo; holdSecs = settings.doseDiablo; }
+  
+  const modal = document.getElementById('draw-modal');
+  const circle = document.getElementById('draw-circle');
+  const inst = document.getElementById('draw-instruction');
+  modal.classList.add('open');
+  
+  circle.className = 'draw-circle'; inst.innerText = "Get Ready..."; circle.innerText = "3";
+  if (dose === 'diablo') circle.style.borderColor = "var(--purple)";
+  
+  let countdown = 3;
+  drawSequenceState.interval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) circle.innerText = countdown;
+    else { clearInterval(drawSequenceState.interval); executeDrawPhase(drawSecs, holdSecs, dose, feeling, type, penId); }
+  }, 1000);
+}
+
+function executeDrawPhase(drawSecs, holdSecs, dose, feeling, type, penId) {
+  const circle = document.getElementById('draw-circle');
+  const inst = document.getElementById('draw-instruction');
+  inst.innerText = "Draw!"; circle.className = 'draw-circle breathing-in'; circle.innerText = drawSecs;
+  if (dose === 'diablo') circle.style.borderColor = "var(--purple)";
+
+  let left = drawSecs;
+  drawSequenceState.interval = setInterval(() => {
+    left--;
+    if(left > 0) circle.innerText = left;
+    else { clearInterval(drawSequenceState.interval); executeAirPhase(holdSecs, dose, feeling, drawSecs, type, penId); }
+  }, 1000);
+}
+
+function executeAirPhase(holdSecs, dose, feeling, drawSecs, type, penId) {
+  const circle = document.getElementById('draw-circle');
+  const inst = document.getElementById('draw-instruction');
+  inst.innerText = "Sip fresh air..."; circle.innerText = "";
+  drawSequenceState.timeout = setTimeout(() => { executeHoldPhase(holdSecs, dose, feeling, drawSecs, type, penId); }, 1500);
+}
+
+function executeHoldPhase(holdSecs, dose, feeling, drawSecs, type, penId) {
+  const circle = document.getElementById('draw-circle');
+  const inst = document.getElementById('draw-instruction');
+  inst.innerText = "Hold..."; circle.className = 'draw-circle holding'; circle.innerText = holdSecs;
+  
+  let hold = holdSecs;
+  drawSequenceState.interval = setInterval(() => {
+    hold--;
+    if(hold > 0) circle.innerText = hold;
+    else { clearInterval(drawSequenceState.interval); executeExhalePhase(dose, feeling, drawSecs, type, penId); }
+  }, 1000);
+}
+
+function executeExhalePhase(dose, feeling, drawSecs, type, penId) {
+  const circle = document.getElementById('draw-circle');
+  const inst = document.getElementById('draw-instruction');
+  inst.innerText = "Release slowly..."; circle.className = 'draw-circle exhaling'; circle.innerText = "Ah";
+  drawSequenceState.timeout = setTimeout(() => { finishHit(dose, feeling, drawSecs, type, penId); }, 2000);
+}
+
+function cancelDraw() {
+  clearInterval(drawSequenceState.interval);
+  clearTimeout(drawSequenceState.timeout);
+  document.getElementById('draw-modal').classList.remove('open');
+  if (activeSession && activeSession.hits.length === 0) activeSession = null;
+  sv('t2_activeSession', activeSession);
+  renderDashboard();
+}
+
+function saveQuickHit(dose, feeling, drawSecs, penId, note) {
+    const pen = penById(penId);
+    const hitObj = { dose, feelingPreHit: feeling, drawSeconds: drawSecs, time: Date.now(), note: note };
+    
+    let finalNotes = "⚡ Quick Hit (Bypassed Limits)";
+    if (note) finalNotes += "\nReflection: " + note;
+
+    const newSess = {
+        id: 'qh_' + Date.now().toString(), ts: Date.now(), endTime: Date.now(), penId, mode: currentMode,
+        hits: [hitObj], thc: sumTHC([hitObj], pen),
+        finalFeeling: feeling,
+        notes: finalNotes, media: [], isQuickHit: true
+    };
+    sessions.push(newSess);
+    sv('t2_sessions', sessions);
+    
+    showToast("Quick hit logged! 💧", true);
+    
+    if (window.pendingQuickHitReset) {
+        resetTBreaks();
+        window.pendingQuickHitReset = false;
+    }
+    
+    renderDashboard();
+    renderCalendar();
+    renderStats();
+}
+
+function finishHit(dose, feeling, drawSecs, type, penId) {
+  document.getElementById('draw-modal').classList.remove('open');
+
+  if (type === 'quick') {
+      showCustomModal("Quick Hit Logging", `
+          <div class="form-group mb-16 text-left">
+            <label>Quick Hit Note / Reflection (Optional)</label>
+            <textarea id="qh-note" class="glass" rows="3" placeholder="Why did you take this quick hit? How are you feeling?"></textarea>
+          </div>
+      `, [
+          {text: "Cancel Hit", onClick: () => {
+               showToast("Quick hit discarded.");
+          }},
+          {text: "Save Hit", cls: "btn-primary", onClick: () => {
+               const note = document.getElementById('qh-note').value.trim();
+               saveQuickHit(dose, feeling, drawSecs, penId, note);
+          }}
+      ]);
+      return;
+  }
+
+  // Normal session hit tracking and formatting
+  const ts = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  const hitObj = { dose, feelingPreHit: feeling, drawSeconds: drawSecs, time: Date.now(), note: '' };
+  activeSession.hits.push(hitObj);
+  
+  const hitNum = activeSession.hits.length;
+  const marker = `[Hit ${hitNum} Taken - ${ts}] \n`;
+  if (!activeSession.notes) activeSession.notes = "";
+  activeSession.notes += (activeSession.notes.length > 0 && !activeSession.notes.endsWith('\n') ? '\n' : '') + marker;
+  
+  let waitMin = currentMode === 'night' ? settings.nightWait : settings.dayWait;
+  if (dose === 'diablo') waitMin = settings.diabloWait;
+
+  activeSession.nextHitReadyAt = Date.now() + (waitMin * 60000);
+  sv('t2_activeSession', activeSession);
+  
+  const notesEl = document.getElementById('active-notes');
+  if(notesEl) {
+      notesEl.value = activeSession.notes;
+      notesEl.scrollTop = notesEl.scrollHeight;
+  }
+
+  renderDashboard();
+  startWaitTimerUI();
+  
+  setTimeout(() => showToast("Drink some water! 💧", true), 1000);
+}
+
+function addTimeToWait() {
+  if(!activeSession || !activeSession.nextHitReadyAt) return;
+  activeSession.nextHitReadyAt += (5 * 60 * 1000);
+  sv('t2_activeSession', activeSession);
+  startWaitTimerUI();
+}
+
+function startWaitTimerUI() {
+  if (waitTimerInterval) clearInterval(waitTimerInterval);
+  const tick = () => {
+    if (!activeSession) { clearInterval(waitTimerInterval); return; }
+    if(activeSession.hits.length >= settings.maxHits) { clearInterval(waitTimerInterval); renderDashboard(); return; }
+
+    const el = document.getElementById('wait-timer');
+    const lbl = document.getElementById('wait-timer-lbl');
+    if (!el) return;
+    const rem = activeSession.nextHitReadyAt - Date.now();
+    if (rem <= 0) { el.className = 'timer-display expired'; el.innerText = 'READY'; lbl.innerText = 'Wait time complete.'; clearInterval(waitTimerInterval); }
+    else {
+      const h = Math.floor(rem / 3600000);
+      const m = Math.floor((rem % 3600000) / 60000);
+      const s = Math.floor((rem % 60000) / 1000);
+      el.className = 'timer-display active';
+      
+      if (h > 0) {
+          el.innerText = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      } else {
+          el.innerText = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      }
+      
+      lbl.innerText = `Wait required.`;
+    }
+  };
+  tick();
+  waitTimerInterval = setInterval(tick, 1000);
+}
+
+function saveActiveNotes() {
+  if (activeSession) {
+    activeSession.notes = document.getElementById('active-notes').value;
+    sv('t2_activeSession', activeSession);
+  }
+}
+
+// ── Interactive Emergency Sequence ──────────────────────────────────────────
+function generateFeelGrid(containerId) {
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  for(let i=1; i<=10; i++) {
+    const btn = document.createElement('button');
+    btn.className = `feel-btn ${i===5?'active':''}`;
+    btn.dataset.val = i;
+    btn.innerText = i;
+    btn.onclick = (e) => { e.preventDefault(); selectFeel(i, containerId); };
+    c.appendChild(btn);
+  }
+}
+function selectFeel(val, containerId) {
+  const container = document.getElementById(containerId);
+  const btns = container.querySelectorAll('.feel-btn');
+  btns.forEach(b => b.classList.remove('active'));
+  const target = container.querySelector(`[data-val="${val}"]`);
+  if(target) target.classList.add('active');
+  const hiddenInputId = containerId.replace('-grid', '-val');
+  const inp = document.getElementById(hiddenInputId);
+  if(inp) inp.value = val;
+}
+
+function openEmergency() {
+  emStep = 0;
+  document.getElementById('emergency-modal').classList.add('open');
+  renderEmergencyStep();
+}
+
+function renderEmergencyStep() {
+  const c = document.getElementById('em-dynamic-content');
+  if(emStep === 0) {
+    c.innerHTML = `
+      <div class="text-center">
+        <div style="font-size:48px; margin-bottom:16px;">🫁</div>
+        <div class="modal-title" style="color:var(--accent);">Breathe with me.</div>
+        <div class="text-muted mb-24 text-sm">Inhale for 4s, hold for 4s, exhale for 6s. Focus on the circle and do this a few times before continuing to the grounding exercise.</div>
+        <div class="draw-circle" style="margin:0 auto 32px; width:150px; height:150px; border-color:var(--text2); color:var(--text2); font-size:24px; animation: breathe-anim 14s infinite;">Breathe</div>
+        <button class="btn btn-primary btn-block" style="padding:16px;" onclick="emStep++; renderEmergencyStep()">I'm ready to ground →</button>
+      </div>
+    `;
+  } else if(emStep >= 1 && emStep <= 5) {
+    const rules = [
+      {num: 5, sense: "SEE", desc: "Look around you. What are 5 things you can see right now? Type them out."},
+      {num: 4, sense: "FEEL", desc: "Pay attention to your body. What are 4 things you can physically feel?"},
+      {num: 3, sense: "HEAR", desc: "Listen closely. What are 3 things you can hear right now?"},
+      {num: 2, sense: "SMELL", desc: "Take a deep breath. What are 2 things you can smell?"},
+      {num: 1, sense: "TASTE", desc: "What is 1 thing you can taste right now?"}
+    ];
+    const r = rules[emStep-1];
+    let inputs = '';
+    for(let i=1; i<=r.num; i++) inputs += `<input type="text" class="glass mb-8" style="width:100%;" placeholder="${i}."><br>`;
+
+    c.innerHTML = `
+      <div class="text-left">
+         <div class="flex-row mb-16"><div class="grounding-num">${r.num}</div><div class="card-title" style="margin:0; font-size:16px;">Things you can ${r.sense}</div></div>
+         <p class="text-muted text-sm mb-16">${r.desc}</p>
+         ${inputs}
+         <div class="flex-row mt-24">
+           <button class="btn btn-ghost" onclick="emStep--; renderEmergencyStep()">← Back</button>
+           <button class="btn btn-primary ml-auto" style="padding:12px 24px;" onclick="emStep++; renderEmergencyStep()">Next →</button>
+         </div>
+      </div>
+    `;
+  } else if(emStep === 6) {
+     let linksHtml = emergencyLinks.map(l=>`<button class="btn btn-ghost mb-8 btn-block" onclick="window.open('${l.url}','_blank')">▶ ${l.name}</button>`).join('') || '<div class="text-sm text-muted">No links saved in settings.</div>';
+     c.innerHTML = `
+      <div class="text-center">
+        <div style="font-size:48px; margin-bottom:16px;">🫂</div>
+        <div class="modal-title" style="color:var(--green);">You are safe.</div>
+        <div class="text-muted mb-24 text-sm" style="line-height:1.7;">Great job. The hardest part is over. This feeling is temporary and it will pass. Pick something comforting below to distract yourself until the feeling fully subsides.</div>
+        <div class="mb-24">${linksHtml}</div>
+        <button class="btn btn-ghost btn-block" onclick="closeEmergency()">I'm okay now (Close)</button>
+      </div>
+     `;
+  }
+}
+function closeEmergency() { document.getElementById('emergency-modal').classList.remove('open'); }
+
+// ── Recap Logic ─────────────────────────────────────────────────────────────
+function endSession() { 
+  if (!activeSession) return; 
+  document.getElementById('recap-notes').value = activeSession.notes || '';
+  switchTab('recap'); 
+}
+
+function renderRecap() {
+  const empty = document.getElementById('recap-empty');
+  const form = document.getElementById('recap-form');
+  if (!activeSession) { empty.style.display = 'block'; form.style.display = 'none'; return; }
+  empty.style.display = 'none'; form.style.display = 'block';
+  document.getElementById('recap-hits').innerText = activeSession.hits.length;
+  document.getElementById('recap-thc').innerText = sumTHC(activeSession.hits, penById(activeSession.penId)) + 'mg';
+  selectFeel(5, 'recap-feel-grid');
+}
+
+function cancelRecap() {
+  showCustomModal("Discard Session", "Discard session? History will not be saved.", [
+    {text: "No, Keep it"},
+    {text: "Discard", cls: "btn-danger", onClick: () => {
+       activeSession = null; sv('t2_activeSession', null);
+       if(waitTimerInterval) clearInterval(waitTimerInterval);
+       switchTab('dashboard');
+    }}
+  ]);
+}
+
+function saveRecap() {
+  if (!activeSession) return;
+  const pen = penById(activeSession.penId);
+  const finalObj = {
+    id: activeSession.id, ts: activeSession.ts, endTime: Date.now(), penId: activeSession.penId, mode: activeSession.mode,
+    hits: activeSession.hits, thc: sumTHC(activeSession.hits, pen),
+    finalFeeling: parseInt(document.getElementById('recap-feel-val').value),
+    notes: document.getElementById('recap-notes').value.trim(),
+    media: activeSession.media || []
+  };
+  sessions.push(finalObj); sv('t2_sessions', sessions);
+  activeSession = null; sv('t2_activeSession', null);
+  routineChecks.forEach(c => c.done = false); sv('t2_routine', routineChecks); 
+  if(waitTimerInterval) clearInterval(waitTimerInterval);
+  showToast("Logged!"); switchTab('dashboard');
+}
+
+// ── Past Session Logic ──────────────────────────────────────────────────────
+function openPastSessionModal() {
+  if (pens.length === 0) return showCustomModal("Add Pen", "Please add an active pen in the Pens tab first.", [{text:"OK"}]);
+  const dateInput = document.getElementById('past-date');
+  const timeInput = document.getElementById('past-time');
+  const now = new Date();
+  dateInput.value = ds(now);
+  timeInput.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  
+  document.getElementById('past-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('past-hits').value = 1;
+  selectFeel(5, 'past-feel-grid');
+  document.getElementById('past-modal').classList.add('open');
+}
+
+function closePastSessionModal() { document.getElementById('past-modal').classList.remove('open'); }
+
+function savePastSession() {
+  const dVal = document.getElementById('past-date').value;
+  const tVal = document.getElementById('past-time').value;
+  if (!dVal || !tVal) return showToast("Need date and time.");
+
+  const targetDate = new Date(`${dVal}T${tVal}:00`);
+  const penId = document.getElementById('past-pen').value;
+  const hitsCount = parseInt(document.getElementById('past-hits').value) || 1;
+  const finalFeeling = parseInt(document.getElementById('past-feel-val').value);
+  const hr = targetDate.getHours();
+  const mode = (hr >= 6 && hr < 18) ? 'day' : 'night';
+
+  const fakeHits = [];
+  for(let i=0; i<hitsCount; i++) {
+    fakeHits.push({ dose: 'medium', feelingPreHit: 5, drawSeconds: settings.doseMed, time: targetDate.getTime() + (i*60000), note: '' });
+  }
+
+  const newSess = {
+    id: 'past_'+Date.now(),
+    ts: targetDate.getTime(),
+    endTime: targetDate.getTime() + (hitsCount * 60000),
+    penId: penId,
+    mode: mode,
+    hits: fakeHits,
+    thc: sumTHC(fakeHits, penById(penId)),
+    finalFeeling: finalFeeling,
+    notes: "(Retroactively Logged)",
+    media: []
+  };
+
+  sessions.push(newSess);
+  sv('t2_sessions', sessions);
+  closePastSessionModal();
+  showToast("Past session logged!");
+  renderHistory();
+  renderDashboard();
+  renderCalendar();
+  renderStats();
+}
+
+// ── Tabs Navigation ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(el=>el.classList.remove('active'));
+  const tabs=['dashboard','recap','history','stats','calendar','clearance','pens','routine','todo','goals','guide','settings'];
+  const idx=tabs.indexOf(name);
+  if(idx >= 0) { document.querySelectorAll('.nav-item')[idx].classList.add('active'); document.getElementById('tab-'+name).classList.add('active'); }
+  
+  let niceName = name.charAt(0).toUpperCase() + name.slice(1);
+  if (name === 'pens') niceName = 'Pens & Dosing';
+  if (name === 'routine') niceName = 'Pre-Flight Routine';
+  if (name === 'todo') niceName = 'Tasks, Songs & Journal';
+  if (name === 'guide') niceName = 'Rules & Guide';
+  if (name === 'clearance') niceName = 'Clearance Tests';
+  document.getElementById('topbar-title').textContent = niceName;
+  
+  // Mobile Support: Close sidebar automatically when tab is clicked
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobile-overlay').classList.remove('open');
+  
+  if(name==='dashboard') renderDashboard();
+  if(name==='recap') renderRecap();
+  if(name==='history') renderHistory();
+  if(name==='stats') renderStats();
+  if(name==='calendar') renderCalendar();
+  if(name==='clearance') renderClearance();
+  if(name==='pens') { renderPens(); randomizePenPlaceholder(); }
+  if(name==='routine') renderRoutine();
+  if(name==='todo') { renderTodo(); renderSongs(); }
+  if(name==='goals') renderGoals();
+  if(name==='guide') renderRules();
+  if(name==='settings') renderSettings();
+}
+
+// ── Clearance Tests Logic ───────────────────────────────────────────────────
+function renderClearance() {
+    const lastHit = getLastHitInfo();
+    const pane = document.getElementById('tab-clearance');
+    if (!pane) return;
+
+    const timeElapsedEl = document.getElementById('cl-time-elapsed');
+    const penUsedEl = document.getElementById('cl-pen-used');
+    const salivaStatusEl = document.getElementById('cl-saliva-status');
+    const urineStatusEl = document.getElementById('cl-urine-status');
+    const salivaBar = document.getElementById('cl-saliva-bar');
+    const urineBar = document.getElementById('cl-urine-bar');
+
+    if (lastHit.time === 0) {
+        timeElapsedEl.innerText = "No history";
+        penUsedEl.innerText = "Take a hit to start tracking.";
+        salivaStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
+        urineStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
+        salivaBar.style.width = '100%'; salivaBar.style.background = 'var(--green)';
+        urineBar.style.width = '100%'; urineBar.style.background = 'var(--green)';
+        document.getElementById('cl-saliva-desc').innerText = "0 hours to clear.";
+        document.getElementById('cl-urine-desc').innerText = "0 hours to clear.";
+        document.getElementById('cl-metrics-multiplier').innerText = `--`;
+        document.getElementById('cl-metrics-thc').innerText = `--`;
+        document.getElementById('cl-metrics-tol').innerText = settings.tolerance.toUpperCase();
+        return;
+    }
+
+    const now = Date.now();
+    const msSince = now - lastHit.time;
+    const hoursSince = msSince / 3600000;
+
+    // Display time elapsed
+    const d = Math.floor(hoursSince / 24);
+    const h = Math.floor(hoursSince % 24);
+    const m = Math.floor((msSince % 3600000) / 60000);
+    let timeStr = "";
+    if (d > 0) timeStr += `${d}d `;
+    timeStr += `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m`;
+    timeElapsedEl.innerText = timeStr;
+
+    const pen = penById(lastHit.penId);
+    penUsedEl.innerText = `Last hit from: ${pen ? pen.name : 'Unknown Pen'}`;
+
+    // --- Dynamic Metabolic Multiplier ---
+    // Reacts to tolerance setting and THC% to scale clearance windows
+    let M = 1.0;
+    if (settings.tolerance === 'low') M = 0.6;
+    if (settings.tolerance === 'high') M = 1.6;
+
+    const penTHC = pen ? pen.thc : 75;
+    const thcFactor = (penTHC - 50) / 100; // e.g., 90% THC = +0.4. 40% THC = -0.1
+    M = M + (thcFactor * 0.3); // Add modest variance for extreme THC percentages
+    M = Math.max(0.4, M); // Min floor
+    M = Math.min(2.0, M); // Max ceiling
+
+    // --- Saliva Test Logic ---
+    // Baseline: 0-24h (High), 24-48h (Medium), 48h+ (Clear)
+    const sHigh = 24 * M;
+    const sMed = 48 * Math.min(1.5, M); // Cap max window to ~72 hours as requested
+
+    let sStatus = '', sColor = '';
+    if (hoursSince < sHigh) { sStatus = 'HIGH RISK'; sColor = 'var(--red)'; }
+    else if (hoursSince < sMed) { sStatus = 'MEDIUM RISK'; sColor = 'var(--amber)'; }
+    else { sStatus = 'CLEAR'; sColor = 'var(--green)'; }
+
+    salivaStatusEl.innerHTML = `<span style="color:${sColor}">${sStatus}</span>`;
+    let sProgress = Math.min(100, (hoursSince / sMed) * 100);
+    salivaBar.style.width = `${sProgress}%`;
+    salivaBar.style.background = sColor;
+    document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Estimated clear in: ${(sMed - hoursSince).toFixed(1)} hrs.`;
+
+    // --- Urine Test Logic ---
+    // Baseline: 0-12h (Med/Delay), 12-36h (High), 36-60h (Med), 60h+ (Clear)
+    const uMed1 = 12 * M;
+    const uHigh = 36 * M;
+    const uMed2 = 60 * Math.min(1.6, M); // Cap max window to ~96 hours as requested
+
+    let uStatus = '', uColor = '';
+    if (hoursSince < uMed1) { uStatus = 'MEDIUM RISK (Delay phase)'; uColor = 'var(--amber)'; }
+    else if (hoursSince < uHigh) { uStatus = 'HIGH RISK'; uColor = 'var(--red)'; }
+    else if (hoursSince < uMed2) { uStatus = 'MEDIUM RISK (Clearing)'; uColor = 'var(--amber)'; }
+    else { uStatus = 'CLEAR'; uColor = 'var(--green)'; }
+
+    urineStatusEl.innerHTML = `<span style="color:${uColor}">${uStatus}</span>`;
+    let uProgress = Math.min(100, (hoursSince / uMed2) * 100);
+    urineBar.style.width = `${uProgress}%`;
+    urineBar.style.background = uColor;
+    document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Estimated clear in: ${(uMed2 - hoursSince).toFixed(1)} hrs.`;
+
+    // Detailed metrics
+    document.getElementById('cl-metrics-multiplier').innerText = `${M.toFixed(2)}x`;
+    document.getElementById('cl-metrics-thc').innerText = `${penTHC}%`;
+    document.getElementById('cl-metrics-tol').innerText = settings.tolerance.toUpperCase();
+}
+
+
+// ── Statistics & History ────────────────────────────────────────────────────
+function renderStats() {
+  const totalSess = sessions.length;
+  const totalHits = sessions.reduce((acc, s) => acc + s.hits.length, 0);
+  const totalThc = sessions.reduce((acc, s) => acc + s.thc, 0);
+  const avgHits = totalSess ? (totalHits / totalSess).toFixed(1) : 0;
+  const avgThc = totalSess ? (totalThc / totalSess).toFixed(1) : 0;
+
+  let daysActive = 1;
+  if (totalSess > 0) {
+      const first = Math.min(...sessions.map(s => s.ts));
+      daysActive = Math.max(1, Math.ceil((Date.now() - first) / 86400000));
+  }
+  const avgPerDay = (totalSess / daysActive).toFixed(2);
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat glass"><div class="stat-label">Total Sessions</div><div class="stat-value">${totalSess}</div></div>
+    <div class="stat glass"><div class="stat-label">Total Hits</div><div class="stat-value">${totalHits}</div></div>
+    <div class="stat glass"><div class="stat-label">Est. Total THC</div><div class="stat-value">${Math.round(totalThc)}<span class="text-sm text-muted">mg</span></div></div>
+    <div class="stat glass"><div class="stat-label">Avg Hits / Sess</div><div class="stat-value">${avgHits}</div></div>
+    <div class="stat glass"><div class="stat-label">Avg THC / Sess</div><div class="stat-value">${avgThc}<span class="text-sm text-muted">mg</span></div></div>
+    <div class="stat glass"><div class="stat-label">Avg Sess / Day</div><div class="stat-value">${avgPerDay}</div></div>
+  `;
+
+  let penCounts = {};
+  sessions.forEach(s => { penCounts[s.penId] = (penCounts[s.penId] || 0) + 1; });
+  let topPenId = Object.keys(penCounts).sort((a,b) => penCounts[b] - penCounts[a])[0];
+  let topPenStr = 'None';
+  if (topPenId) {
+    const tp = penById(topPenId);
+    const count = penCounts[topPenId];
+    const sStr = count === 1 ? 'session' : 'sessions';
+    topPenStr = tp ? `${tp.name} (${count} ${sStr})` : 'Deleted Pen';
+  }
+  document.getElementById('stats-favorite-pen').innerHTML = `<div style="font-size:24px; color:var(--accent); font-weight:bold; font-family:'Unbounded',sans-serif;">${topPenStr}</div>`;
+}
+
+function renderHistory() {
+  const sorted = sessions.slice().sort((a,b)=>b.ts-a.ts);
+  const el = document.getElementById('history-list');
+  if(!sorted.length) { el.innerHTML='<div class="empty">No sessions logged yet.</div>'; return; }
+  
+  el.innerHTML = sorted.map(s => {
+    const p = penById(s.penId) || {name: 'Deleted Pen'};
+    const st = fmtTime(new Date(s.ts));
+    const et = s.endTime ? fmtTime(new Date(s.endTime)) : 'N/A';
+    const hStr = s.hits.length === 1 ? 'hit' : 'hits';
+    const fColor = getFeelColorObj(s.finalFeeling);
+    const quickBadge = s.isQuickHit ? '⚡' : '';
+    
+    // Per-hit Breakdown
+    const hitsHtml = s.hits.map((h, i) => {
+      const hTime = fmtTime(new Date(h.time));
+      const hMg = ((p.thc || 0) / 100 * h.drawSeconds).toFixed(2);
+      return `
+        <div style="display:grid; grid-template-columns: 80px 1fr; gap:12px; margin-bottom:12px; padding:8px; background:var(--bg2); border-radius:var(--radius);">
+          <div class="text-muted text-sm text-center">Hit ${i+1}<br><span style="font-size:10px;">${hTime}</span></div>
+          <div>
+            <span style="color:var(--accent); font-weight:700; font-size:12px;">${h.drawSeconds}s</span>
+            <span class="text-muted" style="font-size:11px;"> (~${hMg}mg)</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    let mediaHtml = '';
+    if(s.media && s.media.length > 0) {
+       mediaHtml = `<div class="mt-16 mb-16 glass" style="background:var(--bg2); padding:12px; border-radius:8px; border:1px solid var(--border2);">
+         <div class="text-sm" style="font-weight:700; margin-bottom:8px; color:var(--text2); text-transform:uppercase; letter-spacing:1px;">📺 Media Reviewed</div>
+         ${s.media.map(m => `
+           <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed var(--border2);">
+             <div class="flex-row"><span style="color:var(--accent);font-size:13px;">${m.title}</span><span class="ml-auto text-sm" style="font-weight:700;">⭐ ${m.rating}/10</span></div>
+             ${m.review ? `<div class="text-sm text-muted mt-4" style="font-style:italic">"${m.review}"</div>` : ''}
+           </div>
+         `).join('')}
+       </div>`;
+    }
+
+    return `
+      <div class="glass" style="padding:16px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:var(--radius); margin-bottom:12px;">
+        <div class="flex-row" style="margin-bottom:12px"><strong style="color:var(--accent); font-size:16px;">${p.name} ${quickBadge}</strong><span class="mode-badge ${s.mode} ml-auto" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
+        <div class="text-sm text-muted mb-16">Started: ${st} | Finished: ${et}</div>
+        
+        <div class="mb-16">
+          ${hitsHtml}
+        </div>
+
+        <div style="border-top:1px dashed var(--border2); padding-top:12px; margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div class="text-sm text-muted"><strong>Totals:</strong> ${s.hits.length} ${hStr}</div>
+          <div class="ml-auto flex-row" style="gap:8px;">
+            <div style="padding:4px 10px; border-radius:8px; border:1px solid rgba(92,170,127,0.5); background:rgba(92,170,127,0.15); color:#5caa7f; font-weight:700; font-size:12px;">~${s.thc}mg THC</div>
+            <div style="padding:4px 10px; border-radius:8px; border:1px solid ${fColor.border}; background:${fColor.bg}; color:${fColor.text}; font-weight:700; font-size:12px;">Feel: ${s.finalFeeling}/10</div>
+          </div>
+        </div>
+
+        ${mediaHtml}
+
+        ${s.notes && s.notes !== "(Retroactively Logged)" ? `<div class="text-sm text-muted mt-16" style="font-style:italic; white-space:pre-wrap;"><strong>Session Notes:</strong><br>"${s.notes}"</div>` : ''}
+        ${s.notes === "(Retroactively Logged)" ? `<div class="text-sm text-muted mt-16" style="font-style:italic;">(Retroactively Logged)</div>` : ''}
+        
+        <button class="btn btn-ghost btn-sm mt-16" onclick="deleteSession('${s.id}')">Delete Session</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function deleteSession(id) {
+  showCustomModal("Delete Record", "Are you sure you want to delete this session record?", [
+    {text: "Cancel"},
+    {text: "Delete", cls: "btn-danger", onClick: () => {
+       showCustomModal("Final Confirmation", "This will permanently remove the session from your history and statistics. Proceed?", [
+         {text: "Cancel"},
+         {text: "Yes, Delete permanently", cls: "btn-danger-solid", onClick: () => {
+            sessions = sessions.filter(s=>s.id !== id); sv('t2_sessions', sessions); renderHistory(); renderDashboard(); renderCalendar(); renderStats();
+         }}
+       ]);
+    }}
+  ]);
+}
+
+function deleteAllData() {
+  showCustomModal("Delete All Data", "ERASE EVERYTHING? This cannot be undone.", [
+    {text: "Cancel"},
+    {text: "Yes, Erase Data", cls: "btn-danger-solid", onClick: () => {
+       showCustomModal("Final Confirmation", "Are you absolutely sure? All history, configurations, and cache will be permanently destroyed.", [
+         {text: "Cancel"},
+         {text: "DELETE EVERYTHING", cls: "btn-danger-solid", onClick: () => {
+            localStorage.clear();
+            window.location.reload(true);
+         }}
+       ]);
+    }}
+  ]);
+}
+
+// ── Pens & Dosing ───────────────────────────────────────────────────────────
+function getCompoundsHtml(p, seconds) {
+  let html = `<div class="mt-8" style="display:inline-block; font-family:'Space Mono',monospace; font-size:11px; text-align:left; margin:0 auto;">`;
+  const thcMg = ((p.thc || 0) / 100 * seconds).toFixed(1);
+  html += `<div style="margin-bottom:2px;">- ${thcMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[thc]</span></div>`;
+  if (p.cbd > 0) {
+    const cbdMg = ((p.cbd) / 100 * seconds).toFixed(1);
+    html += `<div style="margin-bottom:2px;">- ${cbdMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbd]</span></div>`;
+  }
+  if (p.cbn > 0) {
+    const cbnMg = ((p.cbn) / 100 * seconds).toFixed(1);
+    html += `<div style="margin-bottom:2px;">- ${cbnMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbn]</span></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderPens() {
+  const list = document.getElementById('pen-db-list');
+  if(!pens.length) { list.innerHTML = '<div class="empty">No active pens.</div>'; }
+  else {
+    list.innerHTML = pens.map(p => {
+      const mgLow = ((p.thc / 100) * settings.doseLow).toFixed(1);
+      const mgMed = ((p.thc / 100) * settings.doseMed).toFixed(1);
+      const mgHigh = ((p.thc / 100) * settings.doseHigh).toFixed(1);
+      const mgDiablo = ((p.thc / 100) * settings.doseDiablo).toFixed(1);
+      const tol = settings.tolerance || 'medium';
+
+      let diabloHtml = '';
+      if (settings.diabloEnabled) {
+        diabloHtml = `<div class="text-center" style="background:rgba(162,117,255,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(162,117,255,0.2);">
+            <div style="color:var(--purple); font-weight:700; font-size:12px;">Diablo (${settings.doseDiablo}s)</div>
+            ${getCompoundsHtml(p, settings.doseDiablo)}
+            <div class="text-muted mt-8" style="font-size:10px;">${getDoseEffect(mgDiablo, tol)}</div>
+        </div>`;
+      }
+
+      return `
+      <div class="glass" style="background:var(--bg3); padding:16px; border-radius:var(--radius); border:0.5px solid var(--border2); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+         <div class="flex-row mb-16">
+           <div>
+             <strong style="color:var(--accent); font-size:16px;">${p.name}</strong>
+             <div class="text-sm text-muted mt-8">THC: ${p.thc}% ${p.cbd ? ' | CBD: '+p.cbd+'%' : ''} ${p.cbn ? ' | CBN: '+p.cbn+'%' : ''}</div>
+             ${p.notes ? `<div class="text-sm text-muted mt-8" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
+           </div>
+           <div class="flex-row gap-8 ml-auto">
+             <button class="btn btn-ghost btn-sm" onclick="retirePen('${p.id}')">Retire 🫡</button>
+             <button class="btn btn-ghost btn-sm" onclick="deletePen('${p.id}')">Del</button>
+           </div>
+         </div>
+         <div style="background:var(--bg2); padding:16px; border-radius:8px;">
+           <div class="text-sm mb-16" style="font-weight:700; color:var(--text2); text-transform:capitalize;">Dosage Profile (${tol} Tolerance) <button class="btn btn-ghost btn-sm" onclick="openDoseGuide()" style="padding:2px 6px; font-size:9px; margin-left:8px;">[?] Guide</button></div>
+           <div class="flex-row" style="gap:12px; align-items:stretch;">
+              <div class="text-center" style="background:rgba(92,170,127,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(92,170,127,0.2);">
+                  <div style="color:var(--green); font-weight:700; font-size:12px;">Low Dose (${settings.doseLow}s)</div>
+                  ${getCompoundsHtml(p, settings.doseLow)}
+                  <div class="text-muted mt-8" style="font-size:10px;">${getDoseEffect(mgLow, tol)}</div>
+              </div>
+              <div class="text-center" style="background:rgba(212,168,67,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(212,168,67,0.2);">
+                  <div style="color:var(--amber); font-weight:700; font-size:12px;">Med Dose (${settings.doseMed}s)</div>
+                  ${getCompoundsHtml(p, settings.doseMed)}
+                  <div class="text-muted mt-8" style="font-size:10px;">${getDoseEffect(mgMed, tol)}</div>
+              </div>
+              <div class="text-center" style="background:rgba(224,94,94,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(224,94,94,0.2);">
+                  <div style="color:var(--red); font-weight:700; font-size:12px;">High Dose (${settings.doseHigh}s)</div>
+                  ${getCompoundsHtml(p, settings.doseHigh)}
+                  <div class="text-muted mt-8" style="font-size:10px;">${getDoseEffect(mgHigh, tol)}</div>
+              </div>
+              ${diabloHtml}
+           </div>
+         </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Render Graveyard
+  const graveList = document.getElementById('graveyard-list');
+  if(!graveyard.length) { graveList.innerHTML = '<div class="empty">No pens in the graveyard.</div>'; }
+  else {
+    graveList.innerHTML = graveyard.map(p => {
+        const pSess = sessions.filter(s => s.penId === p.id);
+        const totalHits = pSess.reduce((acc, s) => acc + s.hits.length, 0);
+        const totalThc = Math.round(pSess.reduce((acc, s) => acc + s.thc, 0));
+        return `
+        <div class="glass" style="background:var(--bg2); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); opacity:0.7;">
+           <div class="flex-row">
+             <strong style="color:var(--text2); text-decoration:line-through; font-size:16px;">${p.name}</strong>
+             <span class="ml-auto" style="font-size:18px;">🥀</span>
+           </div>
+           <div class="text-sm text-muted mt-8">Lifetime Hits: ${totalHits} | Est. THC Delivered: ${totalThc}mg</div>
+        </div>`;
+    }).join('');
+  }
+}
+
+function getDoseEffect(mg, tol) {
+  const m = parseFloat(mg);
+  if (tol === 'low') {
+    if (m <= 2) return 'Mild Effect';
+    if (m <= 4) return 'Moderate Effect';
+    return 'Strong Effect';
+  } else if (tol === 'medium') {
+    if (m <= 4) return 'Mild Effect';
+    if (m <= 8) return 'Moderate Effect';
+    return 'Strong Effect';
+  } else {
+    if (m <= 8) return 'Mild Effect';
+    if (m <= 15) return 'Moderate Effect';
+    return 'Strong Effect';
+  }
+}
+
+function addPen() {
+  const name = document.getElementById('pen-name').value.trim(), thc = parseFloat(document.getElementById('pen-thc').value);
+  if(!name||!thc) {
+    showCustomModal("Error", "Required: Pen Name & THC %", [{text: "OK"}]);
+    return;
+  }
+  const cbd = parseFloat(document.getElementById('pen-cbd').value) || 0;
+  const cbn = parseFloat(document.getElementById('pen-cbn').value) || 0;
+  const notes = document.getElementById('pen-notes').value.trim();
+
+  const pushPen = () => {
+    pens.push({id:'p'+Date.now(), name, thc, cbd, cbn, notes});
+    sv('t2_pens', pens); 
+    document.getElementById('pen-name').value=''; 
+    document.getElementById('pen-thc').value='';
+    document.getElementById('pen-cbd').value='';
+    document.getElementById('pen-cbn').value='';
+    document.getElementById('pen-notes').value='';
+    randomizePenPlaceholder();
+    renderPens();
+    showToast("Pen added");
+  };
+
+  if(thc < 30 || thc > 96) {
+    showCustomModal("Verify THC", `${thc}% THC. Is this correct?`, [
+      {text: "No, Edit"},
+      {text: "Yes, Add", cls: "btn-primary", onClick: pushPen}
+    ]);
+  } else {
+    pushPen();
+  }
+}
+
+function deletePen(id) {
+  showCustomModal("Delete Pen", "Are you sure you want to permanently delete this pen? History will remain, but the pen will vanish from the database.", [
+    {text: "Cancel"},
+    {text: "Delete", cls: "btn-danger", onClick: () => {
+       pens = pens.filter(p=>p.id!==id); sv('t2_pens', pens); renderPens();
+    }}
+  ]);
+}
+
+function retirePen(id) {
+  showCustomModal("Retire Pen", "Is this pen completely empty? It will be moved to the graveyard.", [
+    {text: "Cancel"},
+    {text: "Retire", cls: "btn-primary", onClick: () => {
+       showCustomModal("Point of No Return", "ARE YOU SURE THIS PEN IS EMPTY? CANNOT REVIVE!", [
+         {text: "Wait, cancel"},
+         {text: "Yes, RIP 🥀", cls: "btn-danger-solid", onClick: () => {
+             const p = pens.find(x => x.id === id);
+             if(p) {
+                 graveyard.push(p);
+                 pens = pens.filter(x => x.id !== id);
+                 sv('t2_pens', pens);
+                 sv('t2_graveyard', graveyard);
+                 renderPens();
+                 showToast("Pen sent to the graveyard.");
+             }
+         }}
+       ]);
+    }}
+  ]);
+}
+
+// ── Routine, Todos, Goals & Journal ─────────────────────────────────────────
+function renderRoutine() {
+  const list = document.getElementById('routine-list');
+  list.innerHTML = routineChecks.map(h => `<div class="check-row" onclick="toggleHabit('${h.id}')"><div class="check-box ${h.done ? 'checked' : ''}">${h.done ? '✓' : ''}</div><div class="check-text" style="${h.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${h.text}</div><button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeHabit('${h.id}')">Del</button></div>`).join('') || '<div class="empty">No requirements added.</div>';
+}
+function toggleHabit(id) { const h = routineChecks.find(x => x.id === id); if(h) h.done = !h.done; sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
+function resetRoutine() { routineChecks.forEach(h => h.done = false); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); showToast("Checks reset"); }
+function addHabit() { const val = document.getElementById('new-habit-input').value.trim(); if(val) { routineChecks.push({ id:'r'+Date.now(), text: val, done: false }); sv('t2_routine', routineChecks); document.getElementById('new-habit-input').value = ''; renderRoutine(); renderDashboard(); } }
+function removeHabit(id) { routineChecks = routineChecks.filter(x => x.id !== id); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
+
+function renderTodo() {
+  document.getElementById('todo-list').innerHTML = todos.map(t => `<div class="check-row" onclick="removeTodo('${t.id}')"><div class="check-box"></div><div class="check-text">${t.text}</div></div>`).join('') || '<div class="empty text-sm">Tasks clear!</div>';
+}
+function addTodo() { const val = document.getElementById('new-todo-input').value.trim(); if(val) { todos.push({ id:'t'+Date.now(), text: val }); sv('t2_todos', todos); document.getElementById('new-todo-input').value = ''; renderTodo(); renderDashboard(); } }
+function removeTodo(id) { todos = todos.filter(x => x.id !== id); sv('t2_todos', todos); renderTodo(); renderDashboard(); }
+
+function renderSongs() {
+  document.getElementById('song-list').innerHTML = songs.map(s => `<div class="check-row" onclick="removeSong('${s.id}')"><div class="check-box" style="border-radius:50%">🎵</div><div class="check-text">${s.text}</div></div>`).join('') || '<div class="empty text-sm">No songs queued.</div>';
+}
+function addSong() { const val = document.getElementById('new-song-input').value.trim(); if(val) { songs.push({ id:'s'+Date.now(), text: val }); sv('t2_songs', songs); document.getElementById('new-song-input').value = ''; renderSongs(); renderDashboard(); } }
+function removeSong(id) { songs = songs.filter(x => x.id !== id); sv('t2_songs', songs); renderSongs(); renderDashboard(); }
+
+function renderGoals() {
+  document.getElementById('goals-list').innerHTML = goals.map(g => `
+    <div class="check-row" onclick="toggleGoal('${g.id}')">
+        <div class="check-box ${g.done ? 'checked' : ''}">${g.done ? '✓' : ''}</div>
+        <div class="check-text" style="${g.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${g.text}</div>
+        <button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeGoal('${g.id}')">Del</button>
+    </div>
+  `).join('') || '<div class="empty text-sm">No goals set yet. Add some milestones.</div>';
+}
+function addGoal() {
+  const v = document.getElementById('new-goal-input').value.trim();
+  if(v) {
+      goals.push({ id:'g'+Date.now(), text: v, done: false });
+      sv('t2_goals', goals);
+      document.getElementById('new-goal-input').value = '';
+      renderGoals();
+  }
+}
+function removeGoal(id) { goals = goals.filter(g => g.id !== id); sv('t2_goals', goals); renderGoals(); }
+function toggleGoal(id) { const g = goals.find(x => x.id === id); if(g) g.done = !g.done; sv('t2_goals', goals); renderGoals(); }
+
+function renderRules() {
+   const el = document.getElementById('rules-list');
+   if (!el) return;
+   if (!rules.length) { el.innerHTML = '<div class="empty">No rules defined.</div>'; return; }
+   el.innerHTML = rules.map((r, i) => `
+      <div class="glass flex-row" style="padding:16px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px;">
+         <strong style="color:var(--accent); font-size:16px; width:30px; text-align:center;">${String.fromCharCode(65 + i)}</strong>
+         <div style="flex:1; font-size:13px; color:var(--text); line-height:1.4;">${r.text}</div>
+         <button class="btn btn-ghost btn-sm ml-auto" onclick="removeRule('${r.id}')">Del</button>
+      </div>
+   `).join('');
+}
+
+function addRule() {
+   const inp = document.getElementById('new-rule-input');
+   if (inp.value.trim()) {
+       rules.push({ id: 'ru' + Date.now(), text: inp.value.trim() });
+       sv('t2_rules', rules);
+       inp.value = '';
+       renderRules();
+   }
+}
+
+function removeRule(id) {
+   rules = rules.filter(r => r.id !== id);
+   sv('t2_rules', rules);
+   renderRules();
+}
+
+function saveJournal() {
+  const el = document.getElementById('journal-text');
+  if(el) {
+    journalText = el.value;
+    sv('t2_journal', journalText);
+  }
+}
+
+// ── Calendar ────────────────────────────────────────────────────────────────
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+
+function previewCalDetails(dStr) {
+   showCalDetailsPane(dStr);
+}
+function clearCalPreview() {
+   if (selectedCalDate) showCalDetailsPane(selectedCalDate);
+   else document.getElementById('cal-details-pane').innerHTML = `<div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>`;
+}
+
+function renderCalendar() {
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-lbl').textContent=months[calMonth]+' '+calYear;
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const offset=firstDay===0?6:firstDay-1;
+  const daysInMo=new Date(calYear,calMonth+1,0).getDate();
+  const todayStr=today();
+  const dayMap={};
+  sessions.forEach(s=>{
+    const d=ds(new Date(s.ts));
+    if(!dayMap[d])dayMap[d]={ day:false, night:false, sList:[] };
+    dayMap[d][s.mode]=true; dayMap[d].sList.push(s);
+  });
+  
+  let cells='';
+  for(let i=0;i<offset;i++) cells+='<div style="aspect-ratio:1"></div>';
+  
+  for(let d=1;d<=daysInMo;d++){
+    const dStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dm=dayMap[dStr]||{sList:[]};
+    const isT=dStr===todayStr, isF=dStr>todayStr;
+    let bg = 'var(--bg3)', border = 'transparent';
+    let extraCls = dStr === selectedCalDate ? 'selected-cal-day' : '';
+    
+    if(dm.day && dm.night) { bg = 'rgba(224,94,94,0.15)'; border = 'var(--red)'; }
+    else if(dm.day) { bg = 'rgba(74,159,196,0.15)'; border = '#4a9fc4'; }
+    else if(dm.night) { bg = 'rgba(212,168,67,0.15)'; border = 'var(--amber)'; }
+    
+    let style = `border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:'Unbounded',sans-serif; font-size:12px; font-weight:700; background:${bg}; border:1px solid ${border}; color:var(--text); cursor:pointer; transition:all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);`;
+    if(isT && dStr !== selectedCalDate) style += `box-shadow: 0 0 0 2px var(--border2);`;
+    if(isF) style += `opacity: 0.5;`;
+
+    let icon = '';
+    let dayReasons = getBlockingReasons(dStr).reasons;
+    
+    if (fuckIts.includes(dStr)) {
+        icon = '⚠️';
+    } else if (dayReasons.length > 0) {
+        icon = '🚭'; // Covers both past and future blocked days
+    } else {
+        icon = '✅'; // Covers both past and future eligible days
+    }
+
+    cells+=`
+    <div class="cal-cell" style="aspect-ratio:1;">
+      <div class="${extraCls} glass hover-scale" style="width:100%;height:100%;${style}" 
+           onclick="showCalDetails('${dStr}')" 
+           onmouseover="previewCalDetails('${dStr}'); this.style.transform='scale(1.1)'" 
+           onmouseout="clearCalPreview(); this.style.transform='scale(1)'">
+        ${d}
+      </div>
+      ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=cells;
+
+  if (selectedCalDate && selectedCalDate.startsWith(`${calYear}-${String(calMonth+1).padStart(2,'0')}`)) {
+      showCalDetailsPane(selectedCalDate);
+  } else {
+      document.getElementById('cal-details-pane').innerHTML = `<div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>`;
+  }
+}
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;} selectedCalDate=null; renderCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;} selectedCalDate=null; renderCalendar();}
+
+function showCalDetails(dStr) {
+  selectedCalDate = dStr;
+  renderCalendar(); 
+}
+
+function showCalDetailsPane(dStr) {
+  const dObj = new Date(dStr + "T12:00:00");
+  const dSess = sessions.filter(s => ds(new Date(s.ts)) === dStr);
+  const pane = document.getElementById('cal-details-pane');
+  
+  let plannedText = plannedBreaks.includes(dStr) ? 'Remove Planned Break' : 'Set No-Smoke Day';
+  let planBtn = `
+  <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+      <label class="toggle-label" for="cal-planned-break">${plannedText}</label>
+      <label class="toggle">
+         <input type="checkbox" id="cal-planned-break" ${plannedBreaks.includes(dStr) ? 'checked' : ''} onchange="togglePlannedBreak('${dStr}')">
+         <div class="toggle-track"></div><div class="toggle-thumb"></div>
+      </label>
+  </div>`;
+
+  let blockReasons = getBlockingReasons(dStr).reasons;
+  let blockHtml = '';
+  if (blockReasons.length > 0) {
+      blockHtml = `<div class="alert warn mt-16" style="flex-direction:column; align-items:flex-start; background:rgba(212,168,67,0.1);">
+        <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px;">🚭</span> Blocked By:</strong>
+        ${blockReasons.map(r => `<div style="font-size:11px;">• ${r}</div>`).join('')}
+      </div>`;
+  }
+
+  if(dSess.length === 0) { 
+    const badge = fuckIts.includes(dStr) ? '⚠️ Bypassed' : 'Sober day!';
+    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${blockHtml}${planBtn}`; 
+    return; 
+  }
+  
+  const totalThc = Math.round(dSess.reduce((a, s) => a + s.thc, 0));
+  const avgFeel = Math.round(dSess.reduce((a, s) => a + s.finalFeeling, 0) / dSess.length);
+  
+  pane.innerHTML = `
+    <div class="card-title">${dObj.toDateString()} ${fuckIts.includes(dStr) ? '<span style="color:var(--amber);">⚠️ Bypassed Lock</span>' : ''}</div>
+    <div class="flex-row mb-16">
+      <div class="stat glass" style="flex:1;padding:10px;">THC: ${totalThc}mg</div>
+      <div class="stat glass" style="flex:1;padding:10px;">Feel: ${avgFeel}/10</div>
+    </div>
+    ${dSess.map(s=>{
+      const hStr = s.hits.length === 1 ? 'hit' : 'hits';
+      const quickBadge = s.isQuickHit ? '⚡ Quick Hit' : '';
+      return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name || 'Unknown'} (${s.mode}) ${quickBadge} - ${s.hits.length} ${hStr}</div>`;
+    }).join('')}
+    ${blockHtml}
+    ${planBtn}
+  `;
+}
+
+function togglePlannedBreak(dStr) {
+  if (plannedBreaks.includes(dStr)) {
+    plannedBreaks = plannedBreaks.filter(d => d !== dStr);
+  } else {
+    plannedBreaks.push(dStr);
+  }
+  sv('t2_planned_breaks', plannedBreaks);
+  renderCalendar();
+  renderDashboard();
+}
+
+// ── Settings & Backups ──────────────────────────────────────────────────────
+function renderSettings() {
+  const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+  const setCheck = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val; };
+
+  setVal('s-maxHits', settings.maxHits);
+  setVal('s-sessPerWeek', settings.sessPerWeek);
+  setVal('s-quickHitsPerWeek', settings.quickHitsPerWeek);
+  setVal('s-nightWait', settings.nightWait);
+  setVal('s-dayWait', settings.dayWait);
+  setVal('s-tolerance', settings.tolerance || 'medium');
+  
+  setVal('s-doseLow', settings.doseLow);
+  setVal('s-doseMed', settings.doseMed);
+  setVal('s-doseHigh', settings.doseHigh);
+  setVal('s-doseDiablo', settings.doseDiablo);
+
+  setCheck('s-diabloEnabled', !!settings.diabloEnabled);
+  setVal('s-diabloWait', settings.diabloWait || 240);
+  
+  setCheck('s-autoTBreak', !!settings.autoTBreak);
+  setVal('s-autoTBreakWeek', settings.autoTBreakWeek || 4);
+  setCheck('s-enforceWeeklyLimit', !!settings.enforceWeeklyLimit);
+  setCheck('s-enforceRestDays', !!settings.enforceRestDays);
+  
+  setVal('s-restDays', settings.restDays);
+  const rdLbl = document.getElementById('restDaysLbl');
+  if(rdLbl) rdLbl.innerText = settings.restDays;
+
+  // Smoking toggles & day smoking limits
+  setCheck('s-daySmokingEnabled', !!settings.daySmokingEnabled);
+  setVal('s-daySmokingDaysPerMonth', settings.daySmokingDaysPerMonth);
+  setCheck('s-nightSmokingEnabled', !!settings.nightSmokingEnabled);
+
+  // Fuck it settings
+  setCheck('s-allowFuckIt', !!settings.allowFuckIt);
+  setVal('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
+
+  if(settings.breakStart) setVal('s-breakStart', settings.breakStart);
+  if(settings.breakEnd) setVal('s-breakEnd', settings.breakEnd);
+
+  setVal('s-theme', settings.theme || 'auto');
+  setCheck('s-largeText', !!settings.largeText);
+  
+  renderEmergencyLinks();
+}
+
+function saveSettings(silent = false) {
+  const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
+  const getInt = (id, dflt=0) => { const v = getVal(id); return v ? parseInt(v) : dflt; };
+  const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+
+  settings.maxHits = getInt('s-maxHits', settings.maxHits);
+  settings.sessPerWeek = getInt('s-sessPerWeek', settings.sessPerWeek);
+  settings.quickHitsPerWeek = getInt('s-quickHitsPerWeek', settings.quickHitsPerWeek);
+  settings.nightWait = getInt('s-nightWait', settings.nightWait);
+  settings.dayWait = getInt('s-dayWait', settings.dayWait);
+  settings.tolerance = getVal('s-tolerance') || settings.tolerance;
+  
+  settings.doseLow = getInt('s-doseLow', settings.doseLow);
+  settings.doseMed = getInt('s-doseMed', settings.doseMed);
+  settings.doseHigh = getInt('s-doseHigh', settings.doseHigh);
+  settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
+  
+  settings.diabloEnabled = getCheck('s-diabloEnabled');
+  settings.diabloWait = getInt('s-diabloWait', settings.diabloWait);
+  
+  settings.autoTBreak = getCheck('s-autoTBreak');
+  settings.autoTBreakWeek = getInt('s-autoTBreakWeek', 4);
+  settings.enforceWeeklyLimit = getCheck('s-enforceWeeklyLimit');
+  settings.enforceRestDays = getCheck('s-enforceRestDays');
+  settings.restDays = getInt('s-restDays', settings.restDays);
+
+  settings.daySmokingEnabled = getCheck('s-daySmokingEnabled');
+  settings.daySmokingDaysPerMonth = getInt('s-daySmokingDaysPerMonth', settings.daySmokingDaysPerMonth);
+  settings.nightSmokingEnabled = getCheck('s-nightSmokingEnabled');
+
+  settings.allowFuckIt = getCheck('s-allowFuckIt');
+  settings.fuckItLimitPerMonth = getInt('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
+
+  settings.theme = getVal('s-theme') || 'auto';
+  settings.largeText = getCheck('s-largeText');
+
+  sv('t2_settings', settings); 
+  
+  applyTheme();
+
+  if(!silent) showToast("Saved!"); 
+  renderDashboard(); 
+  renderCalendar();
+}
+
+function resetUsageLimits() {
+  showCustomModal("Restore to Default", "Are you sure you want to restore all Rules, Limits, and Hit Times to their default values?", [
+    {text: "Cancel"},
+    {text: "Proceed", cls: "btn-primary", onClick: () => {
+       showCustomModal("Final Confirmation", "This will overwrite your custom limits and hit durations. Are you absolutely sure?", [
+         {text: "Cancel"},
+         {text: "Yes, Reset", cls: "btn-danger", onClick: () => {
+             settings.maxHits = DEFAULT_SETTINGS.maxHits;
+             settings.sessPerWeek = DEFAULT_SETTINGS.sessPerWeek;
+             settings.quickHitsPerWeek = DEFAULT_SETTINGS.quickHitsPerWeek;
+             settings.nightWait = DEFAULT_SETTINGS.nightWait;
+             settings.dayWait = DEFAULT_SETTINGS.dayWait;
+             settings.diabloEnabled = DEFAULT_SETTINGS.diabloEnabled;
+             settings.diabloWait = DEFAULT_SETTINGS.diabloWait;
+             settings.autoTBreak = DEFAULT_SETTINGS.autoTBreak;
+             settings.autoTBreakWeek = DEFAULT_SETTINGS.autoTBreakWeek;
+             settings.enforceWeeklyLimit = DEFAULT_SETTINGS.enforceWeeklyLimit;
+             settings.enforceRestDays = DEFAULT_SETTINGS.enforceRestDays;
+             settings.restDays = DEFAULT_SETTINGS.restDays;
+             settings.doseLow = DEFAULT_SETTINGS.doseLow;
+             settings.doseMed = DEFAULT_SETTINGS.doseMed;
+             settings.doseHigh = DEFAULT_SETTINGS.doseHigh;
+             settings.doseDiablo = DEFAULT_SETTINGS.doseDiablo;
+             settings.daySmokingEnabled = DEFAULT_SETTINGS.daySmokingEnabled;
+             settings.daySmokingDaysPerMonth = DEFAULT_SETTINGS.daySmokingDaysPerMonth;
+             settings.nightSmokingEnabled = DEFAULT_SETTINGS.nightSmokingEnabled;
+             settings.allowFuckIt = DEFAULT_SETTINGS.allowFuckIt;
+             settings.fuckItLimitPerMonth = DEFAULT_SETTINGS.fuckItLimitPerMonth;
+             settings.largeText = DEFAULT_SETTINGS.largeText;
+             sv('t2_settings', settings);
+             renderSettings();
+             showToast("Defaults restored.");
+             renderDashboard();
+             renderCalendar();
+             applyTheme();
+         }}
+       ]);
+    }}
+  ]);
+}
+
+function saveBreakSchedule() {
+  const st = document.getElementById('s-breakStart');
+  const en = document.getElementById('s-breakEnd');
+  if(st) settings.breakStart = st.value;
+  if(en) settings.breakEnd = en.value;
+  sv('t2_settings', settings);
+  showToast("Break range updated");
+  renderDashboard();
+  renderCalendar();
+}
+
+function clearBreakSchedule() {
+  settings.breakStart = null;
+  settings.breakEnd = null;
+  const st = document.getElementById('s-breakStart');
+  const en = document.getElementById('s-breakEnd');
+  if(st) st.value = '';
+  if(en) en.value = '';
+  sv('t2_settings', settings);
+  showToast("Break range cleared");
+  renderDashboard();
+  renderCalendar();
+}
+
+function renderEmergencyLinks() {
+  document.getElementById('emergency-links-list').innerHTML = emergencyLinks.map(l=>`<div class="flex-row mb-8"><span>${l.name}</span><button class="btn btn-ghost btn-sm ml-auto" onclick="deleteEmergencyLink('${l.id}')">Remove</button></div>`).join('') || '<div class="empty text-sm">No links.</div>';
+}
+
+function addEmergencyLink() {
+  const name = document.getElementById('el-name').value.trim(), url = document.getElementById('el-url').value.trim();
+  if(!name||!url) { showCustomModal("Error", "Enter name and URL.", [{text:"OK"}]); return; }
+  emergencyLinks.push({id:'el'+Date.now(), name, url});
+  sv('t2_emergency', emergencyLinks);
+  document.getElementById('el-name').value = '';
+  document.getElementById('el-url').value = '';
+  renderSettings();
+  showToast("Link added");
+}
+
+function deleteEmergencyLink(id) {
+  emergencyLinks = emergencyLinks.filter(l=>l.id!==id);
+  sv('t2_emergency', emergencyLinks);
+  renderSettings();
+}
+
+function exportCSV() {
+  const rows = [['Date','Time Started', 'Time Finished', 'Pen', 'Hits', 'Hit Times', 'THC', 'Feel', 'Notes', 'Media Reviewed', 'Quick Hit']];
+  sessions.forEach(s => {
+    const et = s.endTime ? fmtTime(new Date(s.endTime)) : '';
+    const hitTimes = s.hits.map(h => fmtTime(new Date(h.time))).join(';');
+    const mediaStr = (s.media || []).map(m => m.title + ' (' + m.rating + '/10)').join('; ');
+    const quickStr = s.isQuickHit ? 'Yes' : 'No';
+    rows.push([
+      new Date(s.ts).toLocaleDateString(),
+      fmtTime(new Date(s.ts)),
+      et,
+      penById(s.penId)?.name,
+      s.hits.length,
+      hitTimes,
+      s.thc,
+      s.finalFeeling,
+      s.notes,
+      mediaStr,
+      quickStr
+    ]);
+  });
+  const csv = rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'tether.csv'; a.click();
+}
+
+function exportDataJSON() {
+  const data = {};
+  for(let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if(k.startsWith('t2_')) {
+          data[k] = localStorage.getItem(k);
+      }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tether-backup-${ds(new Date())}.json`;
+  a.click();
+}
+
+function importDataJSON(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+      try {
+          const data = JSON.parse(event.target.result);
+          let imported = 0;
+          for(const key in data) {
+              if(key.startsWith('t2_')) {
+                  localStorage.setItem(key, data[key]);
+                  imported++;
+              }
+          }
+          if(imported > 0) {
+              showCustomModal("Restore Complete", "Data imported successfully. The app will now reload.", [
+                  {text: "Reload", cls: "btn-primary", onClick: () => window.location.reload()}
+              ]);
+          } else {
+              showCustomModal("Error", "No valid Tether data found in this file.", [{text: "OK"}]);
+          }
+      } catch(err) {
+          showCustomModal("Error", "Failed to parse backup file. It may be corrupted.", [{text: "OK"}]);
+      }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; 
+}
+</script>
+</body>
+</html>
