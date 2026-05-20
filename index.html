@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tether v.Theta</title>
+<title>Tether v.Iota</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -554,6 +554,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
   </div>
 </div>
 
+<!-- Edit Pen Modal -->
+<div class="modal-overlay glass" id="edit-pen-modal">
+  <div class="modal glass">
+    <div class="modal-title">Edit Pen</div>
+    <input type="hidden" id="edit-pen-id">
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Name</label><input type="text" id="edit-pen-name" class="glass"></div>
+      <div class="form-group mb-16"><label>THC %</label><input type="number" id="edit-pen-thc" step="0.1" class="glass"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="edit-pen-cbd" step="0.1" class="glass"></div>
+      <div class="form-group mb-16"><label>CBN % (Optional)</label><input type="number" id="edit-pen-cbn" step="0.1" class="glass"></div>
+      <div class="form-group mb-16"><label>Notes/Terpenes</label><input type="text" id="edit-pen-notes" class="glass"></div>
+    </div>
+    <div class="flex-row mt-24" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeEditPenModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePenEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Past Session Logging Modal -->
 <div class="modal-overlay glass" id="past-modal">
   <div class="modal glass">
@@ -595,7 +616,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 <!-- Sidebar -->
 <div class="sidebar glass" id="sidebar">
-  <div class="logo">TETHER v.&theta;</div>
+  <div class="logo">TETHER v.&iota;</div>
   <div class="gamma-banner">Marijuana usage tracker</div>
 
   <nav class="nav mt-16">
@@ -819,6 +840,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
           <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(74,159,196,0.4)"></div><span class="text-sm text-muted">Day</span></div>
           <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(212,168,67,0.4)"></div><span class="text-sm text-muted">Night</span></div>
           <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(224,94,94,0.4)"></div><span class="text-sm text-muted">Both</span></div>
+          <div class="flex-row gap-8"><span style="font-size:10px;">⚡</span><span class="text-sm text-muted">Quick Hit</span></div>
         </div>
       </div>
       
@@ -1057,9 +1079,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
         </div>
 
         <div class="card glass mt-24">
-          <div class="card-title">Hit Customization</div>
+          <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom: 20px;">
+             <div class="card-title" style="margin:0;">Hit Customization</div>
+             <label class="toggle" style="display:flex; align-items:center; gap:8px;" title="Auto-adjust hit times based on 14-day usage">
+                <span style="font-size:10px; color:var(--accent); text-transform:uppercase; font-weight:700;">Auto-Tune</span>
+                <div style="position:relative; width:36px; height:20px;">
+                  <input type="checkbox" id="s-autoTuneDosing" onchange="saveSettings(true)">
+                  <div class="toggle-track" style="border-radius:10px;"></div><div class="toggle-thumb" style="width:14px; height:14px;"></div>
+                </div>
+             </label>
+          </div>
           
-          <p class="text-sm text-muted mb-16">Set how long a hit lasts per dose category. This dynamically updates THC estimation.</p>
+          <p class="text-sm text-muted mb-16">Set how long a hit lasts per dose category. If Auto-Tune is on, these automatically scale up as tolerance builds from recent usage.</p>
           <div class="toggle-row"><label class="toggle-label" for="s-doseLow">Low Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseLow" min="1" max="15" onchange="saveSettings(true)"></div>
           <div class="toggle-row"><label class="toggle-label" for="s-doseMed">Medium Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseMed" min="1" max="20" onchange="saveSettings(true)"></div>
           <div class="toggle-row"><label class="toggle-label" for="s-doseHigh">High Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseHigh" min="1" max="20" onchange="saveSettings(true)"></div>
@@ -1191,7 +1222,7 @@ const DEFAULT_SETTINGS = {
   maxHits: 4, sessPerWeek: 5, quickHitsPerWeek: 3, nightWait: 15, dayWait: 120, breakStart: null, breakEnd: null, tolerance: 'medium', 
   diabloEnabled: false, diabloWait: 240, autoTBreak: true, autoTBreakWeek: 4, 
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
-  doseLow: 3, doseMed: 5, doseHigh: 7, doseDiablo: 10,
+  autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7, doseDiablo: 10,
   daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
   allowFuckIt: true, fuckItLimitPerMonth: 2, autoTBreakBypassedMonth: -1,
   theme: 'auto', largeText: false
@@ -1333,6 +1364,7 @@ window.onload = () => {
   const journalEl = document.getElementById('journal-text');
   if (journalEl) journalEl.value = journalText;
   
+  applyAutoDosing();
   updateGlobalClock();
   applyTheme(); 
   setInterval(updateGlobalClock, 1000);
@@ -1412,6 +1444,34 @@ function updateGlobalClock() {
   if (clTab && clTab.classList.contains('active')) {
       renderClearance();
   }
+}
+
+function applyAutoDosing() {
+  if (!settings.autoTuneDosing) return;
+  const now = Date.now();
+  const fourteenDaysAgo = now - (14 * 24 * 3600 * 1000);
+  let recentHits = 0;
+  sessions.forEach(s => {
+      s.hits.forEach(h => {
+          if (h.time >= fourteenDaysAgo) recentHits++;
+      });
+  });
+  if (activeSession) {
+      activeSession.hits.forEach(h => {
+          if (h.time >= fourteenDaysAgo) recentHits++;
+      });
+  }
+  
+  let bLow = 3, bMed = 5, bHigh = 7, bDiablo = 10;
+  
+  // Every 15 hits within 14 days extends baseline by 1 second (Max 5s addition)
+  let extraSecs = Math.floor(recentHits / 15);
+  if (extraSecs > 5) extraSecs = 5;
+  
+  settings.doseLow = bLow + extraSecs;
+  settings.doseMed = bMed + extraSecs;
+  settings.doseHigh = bHigh + extraSecs;
+  settings.doseDiablo = bDiablo + extraSecs;
 }
 
 function showCustomModal(title, msg, buttons) {
@@ -2730,6 +2790,7 @@ function renderHistory() {
   
   el.innerHTML = sorted.map(s => {
     const p = penById(s.penId) || {name: 'Deleted Pen'};
+    const fullDate = fmtDate(s.ts);
     const st = fmtTime(new Date(s.ts));
     const et = s.endTime ? fmtTime(new Date(s.endTime)) : 'N/A';
     const hStr = s.hits.length === 1 ? 'hit' : 'hits';
@@ -2767,7 +2828,7 @@ function renderHistory() {
     return `
       <div class="glass" style="padding:16px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:var(--radius); margin-bottom:12px;">
         <div class="flex-row" style="margin-bottom:12px"><strong style="color:var(--accent); font-size:16px;">${p.name} ${quickBadge}</strong><span class="mode-badge ${s.mode} ml-auto" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
-        <div class="text-sm text-muted mb-16">Started: ${st} | Finished: ${et}</div>
+        <div class="text-sm text-muted mb-16" style="font-weight:bold; color:var(--text);">${fullDate} <span style="font-weight:normal; color:var(--text3);">• Started: ${st} | Finished: ${et}</span></div>
         
         <div class="mb-16">
           ${hitsHtml}
@@ -2867,6 +2928,7 @@ function renderPens() {
              ${p.notes ? `<div class="text-sm text-muted mt-8" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
            </div>
            <div class="flex-row gap-8 ml-auto">
+             <button class="btn btn-ghost btn-sm" onclick="editPen('${p.id}')">Edit</button>
              <button class="btn btn-ghost btn-sm" onclick="retirePen('${p.id}')">Retire 🫡</button>
              <button class="btn btn-ghost btn-sm" onclick="deletePen('${p.id}')">Del</button>
            </div>
@@ -2963,6 +3025,53 @@ function addPen() {
     ]);
   } else {
     pushPen();
+  }
+}
+
+function editPen(id) {
+  const p = pens.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('edit-pen-id').value = p.id;
+  document.getElementById('edit-pen-name').value = p.name;
+  document.getElementById('edit-pen-thc').value = p.thc;
+  document.getElementById('edit-pen-cbd').value = p.cbd || 0;
+  document.getElementById('edit-pen-cbn').value = p.cbn || 0;
+  document.getElementById('edit-pen-notes').value = p.notes || '';
+  document.getElementById('edit-pen-modal').classList.add('open');
+}
+
+function closeEditPenModal() {
+  document.getElementById('edit-pen-modal').classList.remove('open');
+}
+
+function savePenEdit() {
+  const id = document.getElementById('edit-pen-id').value;
+  const name = document.getElementById('edit-pen-name').value.trim();
+  const thc = parseFloat(document.getElementById('edit-pen-thc').value);
+  const cbd = parseFloat(document.getElementById('edit-pen-cbd').value) || 0;
+  const cbn = parseFloat(document.getElementById('edit-pen-cbn').value) || 0;
+  const notes = document.getElementById('edit-pen-notes').value.trim();
+
+  if(!name || !thc) {
+    showCustomModal("Error", "Required: Pen Name & THC %", [{text: "OK"}]);
+    return;
+  }
+
+  const p = pens.find(x => x.id === id);
+  if (p) {
+      p.name = name;
+      p.thc = thc;
+      p.cbd = cbd;
+      p.cbn = cbn;
+      p.notes = notes;
+      sv('t2_pens', pens);
+      renderPens();
+      closeEditPenModal();
+      showToast("Pen updated!");
+      
+      if(activeSession && activeSession.penId === id) {
+          renderDashboard();
+      }
   }
 }
 
@@ -3098,8 +3207,10 @@ function renderCalendar() {
   const dayMap={};
   sessions.forEach(s=>{
     const d=ds(new Date(s.ts));
-    if(!dayMap[d])dayMap[d]={ day:false, night:false, sList:[] };
-    dayMap[d][s.mode]=true; dayMap[d].sList.push(s);
+    if(!dayMap[d])dayMap[d]={ day:false, night:false, sList:[], hasQuickHit:false };
+    if(!s.isQuickHit) dayMap[d][s.mode]=true;
+    if(s.isQuickHit) dayMap[d].hasQuickHit=true;
+    dayMap[d].sList.push(s);
   });
   
   let cells='';
@@ -3126,9 +3237,13 @@ function renderCalendar() {
     if (fuckIts.includes(dStr)) {
         icon = '⚠️';
     } else if (dayReasons.length > 0) {
-        icon = '🚭'; // Covers both past and future blocked days
-    } else {
-        icon = '✅'; // Covers both past and future eligible days
+        icon = '🚭'; 
+    } else if (dm.sList.length > 0 && !dm.sList.every(s=>s.isQuickHit)) {
+        icon = '✅'; 
+    }
+
+    if (dm.hasQuickHit) {
+        icon = icon ? icon + '⚡' : '⚡';
     }
 
     cells+=`
@@ -3236,6 +3351,18 @@ function renderSettings() {
   setVal('s-doseHigh', settings.doseHigh);
   setVal('s-doseDiablo', settings.doseDiablo);
 
+  setCheck('s-autoTuneDosing', !!settings.autoTuneDosing);
+  const isAuto = !!settings.autoTuneDosing;
+  const doseInputs = ['s-doseLow', 's-doseMed', 's-doseHigh', 's-doseDiablo'];
+  doseInputs.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) {
+          el.disabled = isAuto;
+          if(isAuto) el.style.opacity = '0.5';
+          else el.style.opacity = '1';
+      }
+  });
+
   setCheck('s-diabloEnabled', !!settings.diabloEnabled);
   setVal('s-diabloWait', settings.diabloWait || 240);
   
@@ -3278,10 +3405,16 @@ function saveSettings(silent = false) {
   settings.dayWait = getInt('s-dayWait', settings.dayWait);
   settings.tolerance = getVal('s-tolerance') || settings.tolerance;
   
-  settings.doseLow = getInt('s-doseLow', settings.doseLow);
-  settings.doseMed = getInt('s-doseMed', settings.doseMed);
-  settings.doseHigh = getInt('s-doseHigh', settings.doseHigh);
-  settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
+  settings.autoTuneDosing = getCheck('s-autoTuneDosing');
+
+  if (!settings.autoTuneDosing) {
+      settings.doseLow = getInt('s-doseLow', settings.doseLow);
+      settings.doseMed = getInt('s-doseMed', settings.doseMed);
+      settings.doseHigh = getInt('s-doseHigh', settings.doseHigh);
+      settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
+  } else {
+      applyAutoDosing();
+  }
   
   settings.diabloEnabled = getCheck('s-diabloEnabled');
   settings.diabloWait = getInt('s-diabloWait', settings.diabloWait);
@@ -3309,6 +3442,7 @@ function saveSettings(silent = false) {
   if(!silent) showToast("Saved!"); 
   renderDashboard(); 
   renderCalendar();
+  renderSettings(); // Re-render to update input disabled states if toggled
 }
 
 function resetUsageLimits() {
@@ -3330,6 +3464,7 @@ function resetUsageLimits() {
              settings.enforceWeeklyLimit = DEFAULT_SETTINGS.enforceWeeklyLimit;
              settings.enforceRestDays = DEFAULT_SETTINGS.enforceRestDays;
              settings.restDays = DEFAULT_SETTINGS.restDays;
+             settings.autoTuneDosing = DEFAULT_SETTINGS.autoTuneDosing;
              settings.doseLow = DEFAULT_SETTINGS.doseLow;
              settings.doseMed = DEFAULT_SETTINGS.doseMed;
              settings.doseHigh = DEFAULT_SETTINGS.doseHigh;
