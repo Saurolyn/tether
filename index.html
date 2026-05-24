@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tether v.Kappa</title>
+<title>Tether v.Iota</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -538,13 +538,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     <div class="form-row">
       <div class="form-group mb-16"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" step="0.1" class="glass"></div>
       <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="setup-pen-cbd" placeholder="0" step="0.1" class="glass"></div>
-      <div class="form-group mb-16">
-         <label>Custom % (Optional)</label>
-         <div class="flex-row" style="gap:4px;">
-           <input type="text" id="setup-pen-c-name" value="CBN" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
-           <input type="number" id="setup-pen-c-val" placeholder="0" step="0.1" class="glass" style="flex:1;">
-         </div>
-      </div>
+      <div class="form-group mb-16"><label>CBN % (Optional)</label><input type="number" id="setup-pen-cbn" placeholder="0" step="0.1" class="glass"></div>
     </div>
     
     <div class="form-group mb-16"><label>Notes / Terpenes (Optional)</label><input type="text" id="setup-pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
@@ -571,13 +565,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     </div>
     <div class="form-row">
       <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="edit-pen-cbd" step="0.1" class="glass"></div>
-      <div class="form-group mb-16">
-         <label>Custom % (Optional)</label>
-         <div class="flex-row" style="gap:4px;">
-           <input type="text" id="edit-pen-c-name" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
-           <input type="number" id="edit-pen-c-val" step="0.1" class="glass" style="flex:1;">
-         </div>
-      </div>
+      <div class="form-group mb-16"><label>CBN % (Optional)</label><input type="number" id="edit-pen-cbn" step="0.1" class="glass"></div>
       <div class="form-group mb-16"><label>Notes/Terpenes</label><input type="text" id="edit-pen-notes" class="glass"></div>
     </div>
     <div class="flex-row mt-24" style="justify-content: flex-end;">
@@ -628,7 +616,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 <!-- Sidebar -->
 <div class="sidebar glass" id="sidebar">
-  <div class="logo">TETHER v.&kappa;</div>
+  <div class="logo">TETHER v.&iota;</div>
   <div class="gamma-banner">Marijuana usage tracker</div>
 
   <nav class="nav mt-16">
@@ -781,10 +769,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
         <div class="card-title" style="color:var(--accent);">Session Recap & Log</div>
         <div class="text-muted mb-24 text-sm">Review your session data and log how you feel to finalize it.</div>
         
-        <div class="stat-grid mb-24">
+        <div class="two-col mb-24">
           <div class="stat glass"><div class="stat-label">Total Hits</div><div class="stat-value" id="recap-hits">0</div></div>
           <div class="stat glass"><div class="stat-label">Total Est. THC</div><div class="stat-value" id="recap-thc">0mg</div></div>
-          <div class="stat glass"><div class="stat-label">Total Time</div><div class="stat-value" id="recap-time">0m</div></div>
         </div>
 
         <div class="form-group mb-24">
@@ -930,15 +917,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
           </div>
           <div class="form-row">
             <div class="form-group"><label>CBD % (Optional)</label><input type="number" id="pen-cbd" placeholder="0" step="0.1" class="glass"></div>
-            <div class="form-group">
-               <label>Custom % (Optional)</label>
-               <div class="flex-row" style="gap:4px;">
-                 <input type="text" id="pen-c-name" value="CBN" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
-                 <input type="number" id="pen-c-val" placeholder="0" step="0.1" class="glass" style="flex:1;">
-               </div>
-            </div>
+            <div class="form-group"><label>CBN % (Optional)</label><input type="number" id="pen-cbn" placeholder="0" step="0.1" class="glass"></div>
+            <div class="form-group"><label>Notes/Terpenes</label><input type="text" id="pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
           </div>
-          <div class="form-group"><label>Notes/Terpenes</label><input type="text" id="pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
           <button class="btn btn-ghost btn-sm mt-16" onclick="addPen()">+ Add Pen</button>
         </div>
       </div>
@@ -956,17 +937,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
       </div>
       <div class="card glass">
         <div class="card-title">Customize Checks</div>
-        <div class="form-group mb-16">
-           <label>New Routine Item / Check</label>
-           <div class="flex-row gap-8 mt-8">
-             <input type="text" id="new-habit-input" placeholder="e.g. Drink a glass of water" class="glass" style="flex:1;">
-             <select id="new-habit-mode" class="glass" style="width:140px;">
-               <option value="all">All Sessions</option>
-               <option value="day">Day Only</option>
-               <option value="night">Night Only</option>
-             </select>
-           </div>
-        </div>
+        <div class="form-group mb-16"><label>New Routine Item / Check</label><input type="text" id="new-habit-input" placeholder="e.g. Drink a glass of water" class="glass"></div>
         <button class="btn btn-ghost btn-sm" onclick="addHabit()">+ Add Requirement</button>
       </div>
     </div>
@@ -1258,11 +1229,10 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_ROUTINE = [
-  { id:'r1', text:'Drink a glass of water', done:false, mode:'all' },
-  { id:'r5', text:'Finished all critical daytime work/study', done:false, mode:'day' },
-  { id:'r2', text:'No major commitments early tomorrow', done:false, mode:'night' },
-  { id:'r3', text:'Completed a self-care task today', done:false, mode:'all' },
-  { id:'r4', text:'I have no major anxiety right now', done:false, mode:'all' }
+  { id:'r1', text:'Drink a glass of water', done:false },
+  { id:'r2', text:'No major commitments early tomorrow', done:false },
+  { id:'r3', text:'Completed a self-care task today', done:false },
+  { id:'r4', text:'I have no major anxiety right now', done:false }
 ];
 
 const DEFAULT_RULES = [
@@ -1309,16 +1279,6 @@ function ds(d) {
 }
 function today() { return ds(new Date()); }
 function fmtTime(d) { return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
-function formatDuration(ms) {
-  if (!ms || ms <= 0) return '0m';
-  const diff = Math.floor(ms / 1000);
-  const h = Math.floor(diff / 3600);
-  const m = Math.floor((diff % 3600) / 60);
-  const s = diff % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m`;
-  return `${s}s`;
-}
 function weekStartFromDate(d) {
   const date = new Date(d);
   const dow = date.getDay();
@@ -1380,50 +1340,10 @@ function getFeelColorObj(val) {
   return { bg: 'rgba(51,204,51,0.15)', border: 'rgba(51,204,51,0.5)', text: '#33cc33' };
 }
 
-function getClearanceTs() {
-    const lastHit = getLastHitInfo();
-    if (lastHit.time === 0) return 0;
-    const pen = penById(lastHit.penId);
-    const penTHC = pen ? pen.thc : 75;
-    let M = 1.0;
-    if (settings.tolerance === 'low') M = 0.6;
-    if (settings.tolerance === 'high') M = 1.6;
-    const thcFactor = (penTHC - 50) / 100;
-    M = M + (thcFactor * 0.3);
-    M = Math.max(0.4, M);
-    M = Math.min(2.0, M);
-    const uMed2 = 60 * Math.min(1.6, M); // System fully clear
-    return lastHit.time + (uMed2 * 3600000);
-}
-
 // ── Init & Mode ─────────────────────────────────────────────────────────────
 window.onload = () => {
   if (Notification && Notification.permission === 'default') Notification.requestPermission();
   
-  // Data Migration for v.Kappa
-  let migrated = false;
-  pens.forEach(p => {
-    if (p.cbn !== undefined && p.customCVal === undefined) {
-      p.customCName = 'CBN'; p.customCVal = p.cbn; delete p.cbn; migrated = true;
-    }
-  });
-  graveyard.forEach(p => {
-    if (p.cbn !== undefined && p.customCVal === undefined) {
-      p.customCName = 'CBN'; p.customCVal = p.cbn; delete p.cbn; migrated = true;
-    }
-  });
-  if (migrated) { sv('t2_pens', pens); sv('t2_graveyard', graveyard); }
-
-  let routineMigrated = false;
-  routineChecks.forEach(c => {
-    if (!c.mode) { c.mode = 'all'; routineMigrated = true; }
-  });
-  if (!routineChecks.some(c => c.mode === 'day')) {
-      routineChecks.push({ id:'r5_'+Date.now(), text:'Finished all critical daytime work/study', done:false, mode:'day' });
-      routineMigrated = true;
-  }
-  if (routineMigrated) sv('t2_routine', routineChecks);
-
   if (pens.length === 0 && graveyard.length === 0) {
     const sm = document.getElementById('setup-modal');
     if (sm) sm.classList.add('open');
@@ -1502,37 +1422,8 @@ function updateGlobalClock() {
   const newMode = (hr >= 6 && hr < 18) ? 'day' : 'night';
   if (newMode !== currentMode) {
     currentMode = newMode;
-    // Clear routine checks on mode switch to ensure fresh validation
-    routineChecks.forEach(c => c.done = false);
-    sv('t2_routine', routineChecks);
-    
     applyTheme(); 
     renderDashboard();
-    renderRoutine();
-  }
-
-  // Dashboard Stat: Clearance Countdown
-  const clearEl = document.getElementById('dash-clear-countdown');
-  if (clearEl) {
-      const targetTs = getClearanceTs();
-      const rem = targetTs - Date.now();
-      if (rem <= 0 || targetTs === 0) {
-          clearEl.innerText = "CLEAR";
-          clearEl.style.color = "var(--green)";
-      } else {
-          const d = Math.floor(rem / 86400000);
-          const h = Math.floor((rem % 86400000) / 3600000);
-          const m = Math.floor((rem % 3600000) / 60000);
-          const s = Math.floor((rem % 60000) / 1000);
-          let str = "";
-          if (d > 0) {
-              str = `${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          } else {
-              str = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-          }
-          clearEl.innerText = str;
-          clearEl.style.color = "var(--text)";
-      }
   }
 
   if (activeSession) {
@@ -1573,6 +1464,7 @@ function applyAutoDosing() {
   
   let bLow = 3, bMed = 5, bHigh = 7, bDiablo = 10;
   
+  // Every 15 hits within 14 days extends baseline by 1 second (Max 5s addition)
   let extraSecs = Math.floor(recentHits / 15);
   if (extraSecs > 5) extraSecs = 5;
   
@@ -1605,8 +1497,7 @@ function completeSetup() {
   const pname = document.getElementById('setup-pen-name').value.trim();
   const thc = parseFloat(document.getElementById('setup-pen-thc').value);
   const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
-  const cVal = parseFloat(document.getElementById('setup-pen-c-val').value) || 0;
-  const cName = document.getElementById('setup-pen-c-name').value.trim() || 'CBN';
+  const cbn = parseFloat(document.getElementById('setup-pen-cbn').value) || 0;
   const notes = document.getElementById('setup-pen-notes').value.trim();
   const tol = document.getElementById('setup-user-tolerance').value;
 
@@ -1617,14 +1508,14 @@ function completeSetup() {
   
   username = uname; sv('t2_username', username);
   settings.tolerance = tol; sv('t2_settings', settings);
-  pens.push({ id: 'p'+Date.now(), name: pname, thc, cbd, customCVal: cVal, customCName: cName, notes });
+  pens.push({ id: 'p'+Date.now(), name: pname, thc, cbd, cbn, notes });
   sv('t2_pens', pens);
   
   document.getElementById('setup-modal').classList.remove('open');
   renderPens();
   renderDashboard();
   
-  setTimeout(() => { openGuideModal(); }, 500);
+  setTimeout(() => { openGuideModal(); }, 500); // Show guide after initial setup
 }
 
 function showToast(msg, isWater=false) {
@@ -1658,23 +1549,28 @@ function togglePreflight(id) {
   renderRoutine();
 }
 
-function checkAllPreflight() { 
-  return routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode).every(c => c.done); 
-}
+function checkAllPreflight() { return routineChecks.every(c => c.done); }
 
 function getBlockingReasons(dStr) {
    let reasons = [];
    const dayTs = new Date(dStr + "T12:00:00").getTime();
    const dObj = new Date(dStr + "T12:00:00");
 
-   if (plannedBreaks.includes(dStr)) reasons.push("Manually Planned No-Smoke Day");
+   // 1. Manually Planned No-Smoke Day
+   if (plannedBreaks.includes(dStr)) {
+       reasons.push("Manually Planned No-Smoke Day");
+   }
 
+   // 2. Manual Break Range
    if (settings.breakStart && settings.breakEnd) {
        const bs = new Date(settings.breakStart + "T00:00:00").getTime();
        const be = new Date(settings.breakEnd + "T23:59:59").getTime();
-       if (dayTs >= bs && dayTs <= be) reasons.push("Scheduled Break Range");
+       if (dayTs >= bs && dayTs <= be) {
+           reasons.push("Scheduled Break Range");
+       }
    }
 
+   // 3. Auto Monthly T-Break (Custom Week Selector)
    if (settings.autoTBreak && settings.autoTBreakBypassedMonth !== dObj.getMonth()) {
        const day = dObj.getDate();
        const week = settings.autoTBreakWeek || 4;
@@ -1686,27 +1582,37 @@ function getBlockingReasons(dStr) {
        else if (week === 3 && day >= 15 && day <= 21) isBreakDay = true;
        else if (week === 4 && day >= 22 && day <= daysInMo) isBreakDay = true;
 
-       if (isBreakDay) reasons.push(`Auto Monthly T-Break (Week ${week})`);
+       if (isBreakDay) {
+           reasons.push(`Auto Monthly T-Break (Week ${week})`);
+       }
    }
 
+   // 4. Weekly Session Limit
    if (settings.enforceWeeklyLimit) {
        let ws = weekStartFromDate(dObj);
        let weekSessCount = sessions.filter(s => {
           let sts = new Date(s.ts).getTime();
           return sts >= ws && sts < ws + 7*86400000 && !s.isQuickHit;
        }).length;
-       if (weekSessCount >= settings.sessPerWeek) reasons.push(`Weekly Session Limit Reached (${settings.sessPerWeek})`);
+       if (weekSessCount >= settings.sessPerWeek) {
+           reasons.push(`Weekly Session Limit Reached (${settings.sessPerWeek})`);
+       }
    }
 
+   // 5. Mandatory Rest Days
    if (settings.enforceRestDays && settings.restDays > 0) {
        let isRestDay = false;
        for (let i = 1; i <= settings.restDays; i++) {
            let prevDate = new Date(dayTs - i * 86400000);
            let prevDStr = ds(prevDate);
            const hasSess = sessions.some(s => ds(new Date(s.ts)) === prevDStr && !s.isQuickHit);
-           if (hasSess) isRestDay = true;
+           if (hasSess) {
+               isRestDay = true;
+           }
        }
-       if (isRestDay) reasons.push(`Mandatory ${settings.restDays}-Day Rest Period Active`);
+       if (isRestDay) {
+           reasons.push(`Mandatory ${settings.restDays}-Day Rest Period Active`);
+       }
    }
 
    return { reasons };
@@ -1754,7 +1660,7 @@ function checkDailyLock() {
 }
 
 function getUnlockTimeForDate(dObj) {
-    if (!settings.daySmokingEnabled) return 18; 
+    if (!settings.daySmokingEnabled) return 18; // If no day smoking, unblock at 6 PM
     
     const mo = dObj.getMonth();
     const yr = dObj.getFullYear();
@@ -1766,8 +1672,10 @@ function getUnlockTimeForDate(dObj) {
         }
     });
     
-    if (daySessDates.size >= settings.daySmokingDaysPerMonth && !daySessDates.has(ds(dObj))) return 18;
-    return 6;
+    if (daySessDates.size >= settings.daySmokingDaysPerMonth && !daySessDates.has(ds(dObj))) {
+        return 18; // Day limit reached, unlocks at 6 PM
+    }
+    return 6; // Fully unblocked, unlocks at 6 AM
 }
 
 function calculateUnlockTime() {
@@ -1776,11 +1684,13 @@ function calculateUnlockTime() {
     const dailyStatus = checkDailyLock();
     const { reasons: todayReasons } = getBlockingReasons(todayStr);
 
+    // If there are no general locks today, and daily limit isn't hit, we are unlocked.
     if (todayReasons.length === 0 && !dailyStatus.locked) return null;
 
     let nextUnblockedDate = null;
     let targetTs = null;
 
+    // Scan ahead to find the first completely unblocked day (max 60 days to prevent infinite loops)
     for (let i = 0; i < 60; i++) {
         let d = new Date(now.getTime() + i * 86400000);
         let dStr = ds(d);
@@ -1788,12 +1698,14 @@ function calculateUnlockTime() {
 
         if (i === 0) {
             if (reasons.length === 0 && dailyStatus.locked) {
+                // Today has no long-term locks, but a daily limit lock (e.g. night-only mode).
+                // If it unlocks later today (not tomorrow), we use that exact time.
                 if (dailyStatus.endTs && dailyStatus.endTs > now.getTime() && ds(new Date(dailyStatus.endTs)) === todayStr) {
                      targetTs = dailyStatus.endTs;
                      break;
                 }
             }
-            continue; 
+            continue; // Today is otherwise blocked, keep scanning
         } else {
             if (reasons.length === 0) {
                 nextUnblockedDate = d;
@@ -1803,12 +1715,14 @@ function calculateUnlockTime() {
     }
 
     if (targetTs) return targetTs;
-    if (!nextUnblockedDate) return Date.now() + 60 * 86400000;
+    if (!nextUnblockedDate) return Date.now() + 60 * 86400000; // Fallback max
 
+    // Calculate exact hour (6AM or 6PM) for the first unblocked day
     let unlockHour = getUnlockTimeForDate(nextUnblockedDate);
     let unlockDate = new Date(nextUnblockedDate);
     unlockDate.setHours(unlockHour, 0, 0, 0);
 
+    // Minor edge case safety
     if (unlockDate.getTime() < now.getTime()) unlockDate.setDate(unlockDate.getDate() + 1);
 
     return unlockDate.getTime();
@@ -1899,32 +1813,42 @@ function startLockCountdown(targetTs) {
 
 function getCurrentTHCInBody(evalTime = Date.now()) {
     let total = 0;
-    const cutoff = evalTime - (10 * 24 * 3600 * 1000);
+    const cutoff = evalTime - (10 * 24 * 3600 * 1000); // 10 days ago to ensure complete terminal tracking
 
-    const BIOAVAILABILITY = 0.35; 
-    const MG_OIL_PER_SECOND = 1.2; 
+    // Pharmacokinetic Constants for Robust Accuracy
+    const BIOAVAILABILITY = 0.35; // Roughly 35% of vaporized THC enters the bloodstream
+    const MG_OIL_PER_SECOND = 1.2; // Realistic vaporized oil output per second of draw
 
-    const ALPHA_HALF_LIFE = 0.5; 
-    const BETA_HALF_LIFE = 36.0; 
-    const ALPHA_WEIGHT = 0.8;    
-    const BETA_WEIGHT = 0.2;     
+    // Biphasic Decay Model Constants
+    // Represents realistic pharmacokinetics of THC (fast initial drop, slow residual trail)
+    const ALPHA_HALF_LIFE = 0.5; // Rapid distribution phase (blood to tissue/fat) - ~30 mins
+    const BETA_HALF_LIFE = 36.0; // Terminal elimination phase (clearing from fat) - ~36 hours
+    const ALPHA_WEIGHT = 0.8;    // 80% of initial payload follows rapid alpha drop
+    const BETA_WEIGHT = 0.2;     // 20% of payload enters deep tissue/slow elimination
 
     const processHits = (hits, penId) => {
         const pen = penById(penId);
         if(!pen) return;
         
+        // Convert percentage to a decimal (e.g., 85% THC -> 0.85)
         const thcFraction = pen.thc / 100;
 
         hits.forEach(h => {
             if(h.time > cutoff && h.time <= evalTime) {
+                // 1. Calculate total THC vaporized during the draw
                 const totalMgVaporized = MG_OIL_PER_SECOND * h.drawSeconds * thcFraction;
+                
+                // 2. Calculate actual THC that hits the system
                 const hitMg = totalMgVaporized * BIOAVAILABILITY;
+                
                 const hoursElapsed = (evalTime - h.time) / 3600000;
                 
+                // 3. Robust biphasic exponential decay execution
                 const alphaDecay = ALPHA_WEIGHT * Math.pow(0.5, hoursElapsed / ALPHA_HALF_LIFE);
                 const betaDecay = BETA_WEIGHT * Math.pow(0.5, hoursElapsed / BETA_HALF_LIFE);
                 
                 const currentMg = hitMg * (alphaDecay + betaDecay); 
+                
                 total += currentMg;
             }
         });
@@ -1943,15 +1867,23 @@ function renderDashboard() {
   document.getElementById('greeting-txt').innerText = `${grt}, ${username}.`;
   
   const ws = weekStart();
+  // Quick Hits are excluded from the main weekly session count
   const weekSess = sessions.filter(s => new Date(s.ts).getTime() >= ws && !s.isQuickHit);
   const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= ws && s.isQuickHit).length;
   
   const todaySess = sessions.filter(s => ds(new Date(s.ts)) === today());
   
+  // Total hits and THC include quick hits for general metrics
+  let todayHits = todaySess.reduce((acc, s) => acc + s.hits.length, 0);
+  
   let thcInBody = getCurrentTHCInBody();
   let thcInBodyNextHour = getCurrentTHCInBody(Date.now() + 3600000);
   let drainRatePerHour = Math.max(0, thcInBody - thcInBodyNextHour);
   let drainRateColor = drainRatePerHour > 0 ? 'var(--green)' : 'var(--text3)';
+
+  if (activeSession) {
+    todayHits += activeSession.hits.length;
+  }
 
   const weekCls = weekSess.length >= settings.sessPerWeek ? 'danger' : 'ok';
   const remSess = Math.max(0, settings.sessPerWeek - weekSess.length);
@@ -1964,6 +1896,10 @@ function renderDashboard() {
       <div class="stat-label">Remaining this week</div>
       <div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> ${remSessStr}</span></div>
     </div>
+    <div class="stat glass">
+      <div class="stat-label">Total Hits Today</div>
+      <div class="stat-value">${todayHits}</div>
+    </div>
     <div class="stat glass" style="position:relative; padding-bottom: 24px;">
       <div class="stat-label">Est. Active THC in Body</div>
       <div class="stat-value">${thcInBody.toFixed(3)}<span class="text-sm text-muted">mg</span></div>
@@ -1971,11 +1907,6 @@ function renderDashboard() {
         <span style="color:${drainRateColor};">↓ ${drainRatePerHour.toFixed(3)} mg/hr</span> <span style="color:var(--text3); font-weight:normal;">clear rate</span>
       </div>
       <div style="position:absolute; bottom:8px; right:12px; font-size:9px; color:var(--text3);">±15% est.</div>
-    </div>
-    <div class="stat glass">
-      <div class="stat-label">100% Clear In</div>
-      <div class="stat-value" id="dash-clear-countdown">--:--:--</div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Full system clearance</div>
     </div>
     <div class="stat glass ${activeSession ? 'warn' : 'ok'}">
       <div class="stat-label">Status</div>
@@ -1985,9 +1916,6 @@ function renderDashboard() {
     </div>
   `;
 
-  // Update clear countdown initially before tick kicks in
-  updateGlobalClock();
-
   const lockPane = document.getElementById('dashboard-lock');
   const mainPane = document.getElementById('dashboard-main-content');
 
@@ -1995,6 +1923,7 @@ function renderDashboard() {
   if (unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay()) {
       lockPane.style.display = 'block'; mainPane.style.display = 'none';
 
+      // Figure out the main reason for displaying message
       const { reasons } = getBlockingReasons(today());
       const dailyStatus = checkDailyLock();
       let title = "Session Locked.";
@@ -2011,6 +1940,7 @@ function renderDashboard() {
       document.getElementById('lock-msg').innerText = msg;
       startLockCountdown(unlockTs);
       
+      // Inject Lock Action Overrides
       const now = new Date();
       const usedThisMonth = fuckIts.filter(dStr => {
           const d = new Date(dStr + "T12:00:00");
@@ -2109,20 +2039,14 @@ function renderDashboard() {
     document.getElementById('session-card-idle').style.display = 'block';
     document.getElementById('session-card-active').style.display = 'none';
     
-    const applicableChecks = routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode);
-    
-    document.getElementById('preflight-list').innerHTML = applicableChecks.map(c => {
-      let badge = '';
-      if (c.mode === 'day') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">DAY</span>';
-      if (c.mode === 'night') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">NIGHT</span>';
-      return `
+    document.getElementById('preflight-list').innerHTML = routineChecks.map(c => `
       <div class="check-row" onclick="togglePreflight('${c.id}')">
         <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
-        <div class="check-text" style="${c.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${c.text}${badge}</div>
+        <div class="check-text">${c.text}</div>
       </div>
-    `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured for this mode. Start session right away.</div>';
+    `).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
 
-    const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight());
+    const reqsUnmet = (routineChecks.length > 0 && !checkAllPreflight());
     document.getElementById('btn-start-session').disabled = reqsUnmet;
     
     const btnQhIdle = document.getElementById('btn-quick-hit-idle');
@@ -2198,6 +2122,7 @@ function checkDoseWarning() {
 function openQuickHitModal() { 
    const { reasons } = getBlockingReasons(today());
    
+   // Check if the user already had a session today of the current mode
    const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
    const hasHadSession = modeSessToday.length > 0;
 
@@ -2435,6 +2360,7 @@ function finishHit(dose, feeling, drawSecs, type, penId) {
       return;
   }
 
+  // Normal session hit tracking and formatting
   const ts = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
   const hitObj = { dose, feelingPreHit: feeling, drawSeconds: drawSecs, time: Date.now(), note: '' };
   activeSession.hits.push(hitObj);
@@ -2601,8 +2527,6 @@ function renderRecap() {
   empty.style.display = 'none'; form.style.display = 'block';
   document.getElementById('recap-hits').innerText = activeSession.hits.length;
   document.getElementById('recap-thc').innerText = sumTHC(activeSession.hits, penById(activeSession.penId)) + 'mg';
-  const durMs = Date.now() - activeSession.ts;
-  document.getElementById('recap-time').innerText = formatDuration(durMs);
   selectFeel(5, 'recap-feel-grid');
 }
 
@@ -2707,6 +2631,7 @@ function switchTab(name) {
   if (name === 'clearance') niceName = 'Clearance Tests';
   document.getElementById('topbar-title').textContent = niceName;
   
+  // Mobile Support: Close sidebar automatically when tab is clicked
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('mobile-overlay').classList.remove('open');
   
@@ -2756,6 +2681,7 @@ function renderClearance() {
     const msSince = now - lastHit.time;
     const hoursSince = msSince / 3600000;
 
+    // Display time elapsed
     const d = Math.floor(hoursSince / 24);
     const h = Math.floor(hoursSince % 24);
     const m = Math.floor((msSince % 3600000) / 60000);
@@ -2767,19 +2693,22 @@ function renderClearance() {
     const pen = penById(lastHit.penId);
     penUsedEl.innerText = `Last hit from: ${pen ? pen.name : 'Unknown Pen'}`;
 
+    // --- Dynamic Metabolic Multiplier ---
+    // Reacts to tolerance setting and THC% to scale clearance windows
     let M = 1.0;
     if (settings.tolerance === 'low') M = 0.6;
     if (settings.tolerance === 'high') M = 1.6;
 
     const penTHC = pen ? pen.thc : 75;
-    const thcFactor = (penTHC - 50) / 100; 
-    M = M + (thcFactor * 0.3); 
-    M = Math.max(0.4, M); 
-    M = Math.min(2.0, M); 
+    const thcFactor = (penTHC - 50) / 100; // e.g., 90% THC = +0.4. 40% THC = -0.1
+    M = M + (thcFactor * 0.3); // Add modest variance for extreme THC percentages
+    M = Math.max(0.4, M); // Min floor
+    M = Math.min(2.0, M); // Max ceiling
 
     // --- Saliva Test Logic ---
+    // Baseline: 0-24h (High), 24-48h (Medium), 48h+ (Clear)
     const sHigh = 24 * M;
-    const sMed = 48 * Math.min(1.5, M); 
+    const sMed = 48 * Math.min(1.5, M); // Cap max window to ~72 hours as requested
 
     let sStatus = '', sColor = '';
     if (hoursSince < sHigh) { sStatus = 'HIGH RISK'; sColor = 'var(--red)'; }
@@ -2793,9 +2722,10 @@ function renderClearance() {
     document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Estimated clear in: ${(sMed - hoursSince).toFixed(1)} hrs.`;
 
     // --- Urine Test Logic ---
+    // Baseline: 0-12h (Med/Delay), 12-36h (High), 36-60h (Med), 60h+ (Clear)
     const uMed1 = 12 * M;
     const uHigh = 36 * M;
-    const uMed2 = 60 * Math.min(1.6, M); 
+    const uMed2 = 60 * Math.min(1.6, M); // Cap max window to ~96 hours as requested
 
     let uStatus = '', uColor = '';
     if (hoursSince < uMed1) { uStatus = 'MEDIUM RISK (Delay phase)'; uColor = 'var(--amber)'; }
@@ -2809,6 +2739,7 @@ function renderClearance() {
     urineBar.style.background = uColor;
     document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Estimated clear in: ${(uMed2 - hoursSince).toFixed(1)} hrs.`;
 
+    // Detailed metrics
     document.getElementById('cl-metrics-multiplier').innerText = `${M.toFixed(2)}x`;
     document.getElementById('cl-metrics-thc').innerText = `${penTHC}%`;
     document.getElementById('cl-metrics-tol').innerText = settings.tolerance.toUpperCase();
@@ -2865,9 +2796,8 @@ function renderHistory() {
     const hStr = s.hits.length === 1 ? 'hit' : 'hits';
     const fColor = getFeelColorObj(s.finalFeeling);
     const quickBadge = s.isQuickHit ? '⚡' : '';
-    const durMs = s.endTime ? (s.endTime - s.ts) : 0;
-    const durStr = formatDuration(durMs);
     
+    // Per-hit Breakdown
     const hitsHtml = s.hits.map((h, i) => {
       const hTime = fmtTime(new Date(h.time));
       const hMg = ((p.thc || 0) / 100 * h.drawSeconds).toFixed(2);
@@ -2907,7 +2837,6 @@ function renderHistory() {
         <div style="border-top:1px dashed var(--border2); padding-top:12px; margin-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <div class="text-sm text-muted"><strong>Totals:</strong> ${s.hits.length} ${hStr}</div>
           <div class="ml-auto flex-row" style="gap:8px;">
-            <div style="padding:4px 10px; border-radius:8px; border:1px solid var(--border2); background:var(--bg3); color:var(--text2); font-weight:700; font-size:12px;">⏱ ${durStr}</div>
             <div style="padding:4px 10px; border-radius:8px; border:1px solid rgba(92,170,127,0.5); background:rgba(92,170,127,0.15); color:#5caa7f; font-weight:700; font-size:12px;">~${s.thc}mg THC</div>
             <div style="padding:4px 10px; border-radius:8px; border:1px solid ${fColor.border}; background:${fColor.bg}; color:${fColor.text}; font-weight:700; font-size:12px;">Feel: ${s.finalFeeling}/10</div>
           </div>
@@ -2962,10 +2891,9 @@ function getCompoundsHtml(p, seconds) {
     const cbdMg = ((p.cbd) / 100 * seconds).toFixed(1);
     html += `<div style="margin-bottom:2px;">- ${cbdMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbd]</span></div>`;
   }
-  if (p.customCVal > 0) {
-    const cMg = ((p.customCVal) / 100 * seconds).toFixed(1);
-    const cName = (p.customCName || 'CBN').toLowerCase();
-    html += `<div style="margin-bottom:2px;">- ${cMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[${cName}]</span></div>`;
+  if (p.cbn > 0) {
+    const cbnMg = ((p.cbn) / 100 * seconds).toFixed(1);
+    html += `<div style="margin-bottom:2px;">- ${cbnMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbn]</span></div>`;
   }
   html += `</div>`;
   return html;
@@ -2996,7 +2924,7 @@ function renderPens() {
          <div class="flex-row mb-16">
            <div>
              <strong style="color:var(--accent); font-size:16px;">${p.name}</strong>
-             <div class="text-sm text-muted mt-8">THC: ${p.thc}% ${p.cbd ? ' | CBD: '+p.cbd+'%' : ''} ${p.customCVal ? ' | '+(p.customCName||'CBN')+': '+p.customCVal+'%' : ''}</div>
+             <div class="text-sm text-muted mt-8">THC: ${p.thc}% ${p.cbd ? ' | CBD: '+p.cbd+'%' : ''} ${p.cbn ? ' | CBN: '+p.cbn+'%' : ''}</div>
              ${p.notes ? `<div class="text-sm text-muted mt-8" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
            </div>
            <div class="flex-row gap-8 ml-auto">
@@ -3030,6 +2958,7 @@ function renderPens() {
     }).join('');
   }
 
+  // Render Graveyard
   const graveList = document.getElementById('graveyard-list');
   if(!graveyard.length) { graveList.innerHTML = '<div class="empty">No pens in the graveyard.</div>'; }
   else {
@@ -3073,17 +3002,16 @@ function addPen() {
     return;
   }
   const cbd = parseFloat(document.getElementById('pen-cbd').value) || 0;
-  const cVal = parseFloat(document.getElementById('pen-c-val').value) || 0;
-  const cName = document.getElementById('pen-c-name').value.trim() || 'CBN';
+  const cbn = parseFloat(document.getElementById('pen-cbn').value) || 0;
   const notes = document.getElementById('pen-notes').value.trim();
 
   const pushPen = () => {
-    pens.push({id:'p'+Date.now(), name, thc, cbd, customCVal: cVal, customCName: cName, notes});
+    pens.push({id:'p'+Date.now(), name, thc, cbd, cbn, notes});
     sv('t2_pens', pens); 
     document.getElementById('pen-name').value=''; 
     document.getElementById('pen-thc').value='';
     document.getElementById('pen-cbd').value='';
-    document.getElementById('pen-c-val').value='';
+    document.getElementById('pen-cbn').value='';
     document.getElementById('pen-notes').value='';
     randomizePenPlaceholder();
     renderPens();
@@ -3107,8 +3035,7 @@ function editPen(id) {
   document.getElementById('edit-pen-name').value = p.name;
   document.getElementById('edit-pen-thc').value = p.thc;
   document.getElementById('edit-pen-cbd').value = p.cbd || 0;
-  document.getElementById('edit-pen-c-val').value = p.customCVal || 0;
-  document.getElementById('edit-pen-c-name').value = p.customCName || 'CBN';
+  document.getElementById('edit-pen-cbn').value = p.cbn || 0;
   document.getElementById('edit-pen-notes').value = p.notes || '';
   document.getElementById('edit-pen-modal').classList.add('open');
 }
@@ -3122,8 +3049,7 @@ function savePenEdit() {
   const name = document.getElementById('edit-pen-name').value.trim();
   const thc = parseFloat(document.getElementById('edit-pen-thc').value);
   const cbd = parseFloat(document.getElementById('edit-pen-cbd').value) || 0;
-  const cVal = parseFloat(document.getElementById('edit-pen-c-val').value) || 0;
-  const cName = document.getElementById('edit-pen-c-name').value.trim() || 'CBN';
+  const cbn = parseFloat(document.getElementById('edit-pen-cbn').value) || 0;
   const notes = document.getElementById('edit-pen-notes').value.trim();
 
   if(!name || !thc) {
@@ -3133,13 +3059,19 @@ function savePenEdit() {
 
   const p = pens.find(x => x.id === id);
   if (p) {
-      p.name = name; p.thc = thc; p.cbd = cbd; 
-      p.customCVal = cVal; p.customCName = cName; p.notes = notes;
+      p.name = name;
+      p.thc = thc;
+      p.cbd = cbd;
+      p.cbn = cbn;
+      p.notes = notes;
       sv('t2_pens', pens);
       renderPens();
       closeEditPenModal();
       showToast("Pen updated!");
-      if(activeSession && activeSession.penId === id) renderDashboard();
+      
+      if(activeSession && activeSession.penId === id) {
+          renderDashboard();
+      }
   }
 }
 
@@ -3177,42 +3109,11 @@ function retirePen(id) {
 // ── Routine, Todos, Goals & Journal ─────────────────────────────────────────
 function renderRoutine() {
   const list = document.getElementById('routine-list');
-  const all = routineChecks.filter(c => c.mode === 'all');
-  const day = routineChecks.filter(c => c.mode === 'day');
-  const night = routineChecks.filter(c => c.mode === 'night');
-
-  let html = '';
-  const renderGroup = (title, items, badgeClass, badgeText) => {
-     if (!items.length) return '';
-     let groupHtml = `<div class="text-sm text-muted mt-16 mb-8" style="font-weight:bold; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border2); padding-bottom:4px;">${title}</div>`;
-     groupHtml += items.map(h => `
-        <div class="check-row" onclick="toggleHabit('${h.id}')">
-          <div class="check-box ${h.done ? 'checked' : ''}">${h.done ? '✓' : ''}</div>
-          <div class="check-text" style="${h.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${h.text} ${badgeText ? `<span class="mode-badge ${badgeClass}" style="margin-left:8px; padding:2px 6px; font-size:8px;">${badgeText}</span>` : ''}</div>
-          <button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeHabit('${h.id}')">Del</button>
-        </div>
-     `).join('');
-     return groupHtml;
-  };
-
-  html += renderGroup('Every Session', all, '', '');
-  html += renderGroup('Day Mode Only', day, 'day', 'DAY');
-  html += renderGroup('Night Mode Only', night, 'night', 'NIGHT');
-
-  list.innerHTML = html || '<div class="empty">No requirements added.</div>';
+  list.innerHTML = routineChecks.map(h => `<div class="check-row" onclick="toggleHabit('${h.id}')"><div class="check-box ${h.done ? 'checked' : ''}">${h.done ? '✓' : ''}</div><div class="check-text" style="${h.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${h.text}</div><button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeHabit('${h.id}')">Del</button></div>`).join('') || '<div class="empty">No requirements added.</div>';
 }
 function toggleHabit(id) { const h = routineChecks.find(x => x.id === id); if(h) h.done = !h.done; sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 function resetRoutine() { routineChecks.forEach(h => h.done = false); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); showToast("Checks reset"); }
-function addHabit() { 
-  const val = document.getElementById('new-habit-input').value.trim(); 
-  const mode = document.getElementById('new-habit-mode').value;
-  if(val) { 
-      routineChecks.push({ id:'r'+Date.now(), text: val, done: false, mode: mode }); 
-      sv('t2_routine', routineChecks); 
-      document.getElementById('new-habit-input').value = ''; 
-      renderRoutine(); renderDashboard(); 
-  } 
-}
+function addHabit() { const val = document.getElementById('new-habit-input').value.trim(); if(val) { routineChecks.push({ id:'r'+Date.now(), text: val, done: false }); sv('t2_routine', routineChecks); document.getElementById('new-habit-input').value = ''; renderRoutine(); renderDashboard(); } }
 function removeHabit(id) { routineChecks = routineChecks.filter(x => x.id !== id); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 
 function renderTodo() {
@@ -3474,10 +3375,12 @@ function renderSettings() {
   const rdLbl = document.getElementById('restDaysLbl');
   if(rdLbl) rdLbl.innerText = settings.restDays;
 
+  // Smoking toggles & day smoking limits
   setCheck('s-daySmokingEnabled', !!settings.daySmokingEnabled);
   setVal('s-daySmokingDaysPerMonth', settings.daySmokingDaysPerMonth);
   setCheck('s-nightSmokingEnabled', !!settings.nightSmokingEnabled);
 
+  // Fuck it settings
   setCheck('s-allowFuckIt', !!settings.allowFuckIt);
   setVal('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
 
@@ -3532,152 +3435,205 @@ function saveSettings(silent = false) {
   settings.theme = getVal('s-theme') || 'auto';
   settings.largeText = getCheck('s-largeText');
 
-  sv('t2_settings', settings);
+  sv('t2_settings', settings); 
   
   applyTheme();
-  if (!silent) showToast("Settings saved!");
-  renderDashboard();
+
+  if(!silent) showToast("Saved!"); 
+  renderDashboard(); 
+  renderCalendar();
+  renderSettings(); // Re-render to update input disabled states if toggled
+}
+
+function resetUsageLimits() {
+  showCustomModal("Restore to Default", "Are you sure you want to restore all Rules, Limits, and Hit Times to their default values?", [
+    {text: "Cancel"},
+    {text: "Proceed", cls: "btn-primary", onClick: () => {
+       showCustomModal("Final Confirmation", "This will overwrite your custom limits and hit durations. Are you absolutely sure?", [
+         {text: "Cancel"},
+         {text: "Yes, Reset", cls: "btn-danger", onClick: () => {
+             settings.maxHits = DEFAULT_SETTINGS.maxHits;
+             settings.sessPerWeek = DEFAULT_SETTINGS.sessPerWeek;
+             settings.quickHitsPerWeek = DEFAULT_SETTINGS.quickHitsPerWeek;
+             settings.nightWait = DEFAULT_SETTINGS.nightWait;
+             settings.dayWait = DEFAULT_SETTINGS.dayWait;
+             settings.diabloEnabled = DEFAULT_SETTINGS.diabloEnabled;
+             settings.diabloWait = DEFAULT_SETTINGS.diabloWait;
+             settings.autoTBreak = DEFAULT_SETTINGS.autoTBreak;
+             settings.autoTBreakWeek = DEFAULT_SETTINGS.autoTBreakWeek;
+             settings.enforceWeeklyLimit = DEFAULT_SETTINGS.enforceWeeklyLimit;
+             settings.enforceRestDays = DEFAULT_SETTINGS.enforceRestDays;
+             settings.restDays = DEFAULT_SETTINGS.restDays;
+             settings.autoTuneDosing = DEFAULT_SETTINGS.autoTuneDosing;
+             settings.doseLow = DEFAULT_SETTINGS.doseLow;
+             settings.doseMed = DEFAULT_SETTINGS.doseMed;
+             settings.doseHigh = DEFAULT_SETTINGS.doseHigh;
+             settings.doseDiablo = DEFAULT_SETTINGS.doseDiablo;
+             settings.daySmokingEnabled = DEFAULT_SETTINGS.daySmokingEnabled;
+             settings.daySmokingDaysPerMonth = DEFAULT_SETTINGS.daySmokingDaysPerMonth;
+             settings.nightSmokingEnabled = DEFAULT_SETTINGS.nightSmokingEnabled;
+             settings.allowFuckIt = DEFAULT_SETTINGS.allowFuckIt;
+             settings.fuckItLimitPerMonth = DEFAULT_SETTINGS.fuckItLimitPerMonth;
+             settings.largeText = DEFAULT_SETTINGS.largeText;
+             sv('t2_settings', settings);
+             renderSettings();
+             showToast("Defaults restored.");
+             renderDashboard();
+             renderCalendar();
+             applyTheme();
+         }}
+       ]);
+    }}
+  ]);
 }
 
 function saveBreakSchedule() {
-  const s = document.getElementById('s-breakStart').value;
-  const e = document.getElementById('s-breakEnd').value;
-  if (!s || !e) return showToast("Select both start and end dates.");
-  settings.breakStart = s;
-  settings.breakEnd = e;
+  const st = document.getElementById('s-breakStart');
+  const en = document.getElementById('s-breakEnd');
+  if(st) settings.breakStart = st.value;
+  if(en) settings.breakEnd = en.value;
   sv('t2_settings', settings);
-  showToast("Break scheduled.");
+  showToast("Break range updated");
   renderDashboard();
+  renderCalendar();
 }
 
 function clearBreakSchedule() {
   settings.breakStart = null;
   settings.breakEnd = null;
-  document.getElementById('s-breakStart').value = '';
-  document.getElementById('s-breakEnd').value = '';
+  const st = document.getElementById('s-breakStart');
+  const en = document.getElementById('s-breakEnd');
+  if(st) st.value = '';
+  if(en) en.value = '';
   sv('t2_settings', settings);
-  showToast("Break schedule cleared.");
+  showToast("Break range cleared");
   renderDashboard();
+  renderCalendar();
 }
 
 function renderEmergencyLinks() {
-  const el = document.getElementById('emergency-links-list');
-  if(!el) return;
-  el.innerHTML = emergencyLinks.map(l => `
-    <div class="flex-row" style="background:var(--bg3); padding:12px; border:1px solid var(--border2); border-radius:8px;">
-      <div style="flex:1"><strong style="color:var(--text);">${l.name}</strong><br><a href="${l.url}" target="_blank" style="color:var(--accent); font-size:11px;">${l.url}</a></div>
-      <button class="btn btn-ghost btn-sm" onclick="removeEmergencyLink('${l.id}')">Del</button>
-    </div>
-  `).join('') || '<div class="empty">No links added.</div>';
+  document.getElementById('emergency-links-list').innerHTML = emergencyLinks.map(l=>`<div class="flex-row mb-8"><span>${l.name}</span><button class="btn btn-ghost btn-sm ml-auto" onclick="deleteEmergencyLink('${l.id}')">Remove</button></div>`).join('') || '<div class="empty text-sm">No links.</div>';
 }
 
 function addEmergencyLink() {
-  const name = document.getElementById('el-name').value.trim();
-  const url = document.getElementById('el-url').value.trim();
-  if(name && url) {
-    emergencyLinks.push({ id:'el'+Date.now(), name, url });
-    sv('t2_emergency', emergencyLinks);
-    document.getElementById('el-name').value = '';
-    document.getElementById('el-url').value = '';
-    renderEmergencyLinks();
-  }
-}
-
-function removeEmergencyLink(id) {
-  emergencyLinks = emergencyLinks.filter(x => x.id !== id);
+  const name = document.getElementById('el-name').value.trim(), url = document.getElementById('el-url').value.trim();
+  if(!name||!url) { showCustomModal("Error", "Enter name and URL.", [{text:"OK"}]); return; }
+  emergencyLinks.push({id:'el'+Date.now(), name, url});
   sv('t2_emergency', emergencyLinks);
-  renderEmergencyLinks();
+  document.getElementById('el-name').value = '';
+  document.getElementById('el-url').value = '';
+  renderSettings();
+  showToast("Link added");
 }
 
-function resetUsageLimits() {
-  showCustomModal("Reset to Defaults", "This will reset your smoking limits, hit times, and wait periods back to standard recommendations. Continue?", [
-    {text: "Cancel"},
-    {text: "Reset", cls: "btn-primary", onClick: () => {
-       settings = { ...settings, ...DEFAULT_SETTINGS };
-       sv('t2_settings', settings);
-       renderSettings();
-       applyTheme();
-       renderDashboard();
-       showToast("Limits reset to default.");
-    }}
-  ]);
+function deleteEmergencyLink(id) {
+  emergencyLinks = emergencyLinks.filter(l=>l.id!==id);
+  sv('t2_emergency', emergencyLinks);
+  renderSettings();
 }
 
 function exportCSV() {
-  if(!sessions.length) return showToast("No data to export.");
-  let csv = "Date,Time,Pen,Mode,Hits,Est_THC_mg,Final_Feeling,Is_Quick_Hit,Notes\n";
+  const rows = [['Date','Time Started', 'Time Finished', 'Pen', 'Hits', 'Hit Times', 'THC', 'Feel', 'Notes', 'Media Reviewed', 'Quick Hit']];
   sessions.forEach(s => {
-    const p = penById(s.penId) || {name: 'Deleted Pen'};
-    const d = new Date(s.ts);
-    const dsStr = d.toLocaleDateString();
-    const tsStr = d.toLocaleTimeString();
-    const h = s.hits.length;
-    const qh = s.isQuickHit ? "Yes" : "No";
-    const n = (s.notes||'').replace(/\n/g, ' ').replace(/,/g, ';');
-    csv += `${dsStr},${tsStr},${p.name},${s.mode},${h},${s.thc},${s.finalFeeling},${qh},${n}\n`;
+    const et = s.endTime ? fmtTime(new Date(s.endTime)) : '';
+    const hitTimes = s.hits.map(h => fmtTime(new Date(h.time))).join(';');
+    const mediaStr = (s.media || []).map(m => m.title + ' (' + m.rating + '/10)').join('; ');
+    const quickStr = s.isQuickHit ? 'Yes' : 'No';
+    rows.push([
+      new Date(s.ts).toLocaleDateString(),
+      fmtTime(new Date(s.ts)),
+      et,
+      penById(s.penId)?.name,
+      s.hits.length,
+      hitTimes,
+      s.thc,
+      s.finalFeeling,
+      s.notes,
+      mediaStr,
+      quickStr
+    ]);
   });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'tether_history.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const csv = rows.map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = 'tether.csv'; a.click();
 }
 
 function exportDataJSON() {
-  const data = {
-    't2_settings': JSON.stringify(settings),
-    't2_username': JSON.stringify(username),
-    't2_pens': JSON.stringify(pens),
-    't2_graveyard': JSON.stringify(graveyard),
-    't2_sessions': JSON.stringify(sessions),
-    't2_emergency': JSON.stringify(emergencyLinks),
-    't2_todos': JSON.stringify(todos),
-    't2_songs': JSON.stringify(songs),
-    't2_goals': JSON.stringify(goals),
-    't2_rules': JSON.stringify(rules),
-    't2_journal': JSON.stringify(journalText),
-    't2_routine': JSON.stringify(routineChecks),
-    't2_planned_breaks': JSON.stringify(plannedBreaks),
-    't2_fuckits': JSON.stringify(fuckIts)
-  };
-  const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-  const url = URL.createObjectURL(blob);
+  // 1. Force flush any active typing in the journal or session scratchpad to memory 
+  const journalEl = document.getElementById('journal-text');
+  if (journalEl) sv('t2_journal', journalEl.value);
+  
+  const activeNotesEl = document.getElementById('active-notes');
+  if (activeNotesEl && activeSession) {
+      activeSession.notes = activeNotesEl.value;
+      sv('t2_activeSession', activeSession);
+  }
+  
+  // 2. Ensure absolute latest settings state is pushed
+  sv('t2_settings', settings);
+
+  const data = {};
+  for(let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if(k.startsWith('t2_')) {
+          try {
+              // Parse strings back into native objects so the exported file 
+              // is a clean, hierarchical, and easily readable JSON document.
+              data[k] = JSON.parse(localStorage.getItem(k));
+          } catch(e) {
+              // Fallback for primitive strings
+              data[k] = localStorage.getItem(k);
+          }
+      }
+  }
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
-  a.href = url; a.download = 'tether_backup.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  a.href = URL.createObjectURL(blob);
+  a.download = `tether-full-backup-${ds(new Date())}.json`;
+  document.body.appendChild(a); // Required for full browser compatibility
+  a.click();
+  document.body.removeChild(a);
 }
 
 function importDataJSON(e) {
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result);
-      let imported = 0;
-      for(let key in data) {
-        if(key.startsWith('t2_')) {
-          let parsedVal;
-          if (typeof data[key] === 'string') {
-              try { parsedVal = JSON.parse(data[key]); }
-              catch(err) { parsedVal = data[key]; }
-          } else {
-              parsedVal = data[key];
+  reader.onload = (event) => {
+      try {
+          const data = JSON.parse(event.target.result);
+          let imported = 0;
+          for(const key in data) {
+              if(key.startsWith('t2_')) {
+                  let parsedVal;
+                  
+                  // Backwards compatibility check: Older Tether versions exported raw JSON strings.
+                  // This safely detects and unwraps old backups while perfectly handling the new structure.
+                  if (typeof data[key] === 'string') {
+                      try {
+                          parsedVal = JSON.parse(data[key]);
+                      } catch(err) {
+                          parsedVal = data[key]; // It's just a normal string
+                      }
+                  } else {
+                      parsedVal = data[key];
+                  }
+                  
+                  // Tether's ld() and sv() functions rely on stringified storage.
+                  localStorage.setItem(key, JSON.stringify(parsedVal));
+                  imported++;
+              }
           }
-          localStorage.setItem(key, JSON.stringify(parsedVal));
-          imported++;
-        }
+          if(imported > 0) {
+              showCustomModal("Restore Complete", `Successfully fully restored ${imported} data modules. The app will now reload to apply your history, settings, and calendar data.`, [
+                  {text: "Reload App", cls: "btn-primary", onClick: () => window.location.reload()}
+              ]);
+          } else {
+              showCustomModal("Error", "No valid Tether data found in this file.", [{text: "OK"}]);
+          }
+      } catch(err) {
+          showCustomModal("Error", "Failed to parse backup file. It may be corrupted.", [{text: "OK"}]);
       }
-      if(imported > 0) {
-        showCustomModal("Restore Complete", `Successfully fully restored ${imported} data modules. The app will now reload to apply your history, settings, and calendar data.`, [
-            {text: "Reload App", cls: "btn-primary", onClick: () => window.location.reload()}
-        ]);
-      } else {
-        showCustomModal("Error", "No valid Tether data found in this file.", [{text: "OK"}]);
-      }
-    } catch(err) {
-      showCustomModal("Error", "Failed to parse backup file. It may be corrupted.", [{text: "OK"}]);
-    }
   };
   reader.readAsText(file);
   e.target.value = ''; 
