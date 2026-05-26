@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tether v.Kappa</title>
+<title>Tether v.Lambda</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -441,6 +441,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 <div class="toast-container" id="toast-container"></div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 
+<!-- ABSOLUTE LOCKOUT OVERLAY -->
+<div id="absolute-lockout-overlay" class="glass flex-col" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.95); justify-content:center; align-items:center; text-align:center; padding:40px;">
+    <div style="font-size:64px; margin-bottom:24px;">🔒</div>
+    <h1 style="color:var(--red); font-family:'Unbounded',sans-serif; font-size:32px;">ABSOLUTE LOCKOUT</h1>
+    <p style="color:var(--text2); max-width:500px; margin-bottom:32px; font-size:16px;">You are currently in a hardcore Tolerance Break. All settings, logs, and sessions are completely disabled until the timer expires.</p>
+    <div class="timer-display" id="absolute-lockout-timer" style="color:var(--accent); font-size:48px;">--:--:--</div>
+    <p class="text-sm mt-24" style="color:var(--text3);">Stay strong. Your CB1 receptors are healing.</p>
+</div>
+
 <!-- Generic Custom Modal -->
 <div class="modal-overlay glass" id="custom-modal" style="z-index: 5000;">
   <div class="modal glass" id="custom-modal-content">
@@ -467,7 +476,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
     <p class="text-sm text-muted mb-24">Tether automatically transitions between modes at 6:00 PM. Day sessions have significantly longer mandatory wait times between hits and strict monthly limits to prevent daytime dependency. Limits for these can be modified in Settings.</p>
 
     <h3 class="mb-8" style="color:var(--accent);">3. Quick Hits ⚡</h3>
-    <p class="text-sm text-muted mb-24">Need a tiny microdose? A Quick Hit bypasses your daily Pre-Flight routines entirely and doesn't count as a full day/night session limit. However, it enforces a strict <strong>Low Dose only</strong> policy, and has its own weekly limit. <strong style="color:var(--amber)">Warning:</strong> taking a Quick Hit during a Tolerance Break will bypass locks and reset your T-break progress entirely.</p>
+    <p class="text-sm text-muted mb-24">Need a tiny microdose? A Quick Hit bypasses your daily Pre-Flight routines entirely and doesn't count as a full session. Taking a Quick Hit during a Tolerance Break will <strong style="color:var(--accent)">NOT</strong> reset your T-break progress, making it a safe option for a small microdose.</p>
 
     <h3 class="mb-8" style="color:var(--accent);">4. Locks & "Fuck It" Passes</h3>
     <p class="text-sm text-muted mb-24">When you reach your limits (weekly max, rest days, or manual breaks), the dashboard locks you out. You are given a limited number of "Fuck It" passes per month to override these hard locks and start a session anyway. However, bypassing a lock flags your calendar with a warning icon and resets your monthly automatic T-break tracker.</p>
@@ -628,7 +637,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 
 <!-- Sidebar -->
 <div class="sidebar glass" id="sidebar">
-  <div class="logo">TETHER v.&kappa;</div>
+  <div class="logo">TETHER v.&lambda;</div>
   <div class="gamma-banner">Marijuana usage tracker</div>
 
   <nav class="nav mt-16">
@@ -692,9 +701,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
           <div class="text-muted mb-16 text-sm">Complete your daily routine and pre-flight checks to unlock your session features.</div>
           <div id="preflight-list" class="mb-24 flex-col gap-8"></div>
           
-          <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
-            <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" disabled onclick="openConfigModal(true, 'normal')">Start Session</button>
-            <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Quick Hit ⚡</button>
+          <div id="idle-action-buttons" style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
+            <!-- Buttons injected via JS -->
           </div>
         </div>
 
@@ -1218,8 +1226,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
           
           <hr style="border:none;border-top:0.5px solid var(--border);margin:24px 0">
           <div class="card-title" style="color:var(--red)">Danger Zone</div>
+          
+          <div class="card glass mb-16" style="border-color:var(--red); padding:16px;">
+             <div class="card-title" style="color:var(--red); margin-bottom:8px;">Hardcore Absolute Lockout</div>
+             <p class="text-sm text-muted mb-16">Enter an impenetrable T-Break. You will lose access to the ENTIRE app until this date and time. No bypasses. No quick hits.</p>
+             <div class="form-group mb-16"><label>Unlock Date & Time</label><input type="datetime-local" id="s-absoluteLockout" class="glass"></div>
+             <button class="btn btn-danger-solid btn-block" onclick="activateAbsoluteLockout()">Activate Lockdown 🔒</button>
+          </div>
+          
           <p class="text-sm text-muted mb-16">Completely erase all history, settings, and cache. This cannot be undone.</p>
-          <button class="btn btn-danger-solid btn-block" onclick="deleteAllData()">Delete All Data</button>
+          <button class="btn btn-ghost btn-block" style="border-color:var(--red); color:var(--red);" onclick="deleteAllData()">Delete All Data</button>
         </div>
 
       </div>
@@ -1282,7 +1298,8 @@ const DEFAULT_SETTINGS = {
   autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7, doseDiablo: 10,
   daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
   allowFuckIt: true, fuckItLimitPerMonth: 2, autoTBreakBypassedMonth: -1,
-  theme: 'auto', largeText: false
+  theme: 'auto', largeText: false,
+  absoluteLockoutUntil: null
 };
 
 const DEFAULT_ROUTINE = [
@@ -1328,7 +1345,7 @@ let quoteInterval = null;
 let drawSequenceState = { timeout: null, interval: null };
 let selectedCalDate = null; 
 let emStep = 0; // Emergency modal state
-let pendingConfigType = 'normal'; // Tracks if modal is for normal session or quick hit
+let pendingConfigType = 'normal'; 
 
 // Helper Functions
 function ds(d) {
@@ -1424,34 +1441,39 @@ function getClearanceTs() {
     return lastHit.time + (uMed2 * 3600000);
 }
 
+function checkAbsoluteLockout() {
+    const overlay = document.getElementById('absolute-lockout-overlay');
+    const timerEl = document.getElementById('absolute-lockout-timer');
+    if (!overlay || !timerEl) return;
+
+    if (settings.absoluteLockoutUntil && Date.now() < settings.absoluteLockoutUntil) {
+        overlay.style.display = 'flex';
+        const rem = settings.absoluteLockoutUntil - Date.now();
+
+        const d = Math.floor(rem / 86400000);
+        const h = Math.floor((rem % 86400000) / 3600000);
+        const m = Math.floor((rem % 3600000) / 60000);
+        const s = Math.floor((rem % 60000) / 1000);
+
+        let str = "";
+        if (d > 0) str += `${d}d `;
+        if (h > 0 || d > 0) str += `${String(h).padStart(2,'0')}h `;
+        str += `${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+
+        timerEl.innerText = str;
+    } else {
+        overlay.style.display = 'none';
+        if(settings.absoluteLockoutUntil && Date.now() >= settings.absoluteLockoutUntil) {
+            settings.absoluteLockoutUntil = null;
+            sv('t2_settings', settings);
+        }
+    }
+}
+
 // ── Init & Mode ─────────────────────────────────────────────────────────────
 window.onload = () => {
   if (Notification && Notification.permission === 'default') Notification.requestPermission();
   
-  // Data Migration for v.Kappa
-  let migrated = false;
-  pens.forEach(p => {
-    if (p.cbn !== undefined && p.customCVal === undefined) {
-      p.customCName = 'CBN'; p.customCVal = p.cbn; delete p.cbn; migrated = true;
-    }
-  });
-  graveyard.forEach(p => {
-    if (p.cbn !== undefined && p.customCVal === undefined) {
-      p.customCName = 'CBN'; p.customCVal = p.cbn; delete p.cbn; migrated = true;
-    }
-  });
-  if (migrated) { sv('t2_pens', pens); sv('t2_graveyard', graveyard); }
-
-  let routineMigrated = false;
-  routineChecks.forEach(c => {
-    if (!c.mode) { c.mode = 'all'; routineMigrated = true; }
-  });
-  if (!routineChecks.some(c => c.mode === 'day')) {
-      routineChecks.push({ id:'r5_'+Date.now(), text:'Finished all critical daytime work/study', done:false, mode:'day' });
-      routineMigrated = true;
-  }
-  if (routineMigrated) sv('t2_routine', routineChecks);
-
   if (pens.length === 0 && graveyard.length === 0) {
     const sm = document.getElementById('setup-modal');
     if (sm) sm.classList.add('open');
@@ -1520,6 +1542,8 @@ function applyTheme() {
 }
 
 function updateGlobalClock() {
+  checkAbsoluteLockout();
+
   const now = new Date();
   
   const timeStr = now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ' · ' + fmtTime(now);
@@ -2055,7 +2079,7 @@ function renderDashboard() {
               <div class="lock-action-icon">⚡</div>
               <div class="lock-action-title" style="color: var(--accent);">Quick Hit</div>
               <div class="lock-action-qty">${qhRem} remaining this week</div>
-              <div class="lock-action-desc">Take a single microdose hit without starting a full session. Bypasses current lock.</div>
+              <div class="lock-action-desc">Take a single microdose hit without starting a full session. Bypasses lock securely.</div>
           </div>
       `;
 
@@ -2089,8 +2113,8 @@ function renderDashboard() {
 
     document.getElementById('active-notes').value = activeSession.notes || '';
 
-    const remHits = settings.maxHits - activeSession.hits.length;
     const hitTxt = document.getElementById('hits-remaining-txt');
+    const remHits = settings.maxHits - activeSession.hits.length;
     if (remHits <= 0) {
       hitTxt.innerText = "Session limit reached.";
       hitTxt.style.color = "var(--red)";
@@ -2151,14 +2175,11 @@ function renderDashboard() {
     `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured for this mode. Start session right away.</div>';
 
     const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight());
-    document.getElementById('btn-start-session').disabled = reqsUnmet;
-    
-    const btnQhIdle = document.getElementById('btn-quick-hit-idle');
-    if (btnQhIdle) {
-        btnQhIdle.disabled = (qhRem <= 0);
-        btnQhIdle.innerText = `Quick Hit ⚡ (${qhRem} left)`;
-        btnQhIdle.title = "Does NOT start a full session";
-    }
+
+    document.getElementById('idle-action-buttons').innerHTML = `
+      <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" ${reqsUnmet ? 'disabled' : ''} onclick="openConfigModal(true, 'normal')">Start Session</button>
+      <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" ${qhRem <= 0 ? 'disabled' : ''} onclick="openQuickHitModal()" title="Does NOT start a full session">Quick Hit ⚡ (${qhRem} left)</button>
+    `;
   }
 
   const recent = sessions.slice().sort((a,b)=>b.ts-a.ts).slice(0,5);
@@ -2230,27 +2251,22 @@ function openQuickHitModal() {
    const hasHadSession = modeSessToday.length > 0;
 
    if (reasons.length > 0) {
-       let msg = "You are currently locked out or enforcing a T-Break. Taking a Quick Hit will bypass your locks and flag your calendar. Are you sure you want to reset?";
+       let msg = "You are currently locked out or enforcing a T-Break. Quick Hits do NOT reset your T-break, so you can safely microdose. Continue?";
        if (hasHadSession) {
            msg = `You've already had a session (${currentMode}). ` + msg;
        }
-       showCustomModal("⚠️ T-Break Warning", msg, [
+       showCustomModal("⚡ Quick Hit", msg, [
            {text: "Cancel"},
-           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => forceOpenQuickHit(true)}
+           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
        ]);
    } else if (hasHadSession) {
        showCustomModal("⚠️ Already Smoked", `You've already had a session (${currentMode}). Continue with a Quick Hit?`, [
            {text: "Cancel"},
-           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => forceOpenQuickHit(false)}
+           {text: "Take Quick Hit", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
        ]);
    } else {
-       forceOpenQuickHit(false);
+       openConfigModal(true, 'quick');
    }
-}
-
-function forceOpenQuickHit(willReset) {
-    window.pendingQuickHitReset = willReset;
-    openConfigModal(true, 'quick');
 }
 
 function openConfigModal(isNewSession, type = 'normal') {
@@ -2292,7 +2308,10 @@ function openConfigModalBypass(isNewSession, type) {
   }
 
   pendingConfigType = type;
-  document.getElementById('config-title').innerText = (type === 'quick') ? "Quick Hit (No Session)" : (isNewSession ? "Start Session" : "Take a Hit");
+  let tText = isNewSession ? "Start Session" : "Take a Hit";
+  if (type === 'quick') tText = "Quick Hit (No Session)";
+  
+  document.getElementById('config-title').innerText = tText;
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
   if (isNewSession) document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   
@@ -2432,11 +2451,6 @@ function saveQuickHit(dose, feeling, drawSecs, penId, note) {
     
     showToast("Quick hit logged! 💧", true);
     
-    if (window.pendingQuickHitReset) {
-        resetTBreaks();
-        window.pendingQuickHitReset = false;
-    }
-    
     renderDashboard();
     renderCalendar();
     renderStats();
@@ -2501,7 +2515,7 @@ function startWaitTimerUI() {
   if (waitTimerInterval) clearInterval(waitTimerInterval);
   const tick = () => {
     if (!activeSession) { clearInterval(waitTimerInterval); return; }
-    if(activeSession.hits.length >= settings.maxHits) { clearInterval(waitTimerInterval); renderDashboard(); return; }
+    if (activeSession.hits.length >= settings.maxHits) { clearInterval(waitTimerInterval); renderDashboard(); return; }
 
     const el = document.getElementById('wait-timer');
     const lbl = document.getElementById('wait-timer-lbl');
@@ -2892,7 +2906,10 @@ function renderHistory() {
     const et = s.endTime ? fmtTime(new Date(s.endTime)) : 'N/A';
     const hStr = s.hits.length === 1 ? 'hit' : 'hits';
     const fColor = getFeelColorObj(s.finalFeeling);
-    const quickBadge = s.isQuickHit ? '⚡' : '';
+    
+    let specialBadge = '';
+    if (s.isQuickHit) specialBadge = '⚡';
+
     const durMs = s.endTime ? (s.endTime - s.ts) : 0;
     const durStr = formatDuration(durMs);
     
@@ -2925,7 +2942,7 @@ function renderHistory() {
 
     return `
       <div class="glass" style="padding:16px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:var(--radius); margin-bottom:12px;">
-        <div class="flex-row" style="margin-bottom:12px"><strong style="color:var(--accent); font-size:16px;">${p.name} ${quickBadge}</strong><span class="mode-badge ${s.mode} ml-auto" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
+        <div class="flex-row" style="margin-bottom:12px"><strong style="color:var(--accent); font-size:16px;">${p.name} ${specialBadge}</strong><span class="mode-badge ${s.mode} ml-auto" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
         <div class="text-sm text-muted mb-16" style="font-weight:bold; color:var(--text);">${fullDate} <span style="font-weight:normal; color:var(--text3);">• Started: ${st} | Finished: ${et}</span></div>
         
         <div class="mb-16">
@@ -2979,6 +2996,22 @@ function deleteAllData() {
        ]);
     }}
   ]);
+}
+
+function activateAbsoluteLockout() {
+    const val = document.getElementById('s-absoluteLockout').value;
+    if (!val) return showToast("Select a date and time first.");
+    const ts = new Date(val).getTime();
+    if (ts <= Date.now()) return showToast("Must be in the future.");
+
+    showCustomModal("Point of No Return", "Are you absolutely sure? You will be completely locked out of the app until this time expires. You cannot undo this.", [
+        {text: "Cancel"},
+        {text: "LOCK ME OUT", cls: "btn-danger-solid", onClick: () => {
+            settings.absoluteLockoutUntil = ts;
+            sv('t2_settings', settings);
+            updateGlobalClock(); 
+        }}
+    ]);
 }
 
 // ── Pens & Dosing ───────────────────────────────────────────────────────────
@@ -3420,231 +3453,182 @@ function showCalDetailsPane(dStr) {
   let blockHtml = '';
   if (blockReasons.length > 0) {
       blockHtml = `<div class="alert warn mt-16" style="flex-direction:column; align-items:flex-start; background:rgba(212,168,67,0.1);">
-        <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px;">🚭</span> Blocked By:</strong>
-        ${blockReasons.map(r => `<div style="font-size:11px;">• ${r}</div>`).join('')}
+        <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px">🚭</span> Blocked/Break Day</strong>
+        <div style="font-size:11px;">Reasons: ${blockReasons.join(', ')}</div>
       </div>`;
   }
 
-  if(dSess.length === 0) { 
-    const badge = fuckIts.includes(dStr) ? '⚠️ Bypassed' : 'Sober day!';
-    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${blockHtml}${planBtn}`; 
-    return; 
+  let fiHtml = '';
+  if (fuckIts.includes(dStr)) {
+      fiHtml = `<div class="alert danger mt-16" style="flex-direction:column; align-items:flex-start;">
+        <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px">⚠️</span> Lock Bypassed</strong>
+        <div style="font-size:11px;">A "Fuck It" pass was used on this day, resetting T-Break progress.</div>
+      </div>`;
+  }
+
+  if(!dSess.length) {
+    pane.innerHTML = `
+      <div class="card-title text-center" style="margin-bottom:8px; font-size:14px;">${dObj.toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div>
+      <div class="empty mt-16" style="padding:20px; font-size:12px;">No sessions logged.</div>
+      ${blockHtml}
+      ${fiHtml}
+      ${planBtn}
+    `;
+    return;
   }
   
-  const totalThc = Math.round(dSess.reduce((a, s) => a + s.thc, 0));
-  const avgFeel = Math.round(dSess.reduce((a, s) => a + s.finalFeeling, 0) / dSess.length);
+  let html = `<div class="card-title text-center" style="margin-bottom:16px; font-size:14px;">${dObj.toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div>`;
   
-  pane.innerHTML = `
-    <div class="card-title">${dObj.toDateString()} ${fuckIts.includes(dStr) ? '<span style="color:var(--amber);">⚠️ Bypassed Lock</span>' : ''}</div>
-    <div class="flex-row mb-16">
-      <div class="stat glass" style="flex:1;padding:10px;">THC: ${totalThc}mg</div>
-      <div class="stat glass" style="flex:1;padding:10px;">Feel: ${avgFeel}/10</div>
-    </div>
-    ${dSess.map(s=>{
-      const hStr = s.hits.length === 1 ? 'hit' : 'hits';
-      const quickBadge = s.isQuickHit ? '⚡ Quick Hit' : '';
-      return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name || 'Unknown'} (${s.mode}) ${quickBadge} - ${s.hits.length} ${hStr}</div>`;
-    }).join('')}
-    ${blockHtml}
-    ${planBtn}
-  `;
+  let dayList = dSess.filter(s => s.mode === 'day');
+  let nightList = dSess.filter(s => s.mode === 'night');
+  
+  const renderSessGroup = (list, title, colorClass) => {
+    if(!list.length) return '';
+    let gHtml = `<div class="text-sm mb-8" style="font-weight:bold; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-top:16px;">${title}</div>`;
+    gHtml += list.map(s => {
+       const p = penById(s.penId) || {name: 'Deleted Pen'};
+       const st = fmtTime(new Date(s.ts));
+       let specialBadge = '';
+       if (s.isQuickHit) specialBadge = '<span class="mode-badge" style="padding:2px 6px;font-size:8px;background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);">⚡ QUICK HIT</span>';
+       return `
+         <div style="background:var(--bg2); border:1px solid var(--border2); padding:12px; border-radius:8px; margin-bottom:8px;">
+            <div class="flex-row mb-8">
+              <strong style="color:var(--${colorClass}); font-size:13px;">${p.name}</strong> 
+              ${specialBadge}
+              <span class="ml-auto text-sm text-muted">${st}</span>
+            </div>
+            <div class="text-sm text-muted flex-row" style="gap:12px; font-size:11px;">
+              <span><strong>Hits:</strong> ${s.hits.length}</span>
+              <span><strong>THC:</strong> ~${s.thc}mg</span>
+              <span><strong>Feel:</strong> ${s.finalFeeling}/10</span>
+            </div>
+            ${s.notes && s.notes !== "(Retroactively Logged)" ? `<div class="mt-8 text-muted" style="font-size:11px; font-style:italic;">"${s.notes}"</div>` : ''}
+         </div>
+       `;
+    }).join('');
+    return gHtml;
+  };
+  
+  html += renderSessGroup(dayList, 'Day Sessions', 'accent');
+  html += renderSessGroup(nightList, 'Night Sessions', 'amber');
+  html += blockHtml;
+  html += fiHtml;
+  html += planBtn;
+  
+  pane.innerHTML = html;
 }
 
 function togglePlannedBreak(dStr) {
-  if (plannedBreaks.includes(dStr)) {
-    plannedBreaks = plannedBreaks.filter(d => d !== dStr);
-  } else {
-    plannedBreaks.push(dStr);
-  }
-  sv('t2_planned_breaks', plannedBreaks);
-  renderCalendar();
-  renderDashboard();
+   if (plannedBreaks.includes(dStr)) {
+       plannedBreaks = plannedBreaks.filter(x => x !== dStr);
+   } else {
+       plannedBreaks.push(dStr);
+   }
+   sv('t2_planned_breaks', plannedBreaks);
+   renderCalendar();
+   renderDashboard();
 }
 
-// ── Settings & Backups ──────────────────────────────────────────────────────
+// ── Settings ────────────────────────────────────────────────────────────────
 function renderSettings() {
-  const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-  const setCheck = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val; };
-
-  setVal('s-maxHits', settings.maxHits);
-  setVal('s-sessPerWeek', settings.sessPerWeek);
-  setVal('s-quickHitsPerWeek', settings.quickHitsPerWeek);
-  setVal('s-nightWait', settings.nightWait);
-  setVal('s-dayWait', settings.dayWait);
-  setVal('s-tolerance', settings.tolerance || 'medium');
-  
-  setVal('s-doseLow', settings.doseLow);
-  setVal('s-doseMed', settings.doseMed);
-  setVal('s-doseHigh', settings.doseHigh);
-  setVal('s-doseDiablo', settings.doseDiablo);
-
-  setCheck('s-autoTuneDosing', !!settings.autoTuneDosing);
-  const isAuto = !!settings.autoTuneDosing;
-  const doseInputs = ['s-doseLow', 's-doseMed', 's-doseHigh', 's-doseDiablo'];
-  doseInputs.forEach(id => {
-      const el = document.getElementById(id);
-      if(el) {
-          el.disabled = isAuto;
-          if(isAuto) el.style.opacity = '0.5';
-          else el.style.opacity = '1';
-      }
-  });
-
-  setCheck('s-diabloEnabled', !!settings.diabloEnabled);
-  setVal('s-diabloWait', settings.diabloWait || 240);
-  
-  setCheck('s-autoTBreak', !!settings.autoTBreak);
-  setVal('s-autoTBreakWeek', settings.autoTBreakWeek || 4);
-  setCheck('s-enforceWeeklyLimit', !!settings.enforceWeeklyLimit);
-  setCheck('s-enforceRestDays', !!settings.enforceRestDays);
-  
-  setVal('s-restDays', settings.restDays);
-  const rdLbl = document.getElementById('restDaysLbl');
-  if(rdLbl) rdLbl.innerText = settings.restDays;
-
-  setCheck('s-daySmokingEnabled', !!settings.daySmokingEnabled);
-  setVal('s-daySmokingDaysPerMonth', settings.daySmokingDaysPerMonth);
-  setCheck('s-nightSmokingEnabled', !!settings.nightSmokingEnabled);
-
-  setCheck('s-allowFuckIt', !!settings.allowFuckIt);
-  setVal('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
-
-  if(settings.breakStart) setVal('s-breakStart', settings.breakStart);
-  if(settings.breakEnd) setVal('s-breakEnd', settings.breakEnd);
-
-  setVal('s-theme', settings.theme || 'auto');
-  setCheck('s-largeText', !!settings.largeText);
-  
-  renderEmergencyLinks();
-}
-
-function saveSettings(silent = false) {
-  const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
-  const getInt = (id, dflt=0) => { const v = getVal(id); return v ? parseInt(v) : dflt; };
-  const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
-
-  settings.maxHits = getInt('s-maxHits', settings.maxHits);
-  settings.sessPerWeek = getInt('s-sessPerWeek', settings.sessPerWeek);
-  settings.quickHitsPerWeek = getInt('s-quickHitsPerWeek', settings.quickHitsPerWeek);
-  settings.nightWait = getInt('s-nightWait', settings.nightWait);
-  settings.dayWait = getInt('s-dayWait', settings.dayWait);
-  settings.tolerance = getVal('s-tolerance') || settings.tolerance;
-  
-  settings.autoTuneDosing = getCheck('s-autoTuneDosing');
-
-  if (!settings.autoTuneDosing) {
-      settings.doseLow = getInt('s-doseLow', settings.doseLow);
-      settings.doseMed = getInt('s-doseMed', settings.doseMed);
-      settings.doseHigh = getInt('s-doseHigh', settings.doseHigh);
-      settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
-  } else {
-      applyAutoDosing();
+  for(let k in settings) {
+    const el = document.getElementById('s-'+k);
+    if(el) {
+      if(el.type==='checkbox') el.checked=settings[k];
+      else el.value=settings[k];
+    }
   }
+  document.getElementById('restDaysLbl').innerText = settings.restDays;
   
-  settings.diabloEnabled = getCheck('s-diabloEnabled');
-  settings.diabloWait = getInt('s-diabloWait', settings.diabloWait);
-  
-  settings.autoTBreak = getCheck('s-autoTBreak');
-  settings.autoTBreakWeek = getInt('s-autoTBreakWeek', 4);
-  settings.enforceWeeklyLimit = getCheck('s-enforceWeeklyLimit');
-  settings.enforceRestDays = getCheck('s-enforceRestDays');
-  settings.restDays = getInt('s-restDays', settings.restDays);
-
-  settings.daySmokingEnabled = getCheck('s-daySmokingEnabled');
-  settings.daySmokingDaysPerMonth = getInt('s-daySmokingDaysPerMonth', settings.daySmokingDaysPerMonth);
-  settings.nightSmokingEnabled = getCheck('s-nightSmokingEnabled');
-
-  settings.allowFuckIt = getCheck('s-allowFuckIt');
-  settings.fuckItLimitPerMonth = getInt('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
-
-  settings.theme = getVal('s-theme') || 'auto';
-  settings.largeText = getCheck('s-largeText');
-
-  sv('t2_settings', settings);
-  
-  applyTheme();
-  if (!silent) showToast("Settings saved!");
-  renderDashboard();
-}
-
-function saveBreakSchedule() {
-  const s = document.getElementById('s-breakStart').value;
-  const e = document.getElementById('s-breakEnd').value;
-  if (!s || !e) return showToast("Select both start and end dates.");
-  settings.breakStart = s;
-  settings.breakEnd = e;
-  sv('t2_settings', settings);
-  showToast("Break scheduled.");
-  renderDashboard();
-}
-
-function clearBreakSchedule() {
-  settings.breakStart = null;
-  settings.breakEnd = null;
-  document.getElementById('s-breakStart').value = '';
-  document.getElementById('s-breakEnd').value = '';
-  sv('t2_settings', settings);
-  showToast("Break schedule cleared.");
-  renderDashboard();
-}
-
-function renderEmergencyLinks() {
-  const el = document.getElementById('emergency-links-list');
-  if(!el) return;
-  el.innerHTML = emergencyLinks.map(l => `
-    <div class="flex-row" style="background:var(--bg3); padding:12px; border:1px solid var(--border2); border-radius:8px;">
-      <div style="flex:1"><strong style="color:var(--text);">${l.name}</strong><br><a href="${l.url}" target="_blank" style="color:var(--accent); font-size:11px;">${l.url}</a></div>
-      <button class="btn btn-ghost btn-sm" onclick="removeEmergencyLink('${l.id}')">Del</button>
+  const elList = document.getElementById('emergency-links-list');
+  elList.innerHTML = emergencyLinks.map((l,i) => `
+    <div class="glass flex-row" style="padding:12px; background:var(--bg3); border-radius:8px; border:1px solid var(--border2);">
+       <div class="text-sm" style="flex:1;"><strong>${l.name}</strong><br><a href="${l.url}" target="_blank" style="color:var(--text2);font-size:11px;">${l.url}</a></div>
+       <button class="btn btn-ghost btn-sm" onclick="removeEmergencyLink(${i})">Del</button>
     </div>
-  `).join('') || '<div class="empty">No links added.</div>';
+  `).join('') || '<div class="empty">No links.</div>';
+}
+
+function saveSettings(skipToast) {
+  for(let k in settings) {
+    const el = document.getElementById('s-'+k);
+    if(el) {
+      if(el.type==='checkbox') settings[k] = el.checked;
+      else if(el.type==='number' || el.type==='range') settings[k] = parseFloat(el.value);
+      else settings[k] = el.value;
+    }
+  }
+  sv('t2_settings', settings);
+  if(!skipToast) showToast("Settings saved.");
+  applyAutoDosing();
+  applyTheme();
+  renderDashboard();
+}
+
+function resetUsageLimits() {
+    showCustomModal("Reset to Defaults", "Reset all smoking limits, hit times, and rules back to recommended defaults?", [
+        {text: "Cancel"},
+        {text: "Reset", cls: "btn-danger", onClick: () => {
+            const tempTol = settings.tolerance;
+            const tempTheme = settings.theme;
+            const tempLarge = settings.largeText;
+            settings = { ...DEFAULT_SETTINGS, tolerance: tempTol, theme: tempTheme, largeText: tempLarge };
+            sv('t2_settings', settings);
+            
+            rules = [...DEFAULT_RULES];
+            sv('t2_rules', rules);
+            
+            routineChecks = [...DEFAULT_ROUTINE];
+            sv('t2_routine', routineChecks);
+
+            renderSettings();
+            renderRules();
+            renderRoutine();
+            showToast("Defaults restored");
+        }}
+    ]);
 }
 
 function addEmergencyLink() {
   const name = document.getElementById('el-name').value.trim();
   const url = document.getElementById('el-url').value.trim();
-  if(name && url) {
-    emergencyLinks.push({ id:'el'+Date.now(), name, url });
-    sv('t2_emergency', emergencyLinks);
-    document.getElementById('el-name').value = '';
-    document.getElementById('el-url').value = '';
-    renderEmergencyLinks();
-  }
+  if(!name||!url) return;
+  emergencyLinks.push({name,url}); sv('t2_emergency', emergencyLinks);
+  document.getElementById('el-name').value=''; document.getElementById('el-url').value='';
+  renderSettings(); showToast("Link added.");
 }
+function removeEmergencyLink(idx) { emergencyLinks.splice(idx,1); sv('t2_emergency', emergencyLinks); renderSettings(); }
 
-function removeEmergencyLink(id) {
-  emergencyLinks = emergencyLinks.filter(x => x.id !== id);
-  sv('t2_emergency', emergencyLinks);
-  renderEmergencyLinks();
+function saveBreakSchedule() {
+  const st = document.getElementById('s-breakStart').value;
+  const en = document.getElementById('s-breakEnd').value;
+  if(!st || !en) return showToast("Both dates required.");
+  settings.breakStart = st; settings.breakEnd = en;
+  sv('t2_settings', settings);
+  showToast("Break scheduled.");
+  renderDashboard(); renderCalendar();
 }
-
-function resetUsageLimits() {
-  showCustomModal("Reset to Defaults", "This will reset your smoking limits, hit times, and wait periods back to standard recommendations. Continue?", [
-    {text: "Cancel"},
-    {text: "Reset", cls: "btn-primary", onClick: () => {
-       settings = { ...settings, ...DEFAULT_SETTINGS };
-       sv('t2_settings', settings);
-       renderSettings();
-       applyTheme();
-       renderDashboard();
-       showToast("Limits reset to default.");
-    }}
-  ]);
+function clearBreakSchedule() {
+  settings.breakStart = null; settings.breakEnd = null;
+  document.getElementById('s-breakStart').value=''; document.getElementById('s-breakEnd').value='';
+  sv('t2_settings', settings);
+  showToast("Break cleared.");
+  renderDashboard(); renderCalendar();
 }
 
 function exportCSV() {
   if(!sessions.length) return showToast("No data to export.");
-  let csv = "Date,Time,Pen,Mode,Hits,Est_THC_mg,Final_Feeling,Is_Quick_Hit,Notes\n";
+  let csv = "Date,Time,Mode,Pen,Hits,THC_mg,Feeling,Notes\n";
   sessions.forEach(s => {
-    const p = penById(s.penId) || {name: 'Deleted Pen'};
     const d = new Date(s.ts);
-    const dsStr = d.toLocaleDateString();
-    const tsStr = d.toLocaleTimeString();
-    const h = s.hits.length;
-    const qh = s.isQuickHit ? "Yes" : "No";
-    const n = (s.notes||'').replace(/\n/g, ' ').replace(/,/g, ';');
-    csv += `${dsStr},${tsStr},${p.name},${s.mode},${h},${s.thc},${s.finalFeeling},${qh},${n}\n`;
+    const date = d.toLocaleDateString();
+    const time = d.toLocaleTimeString();
+    const p = penById(s.penId);
+    const pName = p ? p.name : 'Unknown';
+    let cleanNotes = s.notes ? s.notes.replace(/"/g, '""').replace(/\n/g, ' ') : '';
+    csv += `"${date}","${time}","${s.mode}","${pName}",${s.hits.length},${s.thc},${s.finalFeeling},"${cleanNotes}"\n`;
   });
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const blob = new Blob([csv], {type: 'text/csv'});
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'tether_history.csv';
@@ -3652,24 +3636,24 @@ function exportCSV() {
 }
 
 function exportDataJSON() {
-  const data = {
-    't2_settings': JSON.stringify(settings),
-    't2_username': JSON.stringify(username),
-    't2_pens': JSON.stringify(pens),
-    't2_graveyard': JSON.stringify(graveyard),
-    't2_sessions': JSON.stringify(sessions),
-    't2_emergency': JSON.stringify(emergencyLinks),
-    't2_todos': JSON.stringify(todos),
-    't2_songs': JSON.stringify(songs),
-    't2_goals': JSON.stringify(goals),
-    't2_rules': JSON.stringify(rules),
-    't2_journal': JSON.stringify(journalText),
-    't2_routine': JSON.stringify(routineChecks),
-    't2_planned_breaks': JSON.stringify(plannedBreaks),
-    't2_fuckits': JSON.stringify(fuckIts)
+  const exp = {
+    t2_settings: JSON.stringify(settings),
+    t2_username: JSON.stringify(username),
+    t2_pens: JSON.stringify(pens),
+    t2_graveyard: JSON.stringify(graveyard),
+    t2_sessions: JSON.stringify(sessions),
+    t2_emergency: JSON.stringify(emergencyLinks),
+    t2_todos: JSON.stringify(todos),
+    t2_songs: JSON.stringify(songs),
+    t2_goals: JSON.stringify(goals),
+    t2_rules: JSON.stringify(rules),
+    t2_journal: JSON.stringify(journalText),
+    t2_routine: JSON.stringify(routineChecks),
+    t2_planned_breaks: JSON.stringify(plannedBreaks),
+    t2_fuckits: JSON.stringify(fuckIts)
   };
-  const blob = new Blob([JSON.stringify(data)], {type: "application/json"});
-  const url = URL.createObjectURL(blob);
+  const blob = new Blob([JSON.stringify(exp)], {type: 'application/json'});
+  const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = 'tether_backup.json';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -3701,14 +3685,13 @@ function importDataJSON(e) {
             {text: "Reload App", cls: "btn-primary", onClick: () => window.location.reload()}
         ]);
       } else {
-        showCustomModal("Error", "No valid Tether data found in this file.", [{text: "OK"}]);
+        showCustomModal("Error", "No valid Tether data found in this file.", [{text:"OK"}]);
       }
     } catch(err) {
-      showCustomModal("Error", "Failed to parse backup file. It may be corrupted.", [{text: "OK"}]);
+      showCustomModal("Error", "Failed to parse backup file.", [{text:"OK"}]);
     }
   };
   reader.readAsText(file);
-  e.target.value = ''; 
 }
 </script>
 </body>
