@@ -12,7 +12,7 @@
 <div class="toast-container" id="toast-container"></div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 
-<div class="modal-overlay glass" id="age-gate-modal" style="z-index: 9999; display: none;">
+<div class="modal-overlay glass" id="age-gate-modal" style="z-index: 9999;">
   <div class="modal glass text-center">
     <div style="font-size:48px; margin-bottom:16px;">🛑</div>
     <div class="modal-title" style="color:var(--accent);">Age Verification</div>
@@ -42,13 +42,16 @@
     <p class="text-sm text-muted mb-24">Tether is a mindful consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive habits.</p>
 
     <h3 class="mb-8" style="color:var(--accent);">1. The Core Loop & Intentions</h3>
-    <p class="text-sm text-muted mb-24">Complete your Pre-Flight Routine to unlock your daily session. You must select a Focus Task before starting to ensure you have a goal while elevated. When finished, hit End Session & Log to recap your feelings and task completion.</p>
+    <p class="text-sm text-muted mb-24">Complete your Pre-Flight Routine to unlock your daily session. You must select a Focus Task before starting to ensure you have an objective. When finished, hit End Session & Log to recap your feelings and task accountability.</p>
 
     <h3 class="mb-8" style="color:var(--accent);">2. Methods (Vape, Joint, Edible)</h3>
-    <p class="text-sm text-muted mb-24">Tether adapts to your method. Vapes use timed breathing cycles. Joints log generic hits and duration. Edibles ask for straight milligram dosage and bypass breathing visuals entirely.</p>
+    <p class="text-sm text-muted mb-24">Tether adapts to your method. Vapes use timed breathing cycles. Joints log hits without the breathing circle. Edibles bypass hits entirely and ask for a direct milligram dosage, adjusting your pharmacokinetic decay curve to account for onset delay.</p>
 
     <h3 class="mb-8" style="color:var(--accent);">3. Ween-Off Protocol & T-Breaks</h3>
-    <p class="text-sm text-muted mb-24">If you configure a Yearly T-Break month in Settings, Tether will automatically activate "Ween-Off Mode" exactly one month prior. This mode slowly halves your limits and increases wait times to prepare your tolerance.</p>
+    <p class="text-sm text-muted mb-24">If you configure a Yearly T-Break month in Settings, Tether will automatically activate "Ween-Off Mode" exactly one month prior. This mode slowly halves your session limits, reduces draw times, and increases mandatory wait times to step your tolerance down.</p>
+
+    <h3 class="mb-8" style="color:var(--accent);">4. Locks, Breaks & "Fuck It" Passes</h3>
+    <p class="text-sm text-muted mb-24">When you reach your limits, the dashboard locks you out. Quick Hits provide a tiny microdose bypass, but trigger a short T-Break penalty. "Fuck It" passes entirely bypass the lock for a full session, but reset your monthly automatic T-break tracker and flag your calendar.</p>
   </div>
 </div>
 
@@ -98,7 +101,7 @@
     <div class="form-group mb-16" id="config-task-group">
       <label>Focus Task (Required)</label>
       <select id="config-task-select" class="glass"></select>
-      <div class="text-xs text-muted mt-4" style="font-size:10px;">To ensure mindful consumption, pick an activity.</div>
+      <div class="text-xs text-muted mt-4" style="font-size:10px;">To ensure mindful consumption, pick an objective.</div>
     </div>
     
     <div class="form-group mb-24" id="config-feel-section">
@@ -127,7 +130,16 @@
     <div class="form-row">
       <div class="form-group mb-16"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" step="0.1" class="glass"></div>
       <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="setup-pen-cbd" placeholder="0" step="0.1" class="glass"></div>
+      <div class="form-group mb-16">
+         <label>Custom % (Optional)</label>
+         <div class="flex-row" style="gap:4px;">
+           <input type="text" id="setup-pen-c-name" value="CBN" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
+           <input type="number" id="setup-pen-c-val" placeholder="0" step="0.1" class="glass" style="flex:1;">
+         </div>
+      </div>
     </div>
+
+    <div class="form-group mb-16"><label>Notes / Terpenes</label><input type="text" id="setup-pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
 
     <div class="form-group mb-24"><label>Your THC Tolerance</label>
         <select id="setup-user-tolerance" class="glass">
@@ -137,6 +149,63 @@
         </select>
     </div>
     <button class="btn btn-primary btn-block" onclick="completeSetup()">Start Using Tether</button>
+  </div>
+</div>
+
+<div class="modal-overlay glass" id="edit-pen-modal">
+  <div class="modal glass">
+    <div class="modal-title">Edit Profile</div>
+    <input type="hidden" id="edit-pen-id">
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Name</label><input type="text" id="edit-pen-name" class="glass"></div>
+      <div class="form-group mb-16"><label>THC %</label><input type="number" id="edit-pen-thc" step="0.1" class="glass"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="edit-pen-cbd" step="0.1" class="glass"></div>
+      <div class="form-group mb-16">
+         <label>Custom % (Optional)</label>
+         <div class="flex-row" style="gap:4px;">
+           <input type="text" id="edit-pen-c-name" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
+           <input type="number" id="edit-pen-c-val" step="0.1" class="glass" style="flex:1;">
+         </div>
+      </div>
+      <div class="form-group mb-16"><label>Notes/Terpenes</label><input type="text" id="edit-pen-notes" class="glass"></div>
+    </div>
+    <div class="flex-row mt-24" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeEditPenModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePenEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay glass" id="past-modal">
+  <div class="modal glass">
+    <div class="modal-title">Log Past Session</div>
+    <p class="text-muted text-sm mb-16">Retroactively log a session you forgot to track. THC will be estimated based on an average dose.</p>
+    
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Date</label><input type="date" id="past-date" class="glass"></div>
+      <div class="form-group mb-16"><label>Time</label><input type="time" id="past-time" class="glass"></div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group mb-16"><label>Select Profile</label><select id="past-pen" class="glass"></select></div>
+      <div class="form-group mb-16"><label>Total Hits Taken</label><input type="number" id="past-hits" value="1" min="1" max="20" class="glass"></div>
+    </div>
+
+    <div class="form-group mb-24">
+      <label>Final Feeling</label>
+      <div class="feel-grid" id="past-feel-grid"></div>
+      <input type="hidden" id="past-feel-val" value="5">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">
+        <span>Awful</span><span>Great</span>
+      </div>
+    </div>
+
+    <div class="flex-row" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closePastSessionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePastSession()">Save Past Session</button>
+    </div>
   </div>
 </div>
 
@@ -217,7 +286,7 @@
             <div class="session-stats-row" style="margin-bottom:12px;">
               <div class="session-stat">
                 <span class="session-stat-val" id="active-hits">0</span>
-                <span class="session-stat-lbl">Hits Taken</span>
+                <span class="session-stat-lbl">Hits/Doses</span>
               </div>
               <div class="session-stat">
                 <span class="session-stat-val" id="active-thc">0</span>
@@ -238,7 +307,7 @@
             <div style="font-family:'Unbounded',sans-serif; font-size:13px; color:var(--accent); margin-bottom:24px;" id="hits-remaining-txt"></div>
 
             <div class="flex-row" style="justify-content:center; gap:12px;">
-              <button class="btn btn-primary" id="btn-take-hit" style="padding:16px 24px;" onclick="openConfigModal(false, 'normal')">+ Take Another Hit</button>
+              <button class="btn btn-primary" id="btn-take-hit" style="padding:16px 24px;" onclick="openConfigModal(false, 'normal')">+ Log Another Dose</button>
               <button class="btn btn-ghost" id="btn-add-time" style="padding:16px 24px;" onclick="addTimeToWait()">+ 5 Mins</button>
             </div>
 
@@ -292,7 +361,7 @@
         <div class="text-muted mb-24 text-sm">Review your session data and log your accountability.</div>
         
         <div class="stat-grid mb-24">
-          <div class="stat glass"><div class="stat-label">Total Hits</div><div class="stat-value" id="recap-hits">0</div></div>
+          <div class="stat glass"><div class="stat-label">Total Hits/Doses</div><div class="stat-value" id="recap-hits">0</div></div>
           <div class="stat glass"><div class="stat-label">Total Est. THC</div><div class="stat-value" id="recap-thc">0mg</div></div>
           <div class="stat glass"><div class="stat-label">Total Time</div><div class="stat-value" id="recap-time">0m</div></div>
         </div>
@@ -331,59 +400,229 @@
     </div>
   </div>
 
-  <div class="content" id="tab-history"><div class="card glass"><div class="flex-row mb-16"><div class="card-title" style="margin-bottom:0;">All Sessions</div></div><div id="history-list"></div></div></div>
-  <div class="content" id="tab-stats"><div class="card glass"><div class="card-title">Lifetime Statistics</div><div class="stat-grid" id="stats-grid"></div></div></div>
-  <div class="content" id="tab-calendar">
-      <div class="two-col">
-          <div class="card glass">
-            <div class="flex-row mb-24"><button class="btn btn-ghost" onclick="calPrev()">← Prev</button><div style="flex:1;text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;font-size:18px" id="cal-month-lbl"></div><button class="btn btn-ghost" onclick="calNext()">Next →</button></div>
-            <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
-          </div>
-          <div class="cal-details glass" id="cal-details-pane"></div>
+  <div class="content" id="tab-history">
+    <div class="card glass">
+      <div class="flex-row mb-16">
+        <div class="card-title" style="margin-bottom:0;">All Sessions</div>
+        <button class="btn btn-ghost btn-sm ml-auto" onclick="openPastSessionModal()">+ Log Past Session</button>
       </div>
+      <div id="history-list"></div>
+    </div>
   </div>
-  
+
+  <div class="content" id="tab-stats">
+    <div class="card glass">
+      <div class="card-title">Lifetime Statistics</div>
+      <div class="stat-grid" id="stats-grid"></div>
+    </div>
+    <div class="card glass mt-24">
+      <div class="card-title">Favorite Profile</div>
+      <div id="stats-favorite-pen" class="text-center" style="padding: 20px;"></div>
+    </div>
+  </div>
+
+  <div class="content" id="tab-calendar">
+    <div class="two-col">
+      <div class="card glass">
+        <div class="flex-row mb-24">
+          <button class="btn btn-ghost" onclick="calPrev()">← Prev</button>
+          <div style="flex:1;text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;font-size:18px" id="cal-month-lbl"></div>
+          <button class="btn btn-ghost" onclick="calNext()">Next →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;text-align:center;font-size:11px;color:var(--text3);margin-bottom:8px;">
+          <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+        </div>
+        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
+        <div class="flex-row mt-24" style="justify-content:center; gap:16px;">
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:var(--bg3);border:1px solid var(--border2)"></div><span class="text-sm text-muted">Sober</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(74,159,196,0.4)"></div><span class="text-sm text-muted">Day</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(212,168,67,0.4)"></div><span class="text-sm text-muted">Night</span></div>
+          <div class="flex-row gap-8"><div style="width:10px;height:10px;border-radius:2px;background:rgba(224,94,94,0.4)"></div><span class="text-sm text-muted">Both</span></div>
+          <div class="flex-row gap-8"><span style="font-size:10px;">⚡</span><span class="text-sm text-muted">Quick Hit</span></div>
+        </div>
+      </div>
+      
+      <div class="cal-details glass" id="cal-details-pane">
+        <div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="content" id="tab-clearance">
       <div class="card glass text-center mb-24">
          <div class="text-sm text-muted mb-8 text-uppercase" style="letter-spacing:1px;font-weight:bold;">Time Until 0.00mg (100% Clear)</div>
          <div style="font-size: 42px; font-weight: 800; font-family: 'Unbounded', sans-serif; color: var(--green); letter-spacing: -1px;" id="cl-time-to-clear">--:--:--</div>
-         <div class="text-sm text-muted mt-8" id="cl-pen-used">This calculation maps exact pharmacokinetic decay of your last hit.</div>
+         <div class="text-sm text-muted mt-8" id="cl-pen-used">This calculation maps the exact pharmacokinetic decay of your history.</div>
+      </div>
+
+      <div class="card glass mb-24" style="border-color: var(--border2); background: var(--bg3);">
+           <div class="flex-row" style="justify-content: space-between;">
+               <div class="text-sm text-muted"><strong>Tolerance Factor:</strong> <span id="cl-metrics-tol">--</span></div>
+               <div class="text-sm text-muted"><strong>Metabolic Multiplier:</strong> <span id="cl-metrics-multiplier">--</span></div>
+           </div>
+           <p class="text-xs text-muted mt-8" style="font-style:italic; font-size:11px;">Windows dynamically adjust based on your tolerance setting and the THC% of your usage.</p>
+      </div>
+
+      <div class="two-col">
+          <div class="card glass">
+              <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Saliva / Mouth Swab</div></div>
+              <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-saliva-status">--</div>
+              <div class="text-sm text-muted" id="cl-saliva-desc"></div>
+              <div class="clearance-progress-bg"><div class="clearance-progress-fill" id="cl-saliva-bar"></div></div>
+          </div>
+
+          <div class="card glass">
+              <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Urine Test</div></div>
+              <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-urine-status">--</div>
+              <div class="text-sm text-muted" id="cl-urine-desc"></div>
+              <div class="clearance-progress-bg"><div class="clearance-progress-fill" id="cl-urine-bar"></div></div>
+          </div>
+      </div>
+      
+      <div class="alert warn mt-24">
+         <span class="alert-icon">⚠️</span>
+         <span><strong>Disclaimer:</strong> This clearance calculator provides estimates based on pharmacokinetic models. Individual metabolism, body fat, and hydration significantly affect real-world outcomes. Do not rely on this for legal or employment purposes.</span>
       </div>
   </div>
 
   <div class="content" id="tab-equipment">
      <div class="card glass">
         <div class="card-title">Pre-Flight Equipment Checklist</div>
-        <p class="text-sm text-muted mb-16">Ensure you have your essentials before launching.</p>
+        <p class="text-sm text-muted mb-16">Ensure you have your essentials before launching to avoid having to scramble while elevated.</p>
+        <div class="flex-row mb-16">
+             <input type="text" id="new-eq-input" placeholder="e.g. Snack stash" class="glass" style="flex:1;">
+             <button class="btn btn-ghost btn-sm" onclick="addEquipment()">+ Add Item</button>
+        </div>
         <div id="equipment-list" class="flex-col gap-8"></div>
+        <button class="btn btn-ghost btn-sm mt-16" onclick="resetEquipment()">Reset Checks</button>
      </div>
   </div>
 
   <div class="content" id="tab-pens">
     <div class="two-col">
-      <div id="pens-left-col"><div class="card glass"><div class="card-title">Profile Database</div><div id="pen-db-list"></div></div></div>
-      <div class="card glass">
+      <div>
+        <div class="card glass">
+          <div class="card-title">Profile & Strain Database</div>
+          <div id="pen-db-list" class="flex-col gap-16"></div>
+        </div>
+        <div class="card glass mt-24" id="graveyard-card">
+          <div class="card-title">Graveyard 🫡🥀</div>
+          <p class="text-sm text-muted mb-16">Strains and pens that have run their course. May they rest in peace.</p>
+          <div id="graveyard-list" class="flex-col gap-16"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card glass">
           <div class="card-title">Add New Profile</div>
-          <div class="form-group mb-16"><label>Strain / Name</label><input type="text" id="pen-name" class="glass"></div>
-          <div class="form-group mb-16"><label>THC %</label><input type="number" id="pen-thc" class="glass"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Name</label><input type="text" id="pen-name" placeholder="e.g. Alaskan Thunderfuck" class="glass"></div>
+            <div class="form-group"><label>THC %</label><input type="number" id="pen-thc" placeholder="75" step="0.1" class="glass"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>CBD % (Optional)</label><input type="number" id="pen-cbd" placeholder="0" step="0.1" class="glass"></div>
+            <div class="form-group">
+               <label>Custom % (Optional)</label>
+               <div class="flex-row" style="gap:4px;">
+                 <input type="text" id="pen-c-name" value="CBN" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
+                 <input type="number" id="pen-c-val" placeholder="0" step="0.1" class="glass" style="flex:1;">
+               </div>
+            </div>
+          </div>
+          <div class="form-group"><label>Notes/Terpenes</label><input type="text" id="pen-notes" placeholder="e.g. Myrcene, sleepy" class="glass"></div>
           <button class="btn btn-ghost btn-sm mt-16" onclick="addPen()">+ Add Profile</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="content" id="tab-routine"><div class="card glass"><div class="card-title">Pre-Flight Routine</div><div id="routine-list"></div></div></div>
-  
-  <div class="content" id="tab-todo">
-     <div class="card glass mb-24">
-         <div class="card-title">Focus Tasks</div>
-         <p class="text-sm text-muted mb-16">Tasks to pick from when starting a session to avoid mindless consumption.</p>
-         <div class="flex-row mb-16"><input type="text" id="new-todo-input" class="glass" style="flex:1;"><button class="btn btn-ghost btn-sm" onclick="addTodo()">+ Add</button></div>
-         <div id="todo-list"></div>
-     </div>
+  <div class="content" id="tab-routine">
+    <div class="two-col">
+      <div class="card glass">
+        <div class="card-title">Pre-Flight Routine</div>
+        <p class="text-sm text-muted mb-16">This is your unified daily routine. Everything here must be checked off before you can unlock a session on the Dashboard.</p>
+        <div id="routine-list"></div>
+        <button class="btn btn-ghost btn-sm mt-16" onclick="resetRoutine()">Reset Checks</button>
+      </div>
+      <div class="card glass">
+        <div class="card-title">Customize Checks</div>
+        <div class="form-group mb-16">
+           <label>New Routine Item / Check</label>
+           <div class="flex-row gap-8 mt-8">
+             <input type="text" id="new-habit-input" placeholder="e.g. Drink a glass of water" class="glass" style="flex:1;">
+             <select id="new-habit-mode" class="glass" style="width:140px;">
+               <option value="all">All Sessions</option>
+               <option value="day">Day Only</option>
+               <option value="night">Night Only</option>
+             </select>
+           </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addHabit()">+ Add Requirement</button>
+      </div>
+    </div>
   </div>
 
-  <div class="content" id="tab-goals"><div class="card glass"><div class="card-title">Goals</div><div id="goals-list"></div></div></div>
-  <div class="content" id="tab-guide"><div class="card glass"><div class="card-title">Rules</div><div id="rules-list"></div></div></div>
+  <div class="content" id="tab-todo">
+    <div class="two-col">
+      <div>
+        <div class="card glass">
+          <div class="card-title">Focus Tasks</div>
+          <p class="text-sm text-muted mb-16">Tasks to pick from when starting a session to avoid mindless consumption.</p>
+          <div class="flex-row mb-16">
+             <input type="text" id="new-todo-input" placeholder="e.g. Organize my desk" class="glass" style="flex:1;">
+             <button class="btn btn-ghost btn-sm" onclick="addTodo()">+ Add</button>
+          </div>
+          <div id="todo-list"></div>
+        </div>
+        
+        <div class="card glass mt-24">
+          <div class="card-title">Vibe Check / Songs</div>
+          <p class="text-sm text-muted mb-16">Music to listen to during your session.</p>
+          <div class="flex-row mb-16">
+             <input type="text" id="new-song-input" placeholder="e.g. Pink Floyd - Time" class="glass" style="flex:1;">
+             <button class="btn btn-ghost btn-sm" onclick="addSong()">+ Add</button>
+          </div>
+          <div id="song-list"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card glass">
+          <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+             <div class="card-title" style="margin:0;">Personal Notes / Journal</div>
+             <button class="btn btn-ghost btn-sm" style="padding:4px 8px; font-size:9px;" onclick="insertTimestamp('journal-text')">⏱ Add Timestamp</button>
+          </div>
+          <p class="text-sm text-muted mb-16">A scratchpad for thoughts, ideas, or reflections. Auto-saves.</p>
+          <textarea id="journal-text" class="glass" rows="18" placeholder="Write here..." oninput="saveJournal()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" id="tab-goals">
+    <div class="card glass">
+      <div class="card-title">Self-Improvement Goals</div>
+      <p class="text-sm text-muted mb-16">Set custom milestones and self-improvement goals for yourself.</p>
+      <div class="flex-row mb-24">
+         <input type="text" id="new-goal-input" placeholder="e.g. Read 2 books this month" class="glass" style="flex:1;">
+         <button class="btn btn-primary btn-sm" onclick="addGoal()">+ Add Goal</button>
+      </div>
+      <div id="goals-list" class="flex-col gap-8"></div>
+    </div>
+  </div>
+
+  <div class="content" id="tab-guide">
+    <div class="card glass">
+      <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+         <div class="card-title" style="margin:0;">My Golden Rules</div>
+         <button class="btn btn-primary btn-sm" onclick="openGuideModal()">📖 Read the Guide</button>
+      </div>
+      <p class="text-sm text-muted mb-16">Set personal rules and boundaries for your consumption. Review these regularly.</p>
+      <div id="rules-list" class="mb-24 flex-col gap-8"></div>
+      <div class="flex-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+         <input type="text" id="new-rule-input" placeholder="e.g. Always finish responsibilities first." class="glass" style="flex:1;">
+         <button class="btn btn-ghost btn-sm" onclick="addRule()">+ Add Rule</button>
+      </div>
+    </div>
+  </div>
 
   <div class="content" id="tab-settings">
     <div class="two-col">
@@ -391,7 +630,10 @@
         <div class="card glass" style="border-color:var(--amber);">
           <div class="card-title" style="color:var(--amber);">Overrides & Quick Actions</div>
           <p class="text-sm text-muted mb-16">Controls for bypassing hard limits and managing microdosing.</p>
-          <div class="toggle-row"><label class="toggle-label" for="s-allowFuckIt">Allow Bypassing Locks ("Fuck It" pass)</label><label class="toggle"><input type="checkbox" id="s-allowFuckIt" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+          <div class="toggle-row">
+            <label class="toggle-label" for="s-allowFuckIt">Allow Bypassing Locks ("Fuck It" pass)</label>
+            <label class="toggle"><input type="checkbox" id="s-allowFuckIt" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
           <div class="toggle-row"><label class="toggle-label text-muted" for="s-fuckItLimitPerMonth">Max bypasses per month</label><input class="num-input glass" type="number" id="s-fuckItLimitPerMonth" min="1" max="10" onchange="saveSettings(true)"></div>
           <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;"><label class="toggle-label text-muted" for="s-quickHitsPerWeek">Max Quick Hits per week</label><input class="num-input glass" type="number" id="s-quickHitsPerWeek" min="0" max="20" onchange="saveSettings(true)"></div>
           <div class="toggle-row"><label class="toggle-label text-muted" for="s-quickHitTBreak">T-Break lockout after Quick Hit (Days)</label><input class="num-input glass" type="number" id="s-quickHitTBreak" min="0" max="7" onchange="saveSettings(true)"></div>
@@ -399,17 +641,88 @@
 
         <div class="card glass mt-24">
           <div class="card-title">Smoking Limits</div>
-          <div class="toggle-row"><label class="toggle-label" for="s-enforceWeeklyLimit">Enforce Weekly Limit</label><label class="toggle"><input type="checkbox" id="s-enforceWeeklyLimit" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+          
+          <div class="toggle-row">
+            <label class="toggle-label" for="s-enforceWeeklyLimit">Enforce Weekly Limit Lockout</label>
+            <label class="toggle"><input type="checkbox" id="s-enforceWeeklyLimit" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
           <div class="toggle-row"><label class="toggle-label text-muted" for="s-sessPerWeek">Max sessions per week</label><input class="num-input glass" type="number" id="s-sessPerWeek" min="1" max="14" onchange="saveSettings(true)"></div>
           <div class="toggle-row"><label class="toggle-label text-muted" for="s-maxHits">Max hits per session</label><input class="num-input glass" type="number" id="s-maxHits" min="1" max="20" onchange="saveSettings(true)"></div>
-          <div class="toggle-row"><label class="toggle-label text-muted" for="s-nightWait">Wait time (Night)</label><input class="num-input glass" type="number" id="s-nightWait" min="5" max="120" onchange="saveSettings(true)"></div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-enforceRestDays">Enforce Rest Days Lockout</label>
+            <label class="toggle"><input type="checkbox" id="s-enforceRestDays" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-restDays">Required Rest Days (0-5)</label>
+            <input type="range" id="s-restDays" min="0" max="5" oninput="document.getElementById('restDaysLbl').innerText=this.value; saveSettings(true)" style="width:100px;">
+            <span id="restDaysLbl" style="font-weight:bold; width:20px; text-align:right;"></span>
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-autoTBreak">Auto Monthly T-Break</label>
+            <label class="toggle"><input type="checkbox" id="s-autoTBreak" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-autoTBreakWeek">Scheduled Break Week</label>
+            <select id="s-autoTBreakWeek" class="glass" onchange="saveSettings(true)">
+              <option value="1">Week 1 (Days 1-7)</option>
+              <option value="2">Week 2 (Days 8-14)</option>
+              <option value="3">Week 3 (Days 15-21)</option>
+              <option value="4">Week 4 (Days 22 to End)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-daySmokingEnabled">Enable Day Smoking</label>
+            <label class="toggle"><input type="checkbox" id="s-daySmokingEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle-label text-muted" for="s-daySmokingDaysPerMonth">Max day-smoking days per month</label>
+            <input class="num-input glass" type="number" id="s-daySmokingDaysPerMonth" min="1" max="31" onchange="saveSettings(true)">
+          </div>
+
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-nightSmokingEnabled">Enable Night Smoking</label>
+            <label class="toggle"><input type="checkbox" id="s-nightSmokingEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
         </div>
+
+        <div class="card glass mt-24">
+          <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom: 20px;">
+             <div class="card-title" style="margin:0;">Hit Customization</div>
+             <label class="toggle" style="display:flex; align-items:center; gap:8px;" title="Auto-adjust hit times based on 14-day usage">
+                <span style="font-size:10px; color:var(--accent); text-transform:uppercase; font-weight:700;">Auto-Tune</span>
+                <div style="position:relative; width:36px; height:20px;">
+                  <input type="checkbox" id="s-autoTuneDosing" onchange="saveSettings(true)">
+                  <div class="toggle-track" style="border-radius:10px;"></div><div class="toggle-thumb" style="width:14px; height:14px;"></div>
+                </div>
+             </label>
+          </div>
+          
+          <p class="text-sm text-muted mb-16">Set how long a hit lasts per dose category. If Auto-Tune is on, these automatically scale up as tolerance builds from recent usage.</p>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseLow">Low Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseLow" min="1" max="15" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseMed">Medium Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseMed" min="1" max="20" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-doseHigh">High Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseHigh" min="1" max="20" onchange="saveSettings(true)"></div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;"><label class="toggle-label" for="s-nightWait">Night mode hit wait (minutes)</label><input class="num-input glass" type="number" id="s-nightWait" min="5" max="120" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label" for="s-dayWait">Day mode hit wait (minutes)</label><input class="num-input glass" type="number" id="s-dayWait" min="30" max="480" onchange="saveSettings(true)"></div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" style="color:var(--purple)" for="s-diabloEnabled">Enable Diablo Dose</label>
+            <label class="toggle purple-toggle"><input type="checkbox" id="s-diabloEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-doseDiablo">Diablo Dose hit time (seconds)</label><input class="num-input glass" type="number" id="s-doseDiablo" min="5" max="30" onchange="saveSettings(true)"></div>
+          <div class="toggle-row"><label class="toggle-label text-muted" for="s-diabloWait">Diablo mode wait (minutes)</label><input class="num-input glass" type="number" id="s-diabloWait" min="10" max="480" onchange="saveSettings(true)"></div>
+        </div>
+
       </div>
 
       <div>
+
         <div class="card glass" style="border-color:var(--purple);">
             <div class="card-title" style="color:var(--purple);">Yearly T-Break & Ween-Off Protocol</div>
-            <p class="text-sm text-muted mb-16">Set a dedicated month for an annual 30-day T-Break. If Ween-Off is enabled, Tether will slash limits and increase wait timers during the month prior.</p>
+            <p class="text-sm text-muted mb-16">Set a dedicated month for an annual 30-day T-Break. If Ween-Off is enabled, Tether will slash limits and increase wait timers during the month prior to prepare your tolerance.</p>
             <div class="form-group mb-16">
                 <label>Target T-Break Month</label>
                 <select id="s-yearlyBreakMonth" class="glass" onchange="saveSettings(true)">
@@ -425,11 +738,84 @@
                 <label class="toggle purple-toggle"><input type="checkbox" id="s-weenOffEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
             </div>
         </div>
-        
+
         <div class="card glass mt-24">
-            <div class="card-title">Danger Zone</div>
-            <button class="btn btn-danger-solid btn-block" onclick="deleteAllData()">Erase All Data</button>
+          <div class="card-title">Appearance & Accessibility</div>
+          <div class="form-group mb-16">
+            <label>App Theme</label>
+            <select id="s-theme" class="glass" onchange="saveSettings(true)">
+              <option value="auto">Auto (Day/Night Colors)</option>
+              <optgroup label="Accessibility">
+                <option value="high-contrast">High Contrast (A11y)</option>
+              </optgroup>
+              <optgroup label="Mfused Textures">
+                <option value="swirly-temple">Swirly Temple (Red/Black)</option>
+                <option value="galactic-grape">Galactic Grape (Purple)</option>
+                <option value="lemon-loopz">Lemon Loopz (Maize/Green)</option>
+                <option value="baja-blazed">Baja Blazed (Blue)</option>
+              </optgroup>
+              <optgroup label="Pride Themes">
+                <option value="genderfluid">Genderfluid Swirl</option>
+                <option value="trans">Trans Swirl</option>
+                <option value="non-binary">Non-Binary Swirl</option>
+              </optgroup>
+            </select>
+          </div>
+          
+          <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+            <label class="toggle-label" for="s-largeText">Large Text (Accessibility)</label>
+            <label class="toggle"><input type="checkbox" id="s-largeText" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
         </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">User Profile</div>
+          <div class="form-group mb-16">
+            <label>THC Tolerance</label>
+            <select id="s-tolerance" class="glass" onchange="saveSettings(true)">
+              <option value="low">Low (Beginner / Sensitive)</option>
+              <option value="medium">Medium (Regular)</option>
+              <option value="high">High (Daily / Frequent)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Manual Schedule Break</div>
+          <p class="text-sm text-muted mb-16">Block out the dashboard to enforce a no-smoking break between dates.</p>
+          <div class="form-group mb-16"><label>Break Start</label><input type="date" id="s-breakStart" class="glass"></div>
+          <div class="form-group mb-16"><label>Break End</label><input type="date" id="s-breakEnd" class="glass"></div>
+          <div class="flex-row"><button class="btn btn-ghost btn-sm" onclick="saveBreakSchedule()">Set Break Range</button> <button class="btn btn-ghost btn-sm" onclick="clearBreakSchedule()">Clear Range</button></div>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Emergency Links</div>
+          <div id="emergency-links-list" class="mb-24 flex-col gap-8"></div>
+          <hr style="border:none;border-top:0.5px solid var(--border);margin:24px 0">
+          <div class="form-row">
+            <div class="form-group"><label>Label</label><input type="text" id="el-name" placeholder="Calming Video" class="glass"></div>
+            <div class="form-group"><label>URL</label><input type="text" id="el-url" placeholder="https://..." class="glass"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="addEmergencyLink()">+ Add Link</button>
+        </div>
+
+        <div class="card glass mt-24">
+          <div class="card-title">Data Backup & Recovery</div>
+          <p class="text-sm text-muted mb-16">Hard-save your entire history and settings to a JSON file, or restore from a previous backup.</p>
+          <div class="flex-row gap-16 mb-16">
+            <button class="btn btn-primary" onclick="exportDataJSON()">Export Backup</button>
+            <label class="btn btn-ghost" style="cursor:pointer;">
+              Import Backup
+              <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importDataJSON(event)">
+            </label>
+          </div>
+          
+          <hr style="border:none;border-top:0.5px solid var(--border);margin:24px 0">
+          <div class="card-title" style="color:var(--red)">Danger Zone</div>
+          <p class="text-sm text-muted mb-16">Completely erase all history, settings, and cache. This cannot be undone.</p>
+          <button class="btn btn-danger-solid btn-block" onclick="deleteAllData()">Delete All Data</button>
+        </div>
+
       </div>
     </div>
   </div>
