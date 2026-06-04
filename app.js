@@ -115,7 +115,6 @@ function sumTHC(hitsArray, penObj, method = 'vape') {
           total += h.directMg;
       } else if (penObj) {
           const thcFraction = penObj.thc / 100;
-          // Joints burn slightly faster, vape oil is standardized 1.2mg/sec
           const rate = method === 'joint' ? 1.5 : 1.2;
           total += (h.drawSeconds * rate * thcFraction);
       }
@@ -148,7 +147,7 @@ function getFeelColorObj(val) {
 function isWeenOffActive() {
     if (!settings.weenOffEnabled || settings.yearlyBreakMonth === 'none') return false;
     let target = parseInt(settings.yearlyBreakMonth);
-    let weenMonth = target === 0 ? 11 : target - 1; // 1 month prior
+    let weenMonth = target === 0 ? 11 : target - 1; 
     return new Date().getMonth() === weenMonth;
 }
 
@@ -171,9 +170,16 @@ function getActiveLimits() {
     return lim;
 }
 
-// ── Init & Global Clock ─────────────────────────────────────────────────────
+// ── Fixed Initialization Logic ──────────────────────────────────────────────
 window.onload = () => {
-  if (Notification && Notification.permission === 'default') Notification.requestPermission();
+  // 1. Establish the current mode based on time before anything paints
+  const hr = new Date().getHours();
+  currentMode = (hr >= 6 && hr < 18) ? 'day' : 'night';
+
+  // 2. Safely apply theme setting right away to stop style popping
+  applyTheme();
+
+  // 3. Evaluate Age Verification Modal state
   if (!ld('t2_age_verified', false)) {
       document.getElementById('age-gate-modal').style.display = 'flex';
   } else {
@@ -188,15 +194,14 @@ function verifyAge() {
 }
 
 function initApp() {
-  if (pens.length === 0 && graveyard.length === 0) { document.getElementById('setup-modal').classList.add('open'); }
+  if (pens.length === 0 && graveyard.length === 0) { 
+    document.getElementById('setup-modal').classList.add('open'); 
+  }
   
   const spn = document.getElementById('setup-pen-name');
   if (spn) spn.placeholder = `e.g. ${WACKY_NAMES[Math.floor(Math.random()*WACKY_NAMES.length)]}`;
 
-  rotateQuote();
-  if(quoteInterval) clearInterval(quoteInterval);
-  quoteInterval = setInterval(rotateQuote, 15000);
-
+  // Generate input structures cleanly
   generateFeelGrid('config-feel-grid');
   generateFeelGrid('recap-feel-grid');
   generateFeelGrid('past-feel-grid');
@@ -204,11 +209,15 @@ function initApp() {
   const journalEl = document.getElementById('journal-text');
   if (journalEl) journalEl.value = journalText;
   
+  rotateQuote();
+  if(quoteInterval) clearInterval(quoteInterval);
+  quoteInterval = setInterval(rotateQuote, 15000);
+
   applyAutoDosing();
   updateGlobalClock();
-  applyTheme(); 
   setInterval(updateGlobalClock, 1000);
 
+  // Unified application content generation loop
   renderDashboard();
   renderRoutine();
   renderEquipment();
@@ -235,15 +244,19 @@ function applyTheme() {
    if (t === 'auto') {
       document.body.setAttribute('data-mode', currentMode);
       document.body.removeAttribute('data-theme');
-      mb.textContent = currentMode === 'night' ? '☽ NIGHT MODE' : '☀ DAY MODE';
-      mb.className = `mode-badge ${currentMode}`;
+      if(mb) {
+        mb.textContent = currentMode === 'night' ? '☽ NIGHT MODE' : '☀ DAY MODE';
+        mb.className = `mode-badge ${currentMode}`;
+      }
    } else {
       document.body.removeAttribute('data-mode');
       document.body.setAttribute('data-theme', t);
       let friendlyName = t.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       if (t === 'high-contrast') friendlyName = 'High Contrast';
-      mb.textContent = `✨ ${friendlyName} (${currentMode.toUpperCase()})`;
-      mb.className = `mode-badge custom-theme-badge`;
+      if(mb) {
+        mb.textContent = `✨ ${friendlyName} (${currentMode.toUpperCase()})`;
+        mb.className = `mode-badge custom-theme-badge`;
+      }
    }
 }
 
@@ -261,7 +274,6 @@ function updateGlobalClock() {
     applyTheme(); renderDashboard(); renderRoutine(); renderEquipment();
   }
 
-  // Dashboard Stat: Active Session Timer
   if (activeSession) {
     const durEl = document.getElementById('active-duration');
     if (durEl) {
@@ -276,7 +288,6 @@ function updateGlobalClock() {
     }
   }
 
-  // Exact 100% Clearance Calculation (Dashboard & Clearance Tab)
   const clTab = document.getElementById('tab-clearance');
   const dashClEl = document.getElementById('dash-clear-countdown');
   const tabClEl = document.getElementById('cl-time-to-clear');
@@ -291,10 +302,9 @@ function updateGlobalClock() {
           if(dashClEl) { dashClEl.innerText = clearStr; dashClEl.style.color = "var(--green)"; }
           if(tabClEl) tabClEl.innerText = "00:00:00";
       } else {
-          // Fast-forward simulation to find exact 0.01mg crossing
           let simTime = t;
-          let stepMs = 3600000; // 1 hr
-          let maxSteps = 24 * 90; // max 90 days protection
+          let stepMs = 3600000; 
+          let maxSteps = 24 * 90; 
           let steps = 0;
           while(getCurrentTHCInBody(simTime) > 0.01 && steps < maxSteps) {
               simTime += stepMs;
@@ -328,7 +338,7 @@ function applyAutoDosing() {
   let bLow = 3, bMed = 5, bHigh = 7, bDiablo = 10;
   let extraSecs = Math.floor(recentHits / 15);
   if (extraSecs > 5) extraSecs = 5;
-  if(isWeenOffActive()) extraSecs = Math.floor(extraSecs / 2); // Less leniency during ween-off
+  if(isWeenOffActive()) extraSecs = Math.floor(extraSecs / 2); 
   
   settings.doseLow = bLow + extraSecs;
   settings.doseMed = bMed + extraSecs;
@@ -339,12 +349,12 @@ function applyAutoDosing() {
 // ── Pharmacokinetic Decay ───────────────────────────────────────────────────
 function getCurrentTHCInBody(evalTime = Date.now()) {
     let total = 0;
-    const cutoff = evalTime - (30 * 24 * 3600 * 1000); // Track history up to 30 days
+    const cutoff = evalTime - (30 * 24 * 3600 * 1000); 
     const BIOAVAILABILITY = 0.35; 
 
     const processHits = (s) => {
         const pen = penById(s.penId);
-        const thcFraction = pen ? (pen.thc / 100) : 0.50; // Default 50% if unknown
+        const thcFraction = pen ? (pen.thc / 100) : 0.50; 
 
         s.hits.forEach(h => {
             if(h.time > cutoff && h.time <= evalTime) {
@@ -352,18 +362,16 @@ function getCurrentTHCInBody(evalTime = Date.now()) {
                 let hoursElapsed = (evalTime - h.time) / 3600000;
 
                 if (h.directMg) {
-                    // Edibles: Logged exactly, but onset delayed.
                     hitMg = h.directMg;
-                    hoursElapsed = Math.max(0, hoursElapsed - 1.0); // 1 hr delay before absorption begins
+                    hoursElapsed = Math.max(0, hoursElapsed - 1.0); 
                 } else {
-                    // Vape/Joint formula
                     const rate = s.method === 'joint' ? 1.5 : 1.2;
                     const totalMgVaporized = rate * h.drawSeconds * thcFraction;
                     hitMg = totalMgVaporized * BIOAVAILABILITY;
                 }
                 
-                const alphaDecay = 0.8 * Math.pow(0.5, hoursElapsed / 0.5); // Rapid tissue distribution
-                const betaDecay = 0.2 * Math.pow(0.5, hoursElapsed / 36.0); // Slow lipid release
+                const alphaDecay = 0.8 * Math.pow(0.5, hoursElapsed / 0.5); 
+                const betaDecay = 0.2 * Math.pow(0.5, hoursElapsed / 36.0); 
                 total += hitMg * (alphaDecay + betaDecay); 
             }
         });
@@ -413,26 +421,33 @@ function insertTimestamp(id) {
 function openGuideModal() { document.getElementById('guide-modal').classList.add('open'); }
 function closeGuideModal() { document.getElementById('guide-modal').classList.remove('open'); }
 
-function completeSetup() {
-  const uname = document.getElementById('setup-user-name').value.trim();
-  const pname = document.getElementById('setup-pen-name').value.trim();
-  const thc = parseFloat(document.getElementById('setup-pen-thc').value);
-  const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
-  const cVal = parseFloat(document.getElementById('setup-pen-c-val').value) || 0;
-  const cName = document.getElementById('setup-pen-c-name').value.trim() || 'CBN';
-  const notes = document.getElementById('setup-pen-notes').value.trim();
-  const tol = document.getElementById('setup-user-tolerance').value;
+function generateFeelGrid(containerId) {
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  for(let i=1; i<=10; i++) {
+    const btn = document.createElement('button');
+    btn.className = `feel-btn ${i===5?'active':''}`;
+    btn.dataset.val = i;
+    btn.innerText = i;
+    btn.onclick = (e) => { 
+        e.preventDefault(); 
+        c.querySelectorAll('.feel-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(containerId.replace('-grid', '-val')).value = i;
+    };
+    c.appendChild(btn);
+  }
+}
 
-  if(!uname || !pname || !thc) { return showCustomModal('Incomplete', 'Please fill out Name, Strain Name, and THC % to continue.', [{text:'OK'}]); }
-  
-  username = uname; sv('t2_username', username);
-  settings.tolerance = tol; sv('t2_settings', settings);
-  pens.push({ id: 'p'+Date.now(), name: pname, thc, cbd, customCVal: cVal, customCName: cName, notes });
-  sv('t2_pens', pens);
-  
-  document.getElementById('setup-modal').classList.remove('open');
-  renderPens(); renderDashboard();
-  setTimeout(() => { openGuideModal(); }, 500);
+function selectFeel(val, containerId) {
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.querySelectorAll('.feel-btn').forEach(b => {
+    if(parseInt(b.dataset.val) === val) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+  document.getElementById(containerId.replace('-grid', '-val')).value = val;
 }
 
 // ── Locks & Blocking Logic ──────────────────────────────────────────────────
@@ -463,12 +478,10 @@ function getBlockingReasons(dStr) {
        if (dayTs >= bs && dayTs <= be) reasons.push("Scheduled Break Range");
    }
 
-   // Yearly T-Break check
    if (isYearlyBreakActive() && !fuckIts.includes(dStr)) {
        reasons.push(`Annual Yearly T-Break Month`);
    }
 
-   // Monthly Auto T-Break check
    if (settings.autoTBreak && settings.autoTBreakBypassedMonth !== dObj.getMonth() && !isYearlyBreakActive()) {
        const day = dObj.getDate();
        const week = settings.autoTBreakWeek || 4;
@@ -634,13 +647,14 @@ function executeFuckIt(dStr = today()) {
   showToast("Lock bypassed."); renderDashboard(); renderCalendar();
 }
 
-
 // ── Dashboard Rendering ─────────────────────────────────────────────────────
 function renderDashboard() {
   const dObj = new Date();
   const hr = dObj.getHours();
   const grt = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
-  document.getElementById('greeting-txt').innerText = `${grt}, ${username}.`;
+  
+  const greetTxtEl = document.getElementById('greeting-txt');
+  if(greetTxtEl) greetTxtEl.innerText = `${grt}, ${username}.`;
   
   const ws = weekStart();
   const weekSess = sessions.filter(s => new Date(s.ts).getTime() >= ws && !s.isQuickHit);
@@ -655,46 +669,47 @@ function renderDashboard() {
   const remSess = Math.max(0, settings.sessPerWeek - weekSess.length);
   const qhRem = Math.max(0, settings.quickHitsPerWeek - weekQuickHits);
 
-  // Ween-off UI changes
   let limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span></div>`;
   if (isWeenOffActive()) {
       limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span> <span style="font-size:12px; color:var(--purple); display:block; line-height:1;">(Ween-off halved)</span></div>`;
   }
 
-  document.getElementById('dash-stats').innerHTML = `
-    <div class="stat glass ${weekCls}">
-      <div class="stat-label">Remaining this week</div>
-      ${limitsStr}
-    </div>
-    <div class="stat glass" style="position:relative; padding-bottom: 24px;">
-      <div class="stat-label">Est. Active THC in Body</div>
-      <div class="stat-value">${thcInBody.toFixed(3)}<span class="text-sm text-muted">mg</span></div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700;">
-        <span style="color:${drainRateColor};">↓ ${drainRatePerHour.toFixed(3)} mg/hr</span> <span style="color:var(--text3); font-weight:normal;">clear rate</span>
+  const statsGridEl = document.getElementById('dash-stats');
+  if(statsGridEl) {
+    statsGridEl.innerHTML = `
+      <div class="stat glass ${weekCls}">
+        <div class="stat-label">Remaining this week</div>
+        ${limitsStr}
       </div>
-      <div style="position:absolute; bottom:8px; right:12px; font-size:9px; color:var(--text3);">±15% est.</div>
-    </div>
-    <div class="stat glass">
-      <div class="stat-label">100% Clear In</div>
-      <div class="stat-value" id="dash-clear-countdown">--:--:--</div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Full system clearance</div>
-    </div>
-    <div class="stat glass ${activeSession ? 'warn' : 'ok'}">
-      <div class="stat-label">Status</div>
-      <div class="stat-value ${activeSession ? 'warn' : 'ok'}" style="font-size:20px;">
-        ${activeSession ? 'IN PROGRESS' : 'IDLE'}
+      <div class="stat glass" style="position:relative; padding-bottom: 24px;">
+        <div class="stat-label">Est. Active THC in Body</div>
+        <div class="stat-value">${thcInBody.toFixed(3)}<span class="text-sm text-muted">mg</span></div>
+        <div style="font-size:11px; margin-top:4px; font-weight:700;">
+          <span style="color:${drainRateColor};">↓ ${drainRatePerHour.toFixed(3)} mg/hr</span> <span style="color:var(--text3); font-weight:normal;">clear rate</span>
+        </div>
+        <div style="position:absolute; bottom:8px; right:12px; font-size:9px; color:var(--text3);">±15% est.</div>
       </div>
-    </div>
-  `;
-
-  updateGlobalClock(); // kick timer immediately
+      <div class="stat glass">
+        <div class="stat-label">100% Clear In</div>
+        <div class="stat-value" id="dash-clear-countdown">--:--:--</div>
+        <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Full system clearance</div>
+      </div>
+      <div class="stat glass ${activeSession ? 'warn' : 'ok'}">
+        <div class="stat-label">Status</div>
+        <div class="stat-value ${activeSession ? 'warn' : 'ok'}" style="font-size:20px;">
+          ${activeSession ? 'IN PROGRESS' : 'IDLE'}
+        </div>
+      </div>
+    `;
+  }
 
   const lockPane = document.getElementById('dashboard-lock');
   const mainPane = document.getElementById('dashboard-main-content');
   const unlockTs = calculateUnlockTime();
 
   if (unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay()) {
-      lockPane.style.display = 'block'; mainPane.style.display = 'none';
+      if(lockPane) lockPane.style.display = 'block'; 
+      if(mainPane) mainPane.style.display = 'none';
 
       const { reasons } = getBlockingReasons(today());
       const dailyStatus = checkDailyLock();
@@ -708,8 +723,11 @@ function renderDashboard() {
          msg = dailyStatus.msg;
       }
 
-      document.getElementById('lock-title').innerText = title;
-      document.getElementById('lock-msg').innerText = msg;
+      const lockTitleEl = document.getElementById('lock-title');
+      const lockMsgEl = document.getElementById('lock-msg');
+      if(lockTitleEl) lockTitleEl.innerText = title;
+      if(lockMsgEl) lockMsgEl.innerText = msg;
+      
       startLockCountdown(unlockTs);
       
       const now = new Date();
@@ -720,8 +738,6 @@ function renderDashboard() {
       const fiRem = Math.max(0, settings.fuckItLimitPerMonth - usedThisMonth);
 
       let lockActionsHtml = '<div class="stat-grid" style="margin-top:32px;">';
-      
-      // Quick hit logic factoring in Lockouts
       let qhDisabled = qhRem <= 0 || Date.now() < quickHitLockoutUntil;
       let qhSubText = `${qhRem} remaining this week`;
       if (Date.now() < quickHitLockoutUntil) {
@@ -749,74 +765,96 @@ function renderDashboard() {
       }
 
       lockActionsHtml += '</div>';
-      document.getElementById('lock-overrides-container').innerHTML = lockActionsHtml;
+      const lockOverrideContainerEl = document.getElementById('lock-overrides-container');
+      if(lockOverrideContainerEl) lockOverrideContainerEl.innerHTML = lockActionsHtml;
       return;
   }
   
-  lockPane.style.display = 'none'; mainPane.style.display = 'grid';
+  if(lockPane) lockPane.style.display = 'none'; 
+  if(mainPane) mainPane.style.display = 'grid';
   if(lockTimerInterval) clearInterval(lockTimerInterval);
 
   if (activeSession) {
-    document.getElementById('session-card-idle').style.display = 'none';
-    document.getElementById('session-card-active').style.display = 'block';
+    const sCardIdle = document.getElementById('session-card-idle');
+    const sCardActive = document.getElementById('session-card-active');
+    if(sCardIdle) sCardIdle.style.display = 'none';
+    if(sCardActive) sCardActive.style.display = 'block';
     
     const pen = penById(activeSession.penId);
     let nameStr = pen ? pen.name : 'Unknown';
-    document.getElementById('active-pen-name').innerText = `${nameStr} (${activeSession.method} - ${activeSession.mode} mode)`;
-    document.getElementById('active-hits').innerText = activeSession.hits.length;
-    document.getElementById('active-thc').innerText = sumTHC(activeSession.hits, pen, activeSession.method) + 'mg';
-    document.getElementById('active-notes').value = activeSession.notes || '';
-    document.getElementById('active-focus-task').innerText = activeSession.focusTask || 'None selected';
+    
+    const activePenNameEl = document.getElementById('active-pen-name');
+    const activeHitsEl = document.getElementById('active-hits');
+    const activeThcEl = document.getElementById('active-thc');
+    const activeNotesEl = document.getElementById('active-notes');
+    const activeFocusTaskEl = document.getElementById('active-focus-task');
+
+    if(activePenNameEl) activePenNameEl.innerText = `${nameStr} (${activeSession.method} - ${activeSession.mode} mode)`;
+    if(activeHitsEl) activeHitsEl.innerText = activeSession.hits.length;
+    if(activeThcEl) activeThcEl.innerText = sumTHC(activeSession.hits, pen, activeSession.method) + 'mg';
+    if(activeNotesEl) activeNotesEl.value = activeSession.notes || '';
+    if(activeFocusTaskEl) activeFocusTaskEl.innerText = activeSession.focusTask || 'None selected';
 
     const limits = getActiveLimits();
     const remHits = limits.maxHits - activeSession.hits.length;
     const hitTxt = document.getElementById('hits-remaining-txt');
+    const btnTakeHit = document.getElementById('btn-take-hit');
+    const btnAddTime = document.getElementById('btn-add-time');
+    const waitTimerEl = document.getElementById('wait-timer');
+    const waitTimerLblEl = document.getElementById('wait-timer-lbl');
     
     if (remHits <= 0) {
-      hitTxt.innerText = "Session limit reached."; hitTxt.style.color = "var(--red)";
-      document.getElementById('btn-take-hit').disabled = true;
-      document.getElementById('btn-add-time').disabled = true;
-      document.getElementById('wait-timer').innerText = "COMPLETE";
-      document.getElementById('wait-timer').className = "timer-display expired";
-      document.getElementById('wait-timer-lbl').innerText = "Log session to clear limits.";
+      if(hitTxt) { hitTxt.innerText = "Session limit reached."; hitTxt.style.color = "var(--red)"; }
+      if(btnTakeHit) btnTakeHit.disabled = true;
+      if(btnAddTime) btnAddTime.disabled = true;
+      if(waitTimerEl) { waitTimerEl.innerText = "COMPLETE"; waitTimerEl.className = "timer-display expired"; }
+      if(waitTimerLblEl) waitTimerLblEl.innerText = "Log session to clear limits.";
     } else {
-      hitTxt.innerText = `${remHits} doses remaining.`; hitTxt.style.color = "var(--accent)";
-      document.getElementById('btn-take-hit').disabled = false;
-      document.getElementById('btn-add-time').disabled = false;
+      if(hitTxt) { hitTxt.innerText = `${remHits} doses remaining.`; hitTxt.style.color = "var(--accent)"; }
+      if(btnTakeHit) btnTakeHit.disabled = false;
+      if(btnAddTime) btnAddTime.disabled = false;
     }
 
     const mList = document.getElementById('active-media-list');
-    if(activeSession.media && activeSession.media.length > 0) {
-       mList.innerHTML = activeSession.media.map((m, i) => `
-         <div style="background:var(--bg2); padding:8px 12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border); font-size:12px;">
-           <div class="flex-row"><strong style="color:var(--accent)">${m.title}</strong></div>
-           <div class="text-muted mt-8"><a href="${m.link}" target="_blank" style="color:var(--text2)">${m.link}</a></div>
-           <div class="text-right mt-8"><button class="btn btn-ghost btn-sm" style="font-size:9px;padding:2px 6px;" onclick="removeActiveMedia(${i})">Delete</button></div>
-         </div>
-       `).join('');
-    } else {
-       mList.innerHTML = `<div class="text-muted text-sm" style="font-style:italic;">No media logged yet.</div>`;
+    if(mList) {
+      if(activeSession.media && activeSession.media.length > 0) {
+         mList.innerHTML = activeSession.media.map((m, i) => `
+           <div style="background:var(--bg2); padding:8px 12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border); font-size:12px;">
+             <div class="flex-row"><strong style="color:var(--accent)">${m.title}</strong></div>
+             <div class="text-muted mt-8"><a href="${m.link}" target="_blank" style="color:var(--text2)">${m.link}</a></div>
+             <div class="text-right mt-8"><button class="btn btn-ghost btn-sm" style="font-size:9px;padding:2px 6px;" onclick="removeActiveMedia(${i})">Delete</button></div>
+           </div>
+         `).join('');
+      } else {
+         mList.innerHTML = `<div class="text-muted text-sm" style="font-style:italic;">No media logged yet.</div>`;
+      }
     }
 
   } else {
-    document.getElementById('session-card-idle').style.display = 'block';
-    document.getElementById('session-card-active').style.display = 'none';
+    const sCardIdle = document.getElementById('session-card-idle');
+    const sCardActive = document.getElementById('session-card-active');
+    if(sCardIdle) sCardIdle.style.display = 'block';
+    if(sCardActive) sCardActive.style.display = 'none';
     
     const applicableChecks = routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode).concat(equipment);
+    const preflightListEl = document.getElementById('preflight-list');
     
-    document.getElementById('preflight-list').innerHTML = applicableChecks.map(c => {
-      let badge = '';
-      if (c.mode === 'day') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">DAY</span>';
-      if (c.mode === 'night') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">NIGHT</span>';
-      return `
-      <div class="check-row" onclick="togglePreflight('${c.id}')">
-        <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
-        <div class="check-text" style="${c.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${c.text}${badge}</div>
-      </div>
-    `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
+    if(preflightListEl) {
+      preflightListEl.innerHTML = applicableChecks.map(c => {
+        let badge = '';
+        if (c.mode === 'day') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">DAY</span>';
+        if (c.mode === 'night') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">NIGHT</span>';
+        return `
+        <div class="check-row" onclick="togglePreflight('${c.id}')">
+          <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
+          <div class="check-text" style="${c.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${c.text}${badge}</div>
+        </div>
+      `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
+    }
 
     const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight());
-    document.getElementById('btn-start-session').disabled = reqsUnmet;
+    const btnStartSession = document.getElementById('btn-start-session');
+    if(btnStartSession) btnStartSession.disabled = reqsUnmet;
     
     const btnQhIdle = document.getElementById('btn-quick-hit-idle');
     if (btnQhIdle) {
@@ -828,17 +866,19 @@ function renderDashboard() {
 
   const recent = sessions.slice().sort((a,b)=>b.ts-a.ts).slice(0,5);
   const rEl = document.getElementById('dash-recent');
-  if(!recent.length) rEl.innerHTML = '<div class="empty">No history yet.</div>';
-  else {
-    rEl.innerHTML = recent.map(s => {
-      const p = penById(s.penId) || {name: 'Deleted'};
-      const hStr = s.hits.length === 1 ? 'dose' : 'doses';
-      const isQuick = s.isQuickHit ? '⚡' : '';
-      return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
-        <div style="font-weight:700; margin-bottom:4px;">${p.name} ${isQuick} <span class="mode-badge ${s.mode}" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
-        <div class="text-sm text-muted">${new Date(s.ts).toLocaleDateString([], {month:'short', day:'numeric'})} · ${s.method} · ${s.hits.length} ${hStr}</div>
-      </div>`;
-    }).join('');
+  if(rEl) {
+    if(!recent.length) rEl.innerHTML = '<div class="empty">No history yet.</div>';
+    else {
+      rEl.innerHTML = recent.map(s => {
+        const p = penById(s.penId) || {name: 'Deleted'};
+        const hStr = s.hits.length === 1 ? 'dose' : 'doses';
+        const isQuick = s.isQuickHit ? '⚡' : '';
+        return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px;">${p.name} ${isQuick} <span class="mode-badge ${s.mode}" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
+          <div class="text-sm text-muted">${new Date(s.ts).toLocaleDateString([], {month:'short', day:'numeric'})} · ${s.method} · ${s.hits.length} ${hStr}</div>
+        </div>`;
+      }).join('');
+    }
   }
 }
 
@@ -865,17 +905,15 @@ function openDoseGuide() {
 function checkDoseWarning() {
   const d = document.getElementById('config-dose').value;
   const w = document.getElementById('dose-warning');
-  if (currentMode === 'day' && d === 'high') {
-    w.style.display = 'flex';
-  } else {
-    w.style.display = 'none';
-  }
+  if (w) w.style.display = (currentMode === 'day' && d === 'high') ? 'flex' : 'none';
 }
 
 function updateConfigMethodUI() {
     const m = document.getElementById('config-method').value;
-    document.getElementById('config-dose-vape').style.display = m !== 'edible' ? 'block' : 'none';
-    document.getElementById('config-dose-edible').style.display = m === 'edible' ? 'block' : 'none';
+    const dVape = document.getElementById('config-dose-vape');
+    const dEdible = document.getElementById('config-dose-edible');
+    if(dVape) dVape.style.display = m !== 'edible' ? 'block' : 'none';
+    if(dEdible) dEdible.style.display = m === 'edible' ? 'block' : 'none';
 }
 
 function openQuickHitModal() {
@@ -920,21 +958,33 @@ function openConfigModalBypass(isNewSession, type) {
   pendingConfigType = type;
   document.getElementById('config-title').innerText = type === 'quick' ? "Quick Hit" : (isNewSession ? "Start Session" : "Log a Dose");
   
-  document.getElementById('config-method-group').style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
-  document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
-  document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  const mGroup = document.getElementById('config-method-group');
+  const pGroup = document.getElementById('config-pen-group');
+  const tGroup = document.getElementById('config-task-group');
   
-  document.getElementById('config-dose').innerHTML = `
-    <option value="low">Low Dose (${settings.doseLow}s)</option>
-    <option value="medium" selected>Medium Dose (${settings.doseMed}s)</option>
-    <option value="high">High Dose (${settings.doseHigh}s)</option>
-  `;
+  if(mGroup) mGroup.style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
+  if(pGroup) pGroup.style.display = isNewSession ? 'flex' : 'none';
+  if(tGroup) tGroup.style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
+  
+  const configPenEl = document.getElementById('config-pen');
+  if(configPenEl) configPenEl.innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  
+  const configDoseEl = document.getElementById('config-dose');
+  if(configDoseEl) {
+    configDoseEl.innerHTML = `
+      <option value="low">Low Dose (${settings.doseLow}s)</option>
+      <option value="medium" selected>Medium Dose (${settings.doseMed}s)</option>
+      <option value="high">High Dose (${settings.doseHigh}s)</option>
+    `;
+  }
 
-  document.getElementById('config-task-group').style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
-  if(todos.length > 0) {
-      document.getElementById('config-task-select').innerHTML = todos.map(t=>`<option value="${t.text}">${t.text}</option>`).join('');
-  } else {
-      document.getElementById('config-task-select').innerHTML = `<option value="Reflect">Just Reflect (No Tasks Added)</option>`;
+  const configTaskSelectEl = document.getElementById('config-task-select');
+  if(configTaskSelectEl) {
+    if(todos.length > 0) {
+        configTaskSelectEl.innerHTML = todos.map(t=>`<option value="${t.text}">${t.text}</option>`).join('');
+    } else {
+        configTaskSelectEl.innerHTML = `<option value="Reflect">Just Reflect (No Tasks Added)</option>`;
+    }
   }
 
   selectFeel(5, 'config-feel-grid');
@@ -962,6 +1012,15 @@ function startDrawSequence() {
   executeHitLogic(isNew, penId, feeling, task, method);
 }
 
+function integrateHitTaskModifier(hitObj) {
+  const targetNoteField = document.getElementById('active-notes');
+  if (activeSession && targetNoteField) activeSession.notes = targetNoteField.value;
+}
+
+function hitMethodValidationOverride(hitObj) {
+  integrateHitTaskModifier(hitObj);
+}
+
 function executeHitLogic(isNew, penId, feeling, task, method) {
     if (isNew && pendingConfigType === 'quick') {
         quickHitLockoutUntil = Date.now() + (settings.quickHitTBreak * 86400000);
@@ -974,12 +1033,12 @@ function executeHitLogic(isNew, penId, feeling, task, method) {
     if (method === 'vape' && pendingConfigType !== 'quick') {
         executeVapeSequence(isNew, penId, doseSize, feeling, task, method, drawSecs);
     } else {
-        // Direct logging for Edibles, Joints, or Quick Hits (skip breathing visuals)
         let hitObj = { time: Date.now(), dose: doseSize, feelingPreHit: feeling, drawSeconds: method==='joint'?drawSecs:0 };
         if (method === 'edible') {
-            hitObj.directMg = parseFloat(document.getElementById('config-edible-mg').value) || 10;
+            const mgInp = document.getElementById('config-edible-mg');
+            hitObj.directMg = mgInp ? (parseFloat(mgInp.value) || 10) : 10;
         } else if (method === 'joint') {
-            hitObj.drawSeconds = drawSecs; // estimate
+            hitObj.drawSeconds = drawSecs; 
         } else if (pendingConfigType === 'quick') {
             hitObj.drawSeconds = drawSecs;
         }
@@ -987,6 +1046,7 @@ function executeHitLogic(isNew, penId, feeling, task, method) {
         if (isNew) {
             activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
         }
+        hitMethodValidationOverride(hitObj);
         finishHitDirect(hitObj);
     }
 }
@@ -1015,7 +1075,9 @@ function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs
                 circle.className = 'draw-circle exhaling'; document.getElementById('draw-instruction').innerText = "Release"; circle.innerText = "Ah";
                 setTimeout(() => {
                     document.getElementById('draw-modal').classList.remove('open');
-                    finishHitDirect({ time: Date.now(), dose, feelingPreHit: feeling, drawSeconds: drawSecs });
+                    const simulatedHit = { time: Date.now(), dose, feelingPreHit: feeling, drawSeconds: drawSecs };
+                    hitMethodValidationOverride(simulatedHit);
+                    finishHitDirect(simulatedHit);
                 }, 2000);
             }
         }, 1000);
@@ -1079,7 +1141,8 @@ function startWaitTimerUI() {
     
     if(activeSession.hits.length >= limits.maxHits) {
         el.className = 'timer-display expired'; el.innerText = 'LIMIT';
-        document.getElementById('wait-timer-lbl').innerText = "Session limit reached.";
+        const waitLbl = document.getElementById('wait-timer-lbl');
+        if(waitLbl) waitLbl.innerText = "Session limit reached.";
         clearInterval(waitTimerInterval); return;
     }
 
@@ -1124,6 +1187,11 @@ window.removeActiveMedia = function(idx) {
 // ── Recap Logic ─────────────────────────────────────────────────────────────
 function endSession() { 
   if (!activeSession) return; 
+  
+  // Back up scratchpad input safely before tearing tab down
+  const currentNotesValue = document.getElementById('active-notes');
+  if(currentNotesValue) activeSession.notes = currentNotesValue.value;
+
   document.getElementById('recap-task-name').innerText = activeSession.focusTask || 'None';
   document.getElementById('recap-notes').value = activeSession.notes || '';
   switchTab('recap'); 
@@ -1132,8 +1200,9 @@ function endSession() {
 function renderRecap() {
   const empty = document.getElementById('recap-empty');
   const form = document.getElementById('recap-form');
-  if (!activeSession) { empty.style.display = 'block'; form.style.display = 'none'; return; }
-  empty.style.display = 'none'; form.style.display = 'block';
+  if (!activeSession) { if(empty) empty.style.display = 'block'; if(form) form.style.display = 'none'; return; }
+  if(empty) empty.style.display = 'none'; 
+  if(form) form.style.display = 'block';
   document.getElementById('recap-hits').innerText = activeSession.hits.length;
   document.getElementById('recap-thc').innerText = sumTHC(activeSession.hits, penById(activeSession.penId), activeSession.method) + 'mg';
   document.getElementById('recap-time').innerText = formatDuration(Date.now() - activeSession.ts);
@@ -1219,11 +1288,9 @@ function renderEmergencyStep() {
 // ── Past Session Logging ────────────────────────────────────────────────────
 function openPastSessionModal() {
   if (pens.length === 0) return showCustomModal("Add Profile", "Please add a profile in the Profiles tab first.", [{text:"OK"}]);
-  const dateInput = document.getElementById('past-date');
-  const timeInput = document.getElementById('past-time');
+  document.getElementById('past-date').value = ds(new Date());
   const now = new Date();
-  dateInput.value = ds(now);
-  timeInput.value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('past-time').value = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   document.getElementById('past-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   document.getElementById('past-hits').value = 1;
   selectFeel(5, 'past-feel-grid');
@@ -1257,6 +1324,7 @@ function savePastSession() {
 function renderHistory() {
   const sorted = sessions.slice().sort((a,b)=>b.ts-a.ts);
   const el = document.getElementById('history-list');
+  if(!el) return;
   if(!sorted.length) { el.innerHTML='<div class="empty">No sessions logged yet.</div>'; return; }
   
   el.innerHTML = sorted.map(s => {
@@ -1309,6 +1377,7 @@ function deleteSession(id) {
   ]);
 }
 
+// ── Statistics Tab ──────────────────────────────────────────────────────────
 function renderStats() {
   const totalSess = sessions.length;
   const totalHits = sessions.reduce((acc, s) => acc + s.hits.length, 0);
@@ -1320,12 +1389,15 @@ function renderStats() {
       daysActive = Math.max(1, Math.ceil((Date.now() - first) / 86400000));
   }
 
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat glass"><div class="stat-label">Total Sessions</div><div class="stat-value">${totalSess}</div></div>
-    <div class="stat glass"><div class="stat-label">Total Hits/Doses</div><div class="stat-value">${totalHits}</div></div>
-    <div class="stat glass"><div class="stat-label">Est. Total THC</div><div class="stat-value">${Math.round(totalThc)}<span class="text-sm text-muted">mg</span></div></div>
-    <div class="stat glass"><div class="stat-label">Avg Sess / Day</div><div class="stat-value">${(totalSess / daysActive).toFixed(2)}</div></div>
-  `;
+  const statsGridEl = document.getElementById('stats-grid');
+  if(statsGridEl) {
+    statsGridEl.innerHTML = `
+      <div class="stat glass"><div class="stat-label">Total Sessions</div><div class="stat-value">${totalSess}</div></div>
+      <div class="stat glass"><div class="stat-label">Total Hits/Doses</div><div class="stat-value">${totalHits}</div></div>
+      <div class="stat glass"><div class="stat-label">Est. Total THC</div><div class="stat-value">${Math.round(totalThc)}<span class="text-sm text-muted">mg</span></div></div>
+      <div class="stat glass"><div class="stat-label">Avg Sess / Day</div><div class="stat-value">${(totalSess / daysActive).toFixed(2)}</div></div>
+    `;
+  }
 
   let penCounts = {};
   sessions.forEach(s => { penCounts[s.penId] = (penCounts[s.penId] || 0) + 1; });
@@ -1335,20 +1407,26 @@ function renderStats() {
     const tp = penById(topPenId);
     topPenStr = tp ? `${tp.name} (${penCounts[topPenId]} sessions)` : 'Deleted Profile';
   }
-  document.getElementById('stats-favorite-pen').innerHTML = `<div style="font-size:24px; color:var(--accent); font-weight:bold; font-family:'Unbounded',sans-serif;">${topPenStr}</div>`;
+  const favPenEl = document.getElementById('stats-favorite-pen');
+  if(favPenEl) favPenEl.innerHTML = `<div style="font-size:24px; color:var(--accent); font-weight:bold; font-family:'Unbounded',sans-serif;">${topPenStr}</div>`;
 }
 
-// ── Calendar ────────────────────────────────────────────────────────────────
+// ── Calendar Tab ────────────────────────────────────────────────────────────
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 
 function renderCalendar() {
+  const gridEl = document.getElementById('cal-grid');
+  if(!gridEl) return;
+
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-lbl').textContent=months[calMonth]+' '+calYear;
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const offset=firstDay===0?6:firstDay-1;
-  const daysInMo=new Date(calYear,calMonth+1,0).getDate();
-  const todayStr=today();
-  const dayMap={};
+  const monthLblEl = document.getElementById('cal-month-lbl');
+  if(monthLblEl) monthLblEl.textContent = months[calMonth] + ' ' + calYear;
+  
+  const firstDay = new Date(calYear,calMonth,1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMo = new Date(calYear,calMonth+1,0).getDate();
+  const todayStr = today();
+  const dayMap = {};
   
   sessions.forEach(s=>{
     const d=ds(new Date(s.ts));
@@ -1392,7 +1470,7 @@ function renderCalendar() {
       ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
   }
-  document.getElementById('cal-grid').innerHTML=cells;
+  gridEl.innerHTML = cells;
   if (selectedCalDate) showCalDetailsPane(selectedCalDate);
 }
 
@@ -1401,7 +1479,10 @@ function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;} selectedCal
 function previewCalDetails(dStr) { showCalDetailsPane(dStr); }
 function clearCalPreview() {
    if (selectedCalDate) showCalDetailsPane(selectedCalDate);
-   else document.getElementById('cal-details-pane').innerHTML = `<div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>`;
+   else {
+     const pane = document.getElementById('cal-details-pane');
+     if(pane) pane.innerHTML = `<div class="text-center text-muted" style="padding:40px 0;">Select a day to view details.</div>`;
+   }
 }
 function showCalDetails(dStr) { selectedCalDate = dStr; renderCalendar(); }
 
@@ -1409,6 +1490,7 @@ function showCalDetailsPane(dStr) {
   const dObj = new Date(dStr + "T12:00:00");
   const dSess = sessions.filter(s => ds(new Date(s.ts)) === dStr);
   const pane = document.getElementById('cal-details-pane');
+  if(!pane) return;
   
   let plannedText = plannedBreaks.includes(dStr) ? 'Remove Planned Break' : 'Set No-Smoke Day';
   let planBtn = `
@@ -1460,12 +1542,14 @@ function renderClearance() {
     const urineBar = document.getElementById('cl-urine-bar');
 
     if (lastHit.time === 0) {
-        salivaStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
-        urineStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
-        salivaBar.style.width = '100%'; salivaBar.style.background = 'var(--green)';
-        urineBar.style.width = '100%'; urineBar.style.background = 'var(--green)';
-        document.getElementById('cl-metrics-multiplier').innerText = `--`;
-        document.getElementById('cl-metrics-tol').innerText = settings.tolerance.toUpperCase();
+        if(salivaStatusEl) salivaStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
+        if(urineStatusEl) urineStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
+        if(salivaBar) { salivaBar.style.width = '100%'; salivaBar.style.background = 'var(--green)'; }
+        if(urineBar) { urineBar.style.width = '100%'; urineBar.style.background = 'var(--green)'; }
+        const multiplierEl = document.getElementById('cl-metrics-multiplier');
+        const tolEl = document.getElementById('cl-metrics-tol');
+        if(multiplierEl) multiplierEl.innerText = `--`;
+        if(tolEl) tolEl.innerText = settings.tolerance.toUpperCase();
         return;
     }
 
@@ -1485,9 +1569,10 @@ function renderClearance() {
     if (hoursSince < (24*M)) { sStatus = 'HIGH RISK'; sColor = 'var(--red)'; }
     else if (hoursSince < sMed) { sStatus = 'MEDIUM RISK'; sColor = 'var(--amber)'; }
     else { sStatus = 'CLEAR'; sColor = 'var(--green)'; }
-    salivaStatusEl.innerHTML = `<span style="color:${sColor}">${sStatus}</span>`;
-    salivaBar.style.width = `${Math.min(100, (hoursSince / sMed) * 100)}%`; salivaBar.style.background = sColor;
-    document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. clear in: ${(sMed - hoursSince).toFixed(1)} hrs`;
+    if(salivaStatusEl) salivaStatusEl.innerHTML = `<span style="color:${sColor}">${sStatus}</span>`;
+    if(salivaBar) { salivaBar.style.width = `${Math.min(100, (hoursSince / sMed) * 100)}%`; salivaBar.style.background = sColor; }
+    const salivaDescEl = document.getElementById('cl-saliva-desc');
+    if(salivaDescEl) salivaDescEl.innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. clear in: ${(sMed - hoursSince).toFixed(1)} hrs`;
 
     // Urine
     const uMed2 = 60 * Math.min(1.6, M); 
@@ -1496,46 +1581,22 @@ function renderClearance() {
     else if (hoursSince < (36*M)) { uStatus = 'HIGH RISK'; uColor = 'var(--red)'; }
     else if (hoursSince < uMed2) { uStatus = 'MEDIUM RISK (Clearing)'; uColor = 'var(--amber)'; }
     else { uStatus = 'CLEAR'; uColor = 'var(--green)'; }
-    urineStatusEl.innerHTML = `<span style="color:${uColor}">${uStatus}</span>`;
-    urineBar.style.width = `${Math.min(100, (hoursSince / uMed2) * 100)}%`; urineBar.style.background = uColor;
-    document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. clear in: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
+    if(urineStatusEl) urineStatusEl.innerHTML = `<span style="color:${uColor}">${uStatus}</span>`;
+    if(urineBar) { urineBar.style.width = `${Math.min(100, (hoursSince / uMed2) * 100)}%`; urineBar.style.background = uColor; }
+    const urineDescEl = document.getElementById('cl-urine-desc');
+    if(urineDescEl) urineDescEl.innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. clear in: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
 
-    document.getElementById('cl-metrics-multiplier').innerText = `${M.toFixed(2)}x`;
-    document.getElementById('cl-metrics-tol').innerText = settings.tolerance.toUpperCase();
-}
-
-// ── Tab Management ──────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.content').forEach(el=>el.classList.remove('active'));
-  
-  const tabs=['dashboard','recap','history','stats','calendar','clearance','equipment','pens','routine','todo','goals','guide','settings'];
-  const idx=tabs.indexOf(name);
-  if(idx>=0) { 
-      document.querySelectorAll('.nav-item')[idx].classList.add('active'); 
-      document.getElementById('tab-'+name).classList.add('active'); 
-      document.getElementById('topbar-title').innerText = name.toUpperCase().replace('-', ' ');
-  }
-  document.getElementById('sidebar').classList.remove('open');
-  
-  if(name==='dashboard') renderDashboard();
-  if(name==='recap') renderRecap();
-  if(name==='history') renderHistory();
-  if(name==='stats') renderStats();
-  if(name==='calendar') renderCalendar();
-  if(name==='clearance') renderClearance();
-  if(name==='equipment') renderEquipment();
-  if(name==='pens') renderPens();
-  if(name==='routine') renderRoutine();
-  if(name==='todo') { renderTodo(); renderSongs(); }
-  if(name==='goals') renderGoals();
-  if(name==='guide') renderRules();
-  if(name==='settings') renderSettings();
+    const multiplierMetricEl = document.getElementById('cl-metrics-multiplier');
+    const tolMetricEl = document.getElementById('cl-metrics-tol');
+    if(multiplierMetricEl) multiplierMetricEl.innerText = `${M.toFixed(2)}x`;
+    if(tolMetricEl) tolMetricEl.innerText = settings.tolerance.toUpperCase();
 }
 
 // ── Checklists (Equipment, Todos, Goals, Routine) ──────────────────────────
 function renderEquipment() {
-    document.getElementById('equipment-list').innerHTML = equipment.map(e => `
+    const eqListEl = document.getElementById('equipment-list');
+    if(!eqListEl) return;
+    eqListEl.innerHTML = equipment.map(e => `
         <div class="check-row" onclick="toggleEq('${e.id}')">
             <div class="check-box ${e.done ? 'checked' : ''}">${e.done ? '✓' : ''}</div>
             <div class="check-text" style="${e.done ? 'opacity:0.6;' : ''}">${e.text}</div>
@@ -1552,7 +1613,9 @@ function removeEq(id) { equipment = equipment.filter(e=>e.id!==id); sv('t2_equip
 function resetEquipment() { equipment.forEach(e=>e.done=false); sv('t2_equipment', equipment); renderEquipment(); renderDashboard(); }
 
 function renderTodo() {
-    document.getElementById('todo-list').innerHTML = todos.map(t => `
+    const todoListEl = document.getElementById('todo-list');
+    if(!todoListEl) return;
+    todoListEl.innerHTML = todos.map(t => `
         <div class="check-row" onclick="removeTodo('${t.id}')">
             <div class="check-box"></div><div class="check-text">${t.text}</div>
         </div>
@@ -1566,6 +1629,7 @@ function removeTodo(id) { todos = todos.filter(t=>t.id!==id); sv('t2_todos', tod
 
 function renderRoutine() {
   const list = document.getElementById('routine-list');
+  if(!list) return;
   const all = routineChecks.filter(c => c.mode === 'all');
   const day = routineChecks.filter(c => c.mode === 'day');
   const night = routineChecks.filter(c => c.mode === 'night');
@@ -1593,12 +1657,18 @@ function addHabit() {
 function removeHabit(id) { routineChecks = routineChecks.filter(x => x.id !== id); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 function resetRoutine() { routineChecks.forEach(h => h.done = false); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); showToast("Checks reset"); }
 
-function renderSongs() { document.getElementById('song-list').innerHTML = songs.map(s => `<div class="check-row" onclick="removeSong('${s.id}')"><div class="check-box" style="border-radius:50%">🎵</div><div class="check-text">${s.text}</div></div>`).join('') || '<div class="empty text-sm">No songs queued.</div>'; }
+function renderSongs() { 
+  const songListEl = document.getElementById('song-list');
+  if(!songListEl) return;
+  songListEl.innerHTML = songs.map(s => `<div class="check-row" onclick="removeSong('${s.id}')"><div class="check-box" style="border-radius:50%">🎵</div><div class="check-text">${s.text}</div></div>`).join('') || '<div class="empty text-sm">No songs queued.</div>'; 
+}
 function addSong() { const val = document.getElementById('new-song-input').value.trim(); if(val) { songs.push({ id:'s'+Date.now(), text: val }); sv('t2_songs', songs); document.getElementById('new-song-input').value = ''; renderSongs(); } }
 function removeSong(id) { songs = songs.filter(x => x.id !== id); sv('t2_songs', songs); renderSongs(); }
 
 function renderGoals() {
-  document.getElementById('goals-list').innerHTML = goals.map(g => `
+  const goalsListEl = document.getElementById('goals-list');
+  if(!goalsListEl) return;
+  goalsListEl.innerHTML = goals.map(g => `
     <div class="check-row" onclick="toggleGoal('${g.id}')">
         <div class="check-box ${g.done ? 'checked' : ''}">${g.done ? '✓' : ''}</div>
         <div class="check-text" style="${g.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${g.text}</div>
@@ -1612,6 +1682,7 @@ function toggleGoal(id) { const g = goals.find(x => x.id === id); if(g) g.done =
 
 function renderRules() {
    const el = document.getElementById('rules-list');
+   if(!el) return;
    if (!rules.length) { el.innerHTML = '<div class="empty">No rules defined.</div>'; return; }
    el.innerHTML = rules.map((r, i) => `
       <div class="glass flex-row" style="padding:16px; background:var(--bg3); border:1px solid var(--border2); border-radius:8px;">
@@ -1639,10 +1710,10 @@ function getCompoundsHtml(p, seconds) {
 
 function renderPens() {
   const list = document.getElementById('pen-db-list');
+  if(!list) return;
   if(!pens.length) { list.innerHTML = '<div class="empty">No active profiles.</div>'; }
   else {
     list.innerHTML = pens.map(p => {
-      const tol = settings.tolerance || 'medium';
       let diabloHtml = '';
       if (settings.diabloEnabled) {
         diabloHtml = `<div class="text-center" style="background:rgba(162,117,255,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(162,117,255,0.2);">
@@ -1687,15 +1758,17 @@ function renderPens() {
   }
 
   const graveList = document.getElementById('graveyard-list');
-  if(!graveyard.length) { graveList.innerHTML = '<div class="empty">No profiles in the graveyard.</div>'; }
-  else {
-    graveList.innerHTML = graveyard.map(p => `
-        <div class="glass" style="background:var(--bg2); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); opacity:0.7;">
-           <div class="flex-row">
-             <strong style="color:var(--text2); text-decoration:line-through; font-size:16px;">${p.name}</strong>
-             <span class="ml-auto" style="font-size:18px;">🥀</span>
-           </div>
-        </div>`).join('');
+  if(graveList) {
+    if(!graveyard.length) { graveList.innerHTML = '<div class="empty">No profiles in the graveyard.</div>'; }
+    else {
+      graveList.innerHTML = graveyard.map(p => `
+          <div class="glass" style="background:var(--bg2); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); opacity:0.7;">
+             <div class="flex-row">
+               <strong style="color:var(--text2); text-decoration:line-through; font-size:16px;">${p.name}</strong>
+               <span class="ml-auto" style="font-size:18px;">🥀</span>
+             </div>
+          </div>`).join('');
+    }
   }
 }
 
@@ -1867,12 +1940,17 @@ function saveBreakSchedule() {
 }
 function clearBreakSchedule() {
   settings.breakStart = null; settings.breakEnd = null;
-  document.getElementById('s-breakStart').value = ''; document.getElementById('s-breakEnd').value = '';
+  const bStart = document.getElementById('s-breakStart');
+  const bEnd = document.getElementById('s-breakEnd');
+  if(bStart) bStart.value = ''; 
+  if(bEnd) bEnd.value = '';
   sv('t2_settings', settings); showToast("Break schedule cleared."); renderDashboard();
 }
 
 function renderEmergencyLinks() {
-  document.getElementById('emergency-links-list').innerHTML = emergencyLinks.map(l => `
+  const elList = document.getElementById('emergency-links-list');
+  if(!elList) return;
+  elList.innerHTML = emergencyLinks.map(l => `
     <div class="flex-row" style="background:var(--bg3); padding:12px; border:1px solid var(--border2); border-radius:8px;">
       <div style="flex:1"><strong style="color:var(--text);">${l.name}</strong><br><a href="${l.url}" target="_blank" style="color:var(--accent); font-size:11px;">${l.url}</a></div>
       <button class="btn btn-ghost btn-sm" onclick="removeEmergencyLink('${l.id}')">Del</button>
