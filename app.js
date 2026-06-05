@@ -1378,8 +1378,8 @@ function renderCalendar() {
     else if (dayReasons.length > 0) icon = '🚭'; 
     else if (dm.sList.length > 0 && !dm.sList.every(s=>s.isQuickHit)) icon = '✅'; 
     
-    if (isF && dayReasons.length === 0 && !icon) icon = '<span style="opacity:0.3;">尊</span>';
-    if (dm.hasQuickHit) icon = icon && !icon.includes('尊') ? icon + '⚡' : '⚡';
+    if (isF && dayReasons.length === 0 && !icon) icon = '<span style="opacity:0.3;">✅</span>';
+    if (dm.hasQuickHit) icon = icon && !icon.includes('✅') ? icon + '⚡' : '⚡';
 
     cells+=`
     <div class="cal-cell" style="aspect-ratio:1;">
