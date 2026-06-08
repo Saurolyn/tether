@@ -16,26 +16,26 @@ const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust"
 const DEFAULT_SETTINGS = { 
   maxHits: 4, sessPerWeek: 5, quickHitsPerWeek: 3, quickHitTBreak: 1, 
   nightWait: 15, dayWait: 120, breakStart: null, breakEnd: null, tolerance: 'medium', 
-  diabloEnabled: false, doseDiablo: 10, autoTBreak: true, autoTBreakWeek: 4, 
+  diabloEnabled: false, doseDiablo: 10, autoTBreak: false, autoTBreakWeek: 4, 
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
   autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7,
   daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
   allowFuckIt: true, fuckItLimitPerMonth: 2, autoTBreakBypassedMonth: -1,
-  theme: 'auto', largeText: false, yearlyBreakMonth: 'none', weenOffEnabled: false,
+  theme: 'auto', font: "'Space Mono', monospace", largeText: false, yearlyBreakMonth: 'none', weenOffEnabled: false,
   hardcoreLockout: false
 };
 
 const DEFAULT_EQUIPMENT = [
-  { id: 'e1', text: 'Sploofy (Personal Air Filter)', desc: 'Reduces smell and smoke indoors.' },
-  { id: 'e2', text: 'Water', desc: 'Hydration is key. Prevents dry mouth and soothes throat.' },
-  { id: 'e3', text: 'Eye Drops', desc: 'Relieves redness and irritation instantly.' },
-  { id: 'e4', text: 'Airtight Glass Jar', desc: 'Preserves freshness and contains odors.' },
-  { id: 'e5', text: 'Multi-voltage Battery', desc: 'Essential for vape cartridges (e.g. Yocan Uni Pro).' },
-  { id: 'e6', text: 'Iso Alcohol & Q-Tips', desc: 'Crucial for cleaning gear and mouthpieces.' },
-  { id: 'e7', text: 'Emergency CBD Tincture', desc: 'Can help counteract severe THC-induced anxiety.' },
-  { id: 'e8', text: 'Smoking Hoodie', desc: 'A dedicated comfortable layer to absorb smoke smell.' },
-  { id: 'e9', text: 'Hand Sanitizer', desc: 'Removes sticky resin and smells from fingers.' },
-  { id: 'e10', text: 'Mouthpiece Caps', desc: 'Keeps out pocket lint and prevents clogs.' }
+  { id: 'e1', text: 'Sploofy (Personal Air Filter)', desc: 'Reduces smell and smoke indoors.', url: '' },
+  { id: 'e2', text: 'Water', desc: 'Hydration is key. Prevents dry mouth and soothes throat.', url: '' },
+  { id: 'e3', text: 'Eye Drops', desc: 'Relieves redness and irritation instantly.', url: '' },
+  { id: 'e4', text: 'Airtight Glass Jar', desc: 'Preserves freshness and contains odors.', url: '' },
+  { id: 'e5', text: 'Multi-voltage Battery', desc: 'Essential for vape cartridges (e.g. Yocan Uni Pro).', url: '' },
+  { id: 'e6', text: 'Iso Alcohol & Q-Tips', desc: 'Crucial for cleaning gear and mouthpieces.', url: '' },
+  { id: 'e7', text: 'Emergency CBD Tincture', desc: 'Can help counteract severe THC-induced anxiety.', url: '' },
+  { id: 'e8', text: 'Smoking Hoodie', desc: 'A dedicated comfortable layer to absorb smoke smell.', url: '' },
+  { id: 'e9', text: 'Hand Sanitizer', desc: 'Removes sticky resin and smells from fingers.', url: '' },
+  { id: 'e10', text: 'Mouthpiece Caps', desc: 'Keeps out pocket lint and prevents clogs.', url: '' }
 ];
 
 const DEFAULT_ROUTINE = [
@@ -116,7 +116,7 @@ function sumTHC(hitsArray, penObj, method = 'vape') {
       if (h.directMg) {
           total += h.directMg;
       } else if (penObj) {
-          const thcFraction = penObj.thc / 100;
+          const thcFraction = (penObj.thc || 0) / 100;
           const rate = method === 'joint' ? 1.5 : 1.2;
           total += (h.drawSeconds * rate * thcFraction);
       }
@@ -207,6 +207,18 @@ function initApp() {
           }
       }
   }
+  
+  // Clean up old manual breaks if 1st of the month
+  let now = new Date();
+  if (now.getDate() === 1) {
+      let storageKey = 't2_manual_break_clear_' + now.getFullYear() + '_' + now.getMonth();
+      if (!ld(storageKey, false)) {
+          settings.breakStart = null;
+          settings.breakEnd = null;
+          sv('t2_settings', settings);
+          sv(storageKey, true);
+      }
+  }
 
   const spn = document.getElementById('setup-pen-name');
   if (spn) spn.placeholder = `e.g. ${WACKY_NAMES[Math.floor(Math.random()*WACKY_NAMES.length)]}`;
@@ -245,8 +257,23 @@ function toggleSidebar() {
 }
 
 function applyTheme() {
-   const t = settings.theme || 'auto';
+   let t = settings.theme || 'auto';
    const mb = document.getElementById('mode-badge');
+   document.body.style.setProperty('--app-font', settings.font || "'Space Mono', monospace");
+   
+   if (t === 'seasonal') {
+       const m = new Date().getMonth();
+       if (m === 1) t = 'valentines';
+       else if (m === 5) t = 'pride-rainbow';
+       else if (m === 9) t = 'halloween';
+       else if (m === 10) t = 'thanksgiving';
+       else if (m === 11) t = 'christmas';
+       else t = 'auto';
+   } else if (t === 'random') {
+       const themes = ['cyberpunk', 'nature', 'sunset', 'swirly-temple', 'galactic-grape', 'lemon-loopz', 'baja-blazed', 'pride-rainbow', 'pride-lesbian', 'pride-gay', 'pride-bi', 'genderfluid', 'trans', 'non-binary'];
+       t = themes[new Date().getDate() % themes.length];
+   }
+
    document.body.classList.toggle('large-text', settings.largeText);
 
    if (t === 'auto') {
@@ -291,9 +318,11 @@ function updateGlobalClock() {
     }
   }
 
-  // ── Restored 10-Day Formula Countdown & Thousandth-Place THC Tracker ──
+  // ── Restored 10-Day Formula Countdown & Decay Tracker ──
   const lastHit = getLastHitInfo();
   let thcInBody = getCurrentTHCInBody();
+  let thcIn1Hr = getCurrentTHCInBody(Date.now() + 3600000);
+  let decayRate = Math.max(0, thcInBody - thcIn1Hr).toFixed(3);
   
   if (lastHit.time === 0) {
       cachedClearanceStr = "CLEAR";
@@ -315,10 +344,12 @@ function updateGlobalClock() {
   const dashClEl = document.getElementById('dash-clear-countdown');
   const tabClEl = document.getElementById('cl-time-to-clear');
   const thcBodyEl = document.getElementById('dash-thc-body-val');
+  const dashDecayEl = document.getElementById('dash-decay-rate');
 
   if (dashClEl) { dashClEl.innerText = cachedClearanceStr; dashClEl.style.color = cachedClearanceStr === "CLEAR" ? "var(--green)" : "var(--text)"; }
   if (tabClEl) tabClEl.innerText = cachedClearanceStr === "CLEAR" ? "00:00:00" : cachedClearanceStr;
   if (thcBodyEl) thcBodyEl.innerText = thcInBody.toFixed(3);
+  if (dashDecayEl) dashDecayEl.innerText = decayRate;
 
   if (clTab && clTab.classList.contains('active')) renderClearance();
 }
@@ -419,15 +450,16 @@ function closeGuideModal() { document.getElementById('guide-modal').classList.re
 function completeSetup() {
   const uname = document.getElementById('setup-user-name').value.trim();
   const pname = document.getElementById('setup-pen-name').value.trim();
+  const ptype = document.getElementById('setup-pen-type').value;
   const thc = parseFloat(document.getElementById('setup-pen-thc').value);
   const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
   const tol = document.getElementById('setup-user-tolerance').value;
 
-  if(!uname || !pname || !thc) { return showCustomModal('Incomplete', 'Please fill out Name, Strain Name, and THC % to continue.', [{text:'OK'}]); }
+  if(!uname || !pname || !thc) { return showCustomModal('Incomplete', 'Please fill out Name, Profile Name, and THC % to continue.', [{text:'OK'}]); }
   
   username = uname; sv('t2_username', username);
   settings.tolerance = tol; sv('t2_settings', settings);
-  pens.push({ id: 'p'+Date.now(), name: pname, thc, cbd, customCName: 'CBN', customCVal: 0, notes: '' });
+  pens.push({ id: 'p'+Date.now(), name: pname, type: ptype, thc, cbd, customCName: 'CBN', customCVal: 0, notes: '' });
   sv('t2_pens', pens);
   
   document.getElementById('setup-modal').classList.remove('open');
@@ -465,7 +497,7 @@ function getBlockingReasons(dStr) {
 
    if (settings.autoTBreak && settings.autoTBreakBypassedMonth !== dObj.getMonth() && !isYearlyBreakActive()) {
        const day = dObj.getDate();
-       const week = settings.autoTBreakWeek || 4;
+       const week = parseInt(settings.autoTBreakWeek || 4);
        const daysInMo = new Date(dObj.getFullYear(), dObj.getMonth() + 1, 0).getDate();
        let isBreakDay = false;
 
@@ -474,7 +506,7 @@ function getBlockingReasons(dStr) {
        else if (week === 3 && day >= 15 && day <= 21) isBreakDay = true;
        else if (week === 4 && day >= 22 && day <= daysInMo) isBreakDay = true;
 
-       if (isBreakDay) reasons.push(`Auto Monthly T-Break (Week ${week})`);
+       if (isBreakDay && !fuckIts.includes(dStr)) reasons.push(`Auto Monthly T-Break (Week ${week})`);
    }
 
    if (settings.enforceWeeklyLimit) {
@@ -655,7 +687,6 @@ function renderDashboard() {
       limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span> <span style="font-size:12px; color:var(--purple); display:block; line-height:1;">(Ween-off halved)</span></div>`;
   }
 
-  // Mixed Thousandth-Place THC Factor & 10-Day Countdown Cards
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat glass ${weekCls}">
       <div class="stat-label">Remaining this week</div>
@@ -664,7 +695,7 @@ function renderDashboard() {
     <div class="stat glass">
       <div class="stat-label">Est. Active THC in Body</div>
       <div class="stat-value"><span id="dash-thc-body-val">0.000</span><span class="text-sm text-muted">mg</span></div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Realtime &alpha;/&beta; decay scale</div>
+      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);"><span id="dash-decay-rate">0.000</span> mg/hr decay</div>
     </div>
     <div class="stat glass">
       <div class="stat-label">Clearance (10-Day Formula)</div>
@@ -820,7 +851,7 @@ function renderDashboard() {
   if(!recent.length) rEl.innerHTML = '<div class="empty">No history yet.</div>';
   else {
     rEl.innerHTML = recent.map(s => {
-      const p = penById(s.penId) || {name: 'Deleted Pen'};
+      const p = penById(s.penId) || {name: 'Deleted Profile'};
       const hStr = s.hits.length === 1 ? 'dose' : 'doses';
       const isQuick = s.isQuickHit ? '⚡' : '';
       return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
@@ -893,7 +924,7 @@ function openQuickHitModal() {
 }
 
 function openConfigModal(isNewSession, type = 'normal') {
-  if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain in the Profiles tab first.", [{text:"OK"}]);
+  if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain or profile in the Profiles tab first.", [{text:"OK"}]);
   if (isYearlyBreakActive() && !fuckIts.includes(today())) {
       return showCustomModal("T-Break Active", "It is your designated Yearly T-Break month. Dashboard locked.", [{text:"Understood"}]);
   }
@@ -918,7 +949,7 @@ function openConfigModalBypass(isNewSession, type) {
   
   document.getElementById('config-method-group').style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
-  document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">[${p.type.toUpperCase()}] ${p.name}</option>`).join('');
   
   let doseHtml = `
     <option value="low">Low Dose (${settings.doseLow}s)</option>
@@ -1046,7 +1077,7 @@ function finishHitDirect(hitObj) {
           {text: "Save Hit", cls: "btn-primary", onClick: () => {
               const note = document.getElementById('qh-note').value.trim();
               sessions.push({
-                  id: 'qh_' + Date.now(), ts: Date.now(), endTime: Date.now(), penId: hitObj.penId || pens[0].id, mode: currentMode,
+                  id: 'qh_' + Date.now(), ts: Date.now(), endTime: Date.now(), penId: hitObj.penId || (pens[0] ? pens[0].id : null), mode: currentMode,
                   method: 'vape', hits: [hitObj], isQuickHit: true, notes: "⚡ Quick Hit\n" + note
               });
               sv('t2_sessions', sessions); showToast("Quick hit logged! 💧", true);
@@ -1263,7 +1294,7 @@ function renderHistory() {
   if(!sorted.length) { el.innerHTML='<div class="empty">No sessions logged yet.</div>'; return; }
   
   el.innerHTML = sorted.map(s => {
-    const p = penById(s.penId) || {name: 'Deleted Pen'};
+    const p = penById(s.penId) || {name: 'Deleted Profile', type: 'other'};
     const fColor = getFeelColorObj(s.finalFeeling);
     const durStr = s.endTime ? formatDuration(s.endTime - s.ts) : '0m';
     const sThc = sumTHC(s.hits, p, s.method);
@@ -1453,12 +1484,17 @@ function renderClearance() {
     const urineStatusEl = document.getElementById('cl-urine-status');
     const salivaBar = document.getElementById('cl-saliva-bar');
     const urineBar = document.getElementById('cl-urine-bar');
+    const salivaMarkers = document.getElementById('cl-saliva-markers');
+    const urineMarkers = document.getElementById('cl-urine-markers');
 
     if (lastHit.time === 0) {
         salivaStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
         urineStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
         salivaBar.style.width = '100%'; salivaBar.style.background = 'var(--green)';
         urineBar.style.width = '100%'; urineBar.style.background = 'var(--green)';
+        salivaMarkers.innerHTML = ''; urineMarkers.innerHTML = '';
+        document.getElementById('cl-saliva-desc').innerText = 'Safe window reached.';
+        document.getElementById('cl-urine-desc').innerText = 'Safe window reached.';
         return;
     }
 
@@ -1469,27 +1505,42 @@ function renderClearance() {
     let M = 1.0;
     if (settings.tolerance === 'low') M = 0.6;
     if (settings.tolerance === 'high') M = 1.6;
-    const penTHC = pen ? pen.thc : 75;
+    const penTHC = pen ? (pen.thc || 75) : 75;
     M = Math.max(0.4, Math.min(2.0, M + ((penTHC - 50) / 100 * 0.3))); 
 
     const sMed = 48 * Math.min(1.5, M); 
+    const uMed2 = 60 * Math.min(1.6, M); 
+    
     let sStatus = '', sColor = '';
     if (hoursSince < (24*M)) { sStatus = 'HIGH RISK'; sColor = 'var(--red)'; }
     else if (hoursSince < sMed) { sStatus = 'MEDIUM RISK'; sColor = 'var(--amber)'; }
     else { sStatus = 'CLEAR'; sColor = 'var(--green)'; }
     salivaStatusEl.innerHTML = `<span style="color:${sColor}">${sStatus}</span>`;
-    salivaBar.style.width = `${Math.min(100, (hoursSince / sMed) * 100)}%`; salivaBar.style.background = sColor;
-    document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. clear in: ${(sMed - hoursSince).toFixed(1)} hrs`;
+    
+    let sPct = Math.min(100, (hoursSince / sMed) * 100);
+    salivaBar.style.width = `${sPct}%`; salivaBar.style.background = sColor;
+    
+    let sMedMarker = Math.min(100, ((24*M) / sMed) * 100);
+    salivaMarkers.innerHTML = `<div class="clearance-marker" style="left: ${sMedMarker}%">▼ Med</div><div class="clearance-marker" style="left: 100%">▼ Pass</div>`;
+    document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. time to pass: ${(sMed - hoursSince).toFixed(1)} hrs`;
 
-    const uMed2 = 60 * Math.min(1.6, M); 
     let uStatus = '', uColor = '';
     if (hoursSince < (12*M)) { uStatus = 'MEDIUM RISK (Delay)'; uColor = 'var(--amber)'; }
     else if (hoursSince < (36*M)) { uStatus = 'HIGH RISK'; uColor = 'var(--red)'; }
     else if (hoursSince < uMed2) { uStatus = 'MEDIUM RISK (Clearing)'; uColor = 'var(--amber)'; }
     else { uStatus = 'CLEAR'; uColor = 'var(--green)'; }
     urineStatusEl.innerHTML = `<span style="color:${uColor}">${uStatus}</span>`;
-    urineBar.style.width = `${Math.min(100, (hoursSince / uMed2) * 100)}%`; urineBar.style.background = uColor;
-    document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. clear in: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
+    
+    let uPct = Math.min(100, (hoursSince / uMed2) * 100);
+    urineBar.style.width = `${uPct}%`; urineBar.style.background = uColor;
+    
+    let uHighMarker = Math.min(100, ((12*M) / uMed2) * 100);
+    let uMedMarker2 = Math.min(100, ((36*M) / uMed2) * 100);
+    urineMarkers.innerHTML = `
+      <div class="clearance-marker" style="left: ${uHighMarker}%">▼ High</div>
+      <div class="clearance-marker" style="left: ${uMedMarker2}%">▼ Med</div>
+      <div class="clearance-marker" style="left: 100%">▼ Pass</div>`;
+    document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. time to pass: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
 }
 
 // ── Tab Management ──────────────────────────────────────────────────────────
@@ -1532,16 +1583,63 @@ function switchTab(name) {
   if (name === 'settings') renderSettings();
 }
 
-// ── Checklists ──────────────────────────────────────────────────────────────
+// ── Equipment Checklist ──────────────────────────────────────────────────────
 function renderEquipment() {
     document.getElementById('equipment-list').innerHTML = equipment.map(e => `
         <div class="glass" style="background:var(--bg3); padding:16px; border:1px solid var(--border2); border-radius:8px;">
-            <strong style="color:var(--accent);">${e.text}</strong>
-            <p class="text-sm text-muted mt-8" style="margin-bottom:0;">${e.desc}</p>
+            <div class="flex-row" style="justify-content:space-between; margin-bottom: 8px;">
+              <strong style="color:var(--accent); ${e.url ? 'cursor:pointer; text-decoration:underline;' : ''}" onclick="${e.url ? `window.open('${e.url}', '_blank')` : ''}">${e.text} ${e.url ? '🔗' : ''}</strong>
+              <div class="flex-row gap-8">
+                 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="editEquipment('${e.id}')">Edit</button>
+                 <button class="btn btn-ghost btn-sm" style="padding:4px 8px;" onclick="deleteEquipment('${e.id}')">Del</button>
+              </div>
+            </div>
+            <p class="text-sm text-muted" style="margin-bottom:0;">${e.desc || ''}</p>
         </div>
     `).join('') || '<div class="empty">No equipment logged.</div>';
 }
 
+function addNewEquipment() {
+    const newId = 'e' + Date.now();
+    equipment.push({ id: newId, text: 'New Gear Item', desc: 'Description here.', url: '' });
+    sv('t2_equipment', equipment);
+    editEquipment(newId);
+}
+
+function editEquipment(id) {
+    const eq = equipment.find(e => e.id === id);
+    if (!eq) return;
+    document.getElementById('edit-equip-id').value = eq.id;
+    document.getElementById('edit-equip-name').value = eq.text;
+    document.getElementById('edit-equip-desc').value = eq.desc || '';
+    document.getElementById('edit-equip-url').value = eq.url || '';
+    document.getElementById('edit-equip-modal').classList.add('open');
+}
+
+function closeEditEquipModal() { document.getElementById('edit-equip-modal').classList.remove('open'); }
+
+function saveEquipEdit() {
+    const id = document.getElementById('edit-equip-id').value;
+    const eq = equipment.find(e => e.id === id);
+    if(eq) {
+        eq.text = document.getElementById('edit-equip-name').value.trim() || 'Unnamed Item';
+        eq.desc = document.getElementById('edit-equip-desc').value.trim();
+        eq.url = document.getElementById('edit-equip-url').value.trim();
+        sv('t2_equipment', equipment);
+        renderEquipment();
+        closeEditEquipModal();
+    }
+}
+
+function deleteEquipment(id) {
+    if(confirm("Delete this equipment item?")) {
+        equipment = equipment.filter(e => e.id !== id);
+        sv('t2_equipment', equipment);
+        renderEquipment();
+    }
+}
+
+// ── Checklists ──────────────────────────────────────────────────────────────
 function renderTodo() { document.getElementById('todo-list').innerHTML = todos.map(t => `<div class="check-row" onclick="removeTodo('${t.id}')"><div class="check-box"></div><div class="check-text">${t.text}</div></div>`).join('') || '<div class="empty text-sm">Tasks clear!</div>'; }
 function addTodo() { const val = document.getElementById('new-todo-input').value.trim(); if(val) { todos.push({ id:'t'+Date.now(), text: val }); sv('t2_todos', todos); document.getElementById('new-todo-input').value = ''; renderTodo(); } }
 function removeTodo(id) { todos = todos.filter(t=>t.id!==id); sv('t2_todos', todos); renderTodo(); }
@@ -1598,7 +1696,7 @@ function saveJournal() { const el = document.getElementById('journal-text'); if(
 
 // ── Pens / Profiles ─────────────────────────────────────────────────────────
 function getCompoundsHtml(p, seconds) {
-  let html = `<div class="mt-8" style="display:inline-block; font-family:'Space Mono',monospace; font-size:11px; text-align:left; margin:0 auto;">`;
+  let html = `<div class="mt-8" style="display:inline-block; font-family:var(--app-font); font-size:11px; text-align:left; margin:0 auto;">`;
   const thcMg = ((p.thc || 0) / 100 * seconds).toFixed(1);
   html += `<div style="margin-bottom:2px;">- ${thcMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[thc]</span></div>`;
   if (p.cbd > 0) { html += `<div style="margin-bottom:2px;">- ${((p.cbd) / 100 * seconds).toFixed(1)}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbd]</span></div>`; }
@@ -1608,52 +1706,67 @@ function getCompoundsHtml(p, seconds) {
 }
 
 function renderPens() {
-  const list = document.getElementById('pen-db-list');
-  if(!pens.length) { list.innerHTML = '<div class="empty">No active profiles.</div>'; }
-  else {
-    list.innerHTML = pens.map(p => {
-      let diabloHtml = '';
-      if (settings.diabloEnabled) {
-        diabloHtml = `<div class="text-center" style="background:rgba(162,117,255,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(162,117,255,0.2);">
-            <div style="color:var(--purple); font-weight:700; font-size:12px;">Diablo (${settings.doseDiablo}s)</div>
-            ${getCompoundsHtml(p, settings.doseDiablo)}
-        </div>`;
+  const container = document.getElementById('pens-grid-container');
+  const cols = [
+      { key: 'cart', title: 'Carts & Disposables' },
+      { key: 'edible', title: 'Edibles & Pills' },
+      { key: 'flower', title: 'Flower & Joints' },
+      { key: 'other', title: 'Other / Tinctures' }
+  ];
+
+  let gridHtml = '';
+  
+  cols.forEach(col => {
+      const colPens = pens.filter(p => (p.type || 'other') === col.key);
+      let colContent = `<div class="pen-col-header">${col.title} (${colPens.length})</div>`;
+      
+      if (!colPens.length) {
+          colContent += `<div class="empty" style="padding: 20px 10px;">Nothing here yet.</div>`;
+      } else {
+          colContent += colPens.map(p => {
+              let diabloHtml = '';
+              if (settings.diabloEnabled) {
+                diabloHtml = `<div class="text-center" style="background:rgba(162,117,255,0.05); padding:12px; border-radius:8px; flex:1; min-width:80px; border:1px solid rgba(162,117,255,0.2); margin-top:8px;">
+                    <div style="color:var(--purple); font-weight:700; font-size:12px;">Diablo (${settings.doseDiablo}s)</div>
+                    ${getCompoundsHtml(p, settings.doseDiablo)}
+                </div>`;
+              }
+              return `
+              <div class="glass" style="background:var(--bg3); padding:16px; border-radius:var(--radius); border:0.5px solid var(--border2); margin-bottom:12px;">
+                 <div class="flex-row mb-8" style="justify-content:space-between;">
+                   <strong style="color:var(--accent); font-size:15px; word-break:break-word;">${p.name}</strong>
+                   <div class="flex-row gap-4">
+                     <button class="btn btn-ghost btn-sm" style="padding:4px;" onclick="editPen('${p.id}')">✏️</button>
+                     <button class="btn btn-ghost btn-sm" style="padding:4px;" onclick="retirePen('${p.id}')">🥀</button>
+                   </div>
+                 </div>
+                 <div class="text-sm text-muted mb-8">THC: ${p.thc || 0}% ${p.cbd ? ' | CBD: '+p.cbd+'%' : ''} ${p.customCVal ? ' | ' + (p.customCName || 'CBN') + ': ' + p.customCVal + '%' : ''}</div>
+                 ${p.notes ? `<div class="text-sm text-muted mb-12" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
+                 
+                 <div style="background:var(--bg2); padding:12px; border-radius:8px;">
+                   <div class="flex-col" style="gap:8px; align-items:stretch;">
+                      <div class="text-center" style="background:rgba(92,170,127,0.05); padding:8px; border-radius:8px; border:1px solid rgba(92,170,127,0.2);">
+                          <div style="color:var(--green); font-weight:700; font-size:11px;">Low (${settings.doseLow}s)</div>
+                          ${getCompoundsHtml(p, settings.doseLow)}
+                      </div>
+                      <div class="text-center" style="background:rgba(212,168,67,0.05); padding:8px; border-radius:8px; border:1px solid rgba(212,168,67,0.2);">
+                          <div style="color:var(--amber); font-weight:700; font-size:11px;">Med (${settings.doseMed}s)</div>
+                          ${getCompoundsHtml(p, settings.doseMed)}
+                      </div>
+                      <div class="text-center" style="background:rgba(224,94,94,0.05); padding:8px; border-radius:8px; border:1px solid rgba(224,94,94,0.2);">
+                          <div style="color:var(--red); font-weight:700; font-size:11px;">High (${settings.doseHigh}s)</div>
+                          ${getCompoundsHtml(p, settings.doseHigh)}
+                      </div>
+                   </div>
+                   ${diabloHtml}
+                 </div>
+              </div>`;
+          }).join('');
       }
-      return `
-      <div class="glass" style="background:var(--bg3); padding:16px; border-radius:var(--radius); border:0.5px solid var(--border2); margin-bottom:16px;">
-         <div class="flex-row mb-16">
-           <div>
-             <strong style="color:var(--accent); font-size:16px;">${p.name}</strong>
-             <div class="text-sm text-muted mt-8">THC: ${p.thc}% ${p.cbd ? ' | CBD: '+p.cbd+'%' : ''} ${p.customCVal ? ' | ' + p.customCName + ': ' + p.customCVal + '%' : ''}</div>
-             ${p.notes ? `<div class="text-sm text-muted mt-8" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
-           </div>
-           <div class="flex-row gap-8 ml-auto">
-             <button class="btn btn-ghost btn-sm" onclick="editPen('${p.id}')">Edit</button>
-             <button class="btn btn-ghost btn-sm" onclick="retirePen('${p.id}')">Retire 🫡</button>
-             <button class="btn btn-ghost btn-sm" onclick="deletePen('${p.id}')">Del</button>
-           </div>
-         </div>
-         <div style="background:var(--bg2); padding:16px; border-radius:8px;">
-           <div class="text-sm mb-16" style="font-weight:700; color:var(--text2);">Dosage Profile (Vape Est.)</div>
-           <div class="flex-row" style="gap:12px; align-items:stretch;">
-              <div class="text-center" style="background:rgba(92,170,127,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(92,170,127,0.2);">
-                  <div style="color:var(--green); font-weight:700; font-size:12px;">Low Dose (${settings.doseLow}s)</div>
-                  ${getCompoundsHtml(p, settings.doseLow)}
-              </div>
-              <div class="text-center" style="background:rgba(212,168,67,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(212,168,67,0.2);">
-                  <div style="color:var(--amber); font-weight:700; font-size:12px;">Med Dose (${settings.doseMed}s)</div>
-                  ${getCompoundsHtml(p, settings.doseMed)}
-              </div>
-              <div class="text-center" style="background:rgba(224,94,94,0.05); padding:12px; border-radius:8px; flex:1; min-width:120px; border:1px solid rgba(224,94,94,0.2);">
-                  <div style="color:var(--red); font-weight:700; font-size:12px;">High Dose (${settings.doseHigh}s)</div>
-                  ${getCompoundsHtml(p, settings.doseHigh)}
-              </div>
-              ${diabloHtml}
-           </div>
-         </div>
-      </div>`;
-    }).join('');
-  }
+      gridHtml += `<div class="pen-col">${colContent}</div>`;
+  });
+
+  container.innerHTML = gridHtml;
 
   const graveList = document.getElementById('graveyard-list');
   if(!graveyard.length) { graveList.innerHTML = '<div class="empty">No profiles in the graveyard.</div>'; }
@@ -1661,22 +1774,25 @@ function renderPens() {
     graveList.innerHTML = graveyard.map(p => `
         <div class="glass" style="background:var(--bg2); padding:16px; border-radius:var(--radius); border:1px solid var(--border2); opacity:0.7;">
            <div class="flex-row">
-             <strong style="color:var(--text2); text-decoration:line-through; font-size:16px;">${p.name}</strong>
+             <strong style="color:var(--text2); text-decoration:line-through; font-size:16px;">[${(p.type||'other').toUpperCase()}] ${p.name}</strong>
              <span class="ml-auto" style="font-size:18px;">🥀</span>
+             <button class="btn btn-ghost btn-sm ml-8" onclick="deleteGravePen('${p.id}')">Del</button>
            </div>
         </div>`).join('');
   }
 }
 
 function addPen() {
-  const name = document.getElementById('pen-name').value.trim(), thc = parseFloat(document.getElementById('pen-thc').value);
-  if(!name||!thc) return showCustomModal("Error", "Required: Strain Name & THC %", [{text: "OK"}]);
+  const name = document.getElementById('pen-name').value.trim();
+  const type = document.getElementById('pen-type').value;
+  const thc = parseFloat(document.getElementById('pen-thc').value) || 0;
+  if(!name) return showCustomModal("Error", "Required: Strain / Profile Name", [{text: "OK"}]);
   const cbd = parseFloat(document.getElementById('pen-cbd').value) || 0;
   const cVal = parseFloat(document.getElementById('pen-c-val').value) || 0;
   const cName = document.getElementById('pen-c-name').value.trim() || 'CBN';
   const notes = document.getElementById('pen-notes').value.trim();
 
-  pens.push({id:'p'+Date.now(), name, thc, cbd, customCVal: cVal, customCName: cName, notes});
+  pens.push({id:'p'+Date.now(), name, type, thc, cbd, customCVal: cVal, customCName: cName, notes});
   sv('t2_pens', pens); 
   document.getElementById('pen-name').value=''; document.getElementById('pen-thc').value='';
   document.getElementById('pen-cbd').value=''; document.getElementById('pen-c-val').value=''; document.getElementById('pen-notes').value='';
@@ -1687,8 +1803,9 @@ function editPen(id) {
   const p = pens.find(x => x.id === id);
   if (!p) return;
   document.getElementById('edit-pen-id').value = p.id;
-  document.getElementById('edit-pen-name').value = p.name;
-  document.getElementById('edit-pen-thc').value = p.thc;
+  document.getElementById('edit-pen-name').value = p.name || '';
+  document.getElementById('edit-pen-type').value = p.type || 'other';
+  document.getElementById('edit-pen-thc').value = p.thc || 0;
   document.getElementById('edit-pen-cbd').value = p.cbd || 0;
   document.getElementById('edit-pen-c-val').value = p.customCVal || 0;
   document.getElementById('edit-pen-c-name').value = p.customCName || 'CBN';
@@ -1701,7 +1818,8 @@ function savePenEdit() {
   const p = pens.find(x => x.id === id);
   if (p) {
       p.name = document.getElementById('edit-pen-name').value.trim();
-      p.thc = parseFloat(document.getElementById('edit-pen-thc').value);
+      p.type = document.getElementById('edit-pen-type').value;
+      p.thc = parseFloat(document.getElementById('edit-pen-thc').value) || 0;
       p.cbd = parseFloat(document.getElementById('edit-pen-cbd').value) || 0;
       p.customCVal = parseFloat(document.getElementById('edit-pen-c-val').value) || 0;
       p.customCName = document.getElementById('edit-pen-c-name').value.trim() || 'CBN';
@@ -1711,13 +1829,13 @@ function savePenEdit() {
   }
 }
 
-function deletePen(id) {
-  showCustomModal("Delete Profile", "Permanently delete this profile? History remains.", [
-    {text: "Cancel"}, {text: "Delete", cls: "btn-danger", onClick: () => { pens = pens.filter(p=>p.id!==id); sv('t2_pens', pens); renderPens(); }}
+function deleteGravePen(id) {
+  showCustomModal("Delete Profile", "Permanently delete this profile from graveyard? History remains.", [
+    {text: "Cancel"}, {text: "Delete", cls: "btn-danger", onClick: () => { graveyard = graveyard.filter(p=>p.id!==id); sv('t2_graveyard', graveyard); renderPens(); }}
   ]);
 }
 function retirePen(id) {
-  showCustomModal("Retire Profile", "Is this strain/pen completely empty? It will be moved to the graveyard.", [
+  showCustomModal("Retire Profile", "Is this profile completely empty? It will be moved to the graveyard.", [
     {text: "Cancel"}, {text: "Retire 🥀", cls: "btn-primary", onClick: () => {
          const p = pens.find(x => x.id === id);
          if(p) { graveyard.push(p); pens = pens.filter(x => x.id !== id); sv('t2_pens', pens); sv('t2_graveyard', graveyard); renderPens(); showToast("Profile sent to the graveyard."); }
@@ -1733,6 +1851,7 @@ function renderSettings() {
   setVal('s-username', username);
   setVal('s-tolerance', settings.tolerance || 'medium');
   setVal('s-theme', settings.theme || 'auto');
+  setVal('s-font', settings.font || "'Space Mono', monospace");
 
   setVal('s-maxHits', settings.maxHits);
   setVal('s-sessPerWeek', settings.sessPerWeek);
@@ -1765,6 +1884,9 @@ function renderSettings() {
   setVal('s-yearlyBreakMonth', settings.yearlyBreakMonth);
   setCheck('s-weenOffEnabled', !!settings.weenOffEnabled);
 
+  setCheck('s-autoTBreak', !!settings.autoTBreak);
+  setVal('s-autoTBreakWeek', settings.autoTBreakWeek || 4);
+
   setVal('s-breakStart', settings.breakStart || '');
   setVal('s-breakEnd', settings.breakEnd || '');
   setCheck('s-hardcoreLockout', !!settings.hardcoreLockout);
@@ -1783,6 +1905,7 @@ function saveSettings(silent = false) {
   username = getVal('s-username'); sv('t2_username', username);
   settings.tolerance = getVal('s-tolerance');
   settings.theme = getVal('s-theme');
+  settings.font = getVal('s-font');
 
   settings.maxHits = getInt('s-maxHits', settings.maxHits);
   settings.sessPerWeek = getInt('s-sessPerWeek', settings.sessPerWeek);
@@ -1810,6 +1933,9 @@ function saveSettings(silent = false) {
 
   settings.yearlyBreakMonth = getVal('s-yearlyBreakMonth') || 'none';
   settings.weenOffEnabled = getCheck('s-weenOffEnabled');
+
+  settings.autoTBreak = getCheck('s-autoTBreak');
+  settings.autoTBreakWeek = getInt('s-autoTBreakWeek', settings.autoTBreakWeek);
 
   settings.breakStart = getVal('s-breakStart');
   settings.breakEnd = getVal('s-breakEnd');
@@ -1911,10 +2037,10 @@ function exportCSV() {
   if(!sessions.length) return showToast("No data to export.");
   let csv = "Date,Time,Pen,Method,Mode,Hits,Est_THC_mg,Final_Feeling,Is_Quick_Hit,Focus_Task,Task_Done,Notes\n";
   sessions.forEach(s => {
-    const p = penById(s.penId) || {name: 'Deleted Pen'};
+    const p = penById(s.penId) || {name: 'Deleted Profile', type: 'other'};
     const d = new Date(s.ts);
     const n = (s.notes||'').replace(/\n/g, ' ').replace(/,/g, ';');
-    csv += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${p.name},${s.method||'vape'},${s.mode},${s.hits.length},${s.thc},${s.finalFeeling},${s.isQuickHit?"Yes":"No"},${s.focusTask||'None'},${s.taskCompleted?"Yes":"No"},${n}\n`;
+    csv += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${p.name},${s.method||'vape'},${s.mode},${s.hits.length},${s.thc||0},${s.finalFeeling||''},${s.isQuickHit?"Yes":"No"},${s.focusTask||'None'},${s.taskCompleted?"Yes":"No"},${n}\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
