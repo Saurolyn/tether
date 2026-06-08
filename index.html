@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tether</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Unbounded:wght@300;400;600;800&family=Roboto:wght@400;700&family=Inter:wght@400;700&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-mode="night">
@@ -12,7 +12,6 @@
 <div class="toast-container" id="toast-container"></div>
 <div class="mobile-overlay" id="mobile-overlay" onclick="toggleSidebar()"></div>
 
-<!-- 21+ Age Gate -->
 <div class="modal-overlay glass" id="age-gate-modal" style="z-index: 9999;">
   <div class="modal glass text-center">
     <div style="font-size:48px; margin-bottom:16px;">🛑</div>
@@ -39,7 +38,7 @@
        <div class="modal-title" style="margin:0;">📖 How To Use Tether</div>
        <button class="btn btn-ghost btn-sm" onclick="closeGuideModal()">Close Guide</button>
     </div>
-    <p class="text-sm text-muted mb-24">Tether is a mindful THC consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive habits.</p>
+    <p class="text-sm text-muted mb-24">Tether is a mindful consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive habits.</p>
     <h3 class="mb-8" style="color:var(--accent);">1. The Core Loop & Intentions</h3>
     <p class="text-sm text-muted mb-24">Complete your Pre-Flight Routine to unlock your daily session. You must select a Focus Task before starting to ensure you have a goal while elevated. When finished, hit End Session & Log to recap your feelings and task completion.</p>
     <h3 class="mb-8" style="color:var(--accent);">2. Methods (Vape, Joint, Edible)</h3>
@@ -57,6 +56,20 @@
   </div>
 </div>
 
+<div class="modal-overlay glass" id="edit-equip-modal">
+  <div class="modal glass">
+    <div class="modal-title">Edit Equipment</div>
+    <input type="hidden" id="edit-equip-id">
+    <div class="form-group mb-16"><label>Item Name</label><input type="text" id="edit-equip-name" class="glass"></div>
+    <div class="form-group mb-16"><label>Description</label><textarea id="edit-equip-desc" class="glass" rows="2"></textarea></div>
+    <div class="form-group mb-24"><label>Purchasing / Reference Link (Optional)</label><input type="url" id="edit-equip-url" class="glass" placeholder="https://..."></div>
+    <div class="flex-row" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeEditEquipModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEquipEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay glass" id="config-modal">
   <div class="modal glass">
     <div class="modal-title" id="config-title">Configure Hit</div>
@@ -71,7 +84,7 @@
     </div>
 
     <div class="form-group mb-16" id="config-pen-group">
-      <label>Select Profile/Pen</label>
+      <label>Select Profile</label>
       <select id="config-pen" class="glass"></select>
     </div>
 
@@ -118,11 +131,20 @@
   <div class="modal glass">
     <div class="modal-title">Edit Profile</div>
     <input type="hidden" id="edit-pen-id">
-    <div class="form-group mb-16"><label>Strain / Name</label><input type="text" id="edit-pen-name" class="glass"></div>
+    <div class="form-group mb-16"><label>Name / Strain</label><input type="text" id="edit-pen-name" class="glass"></div>
+    <div class="form-group mb-16">
+        <label>Type</label>
+        <select id="edit-pen-type" class="glass">
+           <option value="cart">Cartridge / Disposable</option>
+           <option value="flower">Flower / Joint</option>
+           <option value="edible">Edible / Pill</option>
+           <option value="other">Other / Tincture</option>
+        </select>
+    </div>
     <div class="form-group mb-16"><label>THC %</label><input type="number" id="edit-pen-thc" class="glass"></div>
     <div class="form-group mb-16"><label>CBD %</label><input type="number" id="edit-pen-cbd" class="glass"></div>
     <div class="form-group mb-16">
-        <label>Custom Terpene %</label>
+        <label>Custom Terpene / Compound %</label>
         <div class="flex-row" style="gap:4px;">
           <input type="text" id="edit-pen-c-name" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
           <input type="number" id="edit-pen-c-val" class="glass" style="flex:1;">
@@ -139,9 +161,21 @@
 <div class="modal-overlay glass" id="setup-modal">
   <div class="modal glass">
     <div class="modal-title" style="color:var(--accent)">Welcome to Tether.</div>
-    <p class="mb-24" style="color:var(--text2)">Let's personalize your experience. Add your name and your first profile (a pen or strain) to start tracking.</p>
+    <p class="mb-24" style="color:var(--text2)">Let's personalize your experience. Add your name and your first profile (a pen, edible, or strain) to start tracking.</p>
     <div class="form-group mb-16"><label>Your Name</label><input type="text" id="setup-user-name" placeholder="e.g. John" class="glass"></div>
-    <div class="form-group mb-16"><label>Strain / Pen Name</label><input type="text" id="setup-pen-name" class="glass"></div>
+    
+    <div class="form-row flex-row gap-8 mb-16">
+        <div class="form-group" style="flex:1;"><label>Profile Name</label><input type="text" id="setup-pen-name" class="glass"></div>
+        <div class="form-group" style="flex:1;">
+            <label>Type</label>
+            <select id="setup-pen-type" class="glass">
+               <option value="cart">Cartridge / Disp</option>
+               <option value="flower">Flower / Joint</option>
+               <option value="edible">Edible / Pill</option>
+               <option value="other">Other / Tincture</option>
+            </select>
+        </div>
+    </div>
     
     <div class="form-row flex-row gap-8 mb-16">
       <div class="form-group" style="flex:1;"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" step="0.1" class="glass"></div>
@@ -164,23 +198,23 @@
 </div>
 
 <div class="sidebar glass" id="sidebar-nav">
-  <div class="logo">TETHER v.&mu;</div>
-  <div class="gamma-banner">THC Consumption Tracker</div>
+  <div class="logo">TETHER v.&nu;</div>
+  <div class="gamma-banner">Trip Safety Tracker</div>
 
   <nav class="nav mt-16">
-    <button class="nav-item active" onclick="switchTab('dashboard')"><span class="nav-icon">◈</span> Dashboard</button>
-    <button class="nav-item" onclick="switchTab('recap')"><span class="nav-icon">≡</span> Session Recap</button>
-    <button class="nav-item" onclick="switchTab('history')"><span class="nav-icon">◷</span> History</button>
+    <button class="nav-item active" onclick="switchTab('dashboard')"><span class="nav-icon">🏠</span> Dashboard</button>
+    <button class="nav-item" onclick="switchTab('recap')"><span class="nav-icon">🎆</span> Session Recap</button>
+    <button class="nav-item" onclick="switchTab('history')"><span class="nav-icon">🕰️</span> History</button>
     <button class="nav-item" onclick="switchTab('stats')"><span class="nav-icon">📊</span> Statistics</button>
-    <button class="nav-item" onclick="switchTab('calendar')"><span class="nav-icon">▦</span> Calendar</button>
+    <button class="nav-item" onclick="switchTab('calendar')"><span class="nav-icon">🗓️</span> Calendar</button>
     <button class="nav-item" onclick="switchTab('clearance')"><span class="nav-icon">🧪</span> Clearance Tests</button>
     <button class="nav-item" onclick="switchTab('equipment')"><span class="nav-icon">🎒</span> Equipment Guide</button>
     <button class="nav-item" onclick="switchTab('pens')"><span class="nav-icon">🌿</span> Profiles & Strains</button>
-    <button class="nav-item" onclick="switchTab('routine')"><span class="nav-icon">✓</span> Pre-Flight Routine</button>
-    <button class="nav-item" onclick="switchTab('todo')"><span class="nav-icon">◎</span> Tasks & Journal</button>
+    <button class="nav-item" onclick="switchTab('routine')"><span class="nav-icon">✔️</span> Pre-Flight Routine</button>
+    <button class="nav-item" onclick="switchTab('todo')"><span class="nav-icon">📖</span> Tasks & Journal</button>
     <button class="nav-item" onclick="switchTab('goals')"><span class="nav-icon">🎯</span> Goals</button>
-    <button class="nav-item" onclick="switchTab('guide')"><span class="nav-icon">📖</span> Rules & Guide</button>
-    <button class="nav-item" onclick="switchTab('settings')"><span class="nav-icon">⚙</span> Settings</button>
+    <button class="nav-item" onclick="switchTab('guide')"><span class="nav-icon">🛟</span> Rules & Guide</button>
+    <button class="nav-item" onclick="switchTab('settings')"><span class="nav-icon">⚙️</span> Settings</button>
   </nav>
 
   <div class="emergency-wrap">
@@ -381,16 +415,18 @@
               <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Saliva / Mouth Swab</div></div>
               <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-saliva-status">--</div>
               <div class="text-sm text-muted" id="cl-saliva-desc"></div>
-              <div class="clearance-progress-bg">
+              <div class="clearance-progress-bg" style="position:relative;">
                   <div class="clearance-progress-fill" id="cl-saliva-bar"></div>
+                  <div id="cl-saliva-markers"></div>
               </div>
           </div>
           <div class="card glass">
               <div class="flex-row mb-16"><div class="card-title" style="margin:0;">Urine Test</div></div>
               <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-urine-status">--</div>
               <div class="text-sm text-muted" id="cl-urine-desc"></div>
-              <div class="clearance-progress-bg">
+              <div class="clearance-progress-bg" style="position:relative;">
                   <div class="clearance-progress-fill" id="cl-urine-bar"></div>
+                  <div id="cl-urine-markers"></div>
               </div>
           </div>
       </div>
@@ -398,34 +434,48 @@
 
   <div class="content" id="tab-equipment">
      <div class="card glass">
-        <div class="card-title">Equipment Guide</div>
-        <p class="text-sm text-muted mb-24">This is a helpful, informational list of items that can enhance or assist your sessions. You do not need to check these off to start a session.</p>
+        <div class="flex-row mb-16" style="justify-content:space-between; align-items:center;">
+           <div class="card-title" style="margin:0;">Equipment Guide</div>
+           <button class="btn btn-ghost btn-sm" onclick="addNewEquipment()">+ Custom Gear</button>
+        </div>
+        <p class="text-sm text-muted mb-24">This is a helpful list of items that can assist your sessions. Click the names to visit your saved purchasing links.</p>
         <div id="equipment-list" class="flex-col gap-16"></div>
      </div>
   </div>
 
   <div class="content" id="tab-pens">
-    <div class="two-col">
-      <div id="pens-left-col">
-        <div class="card glass"><div class="card-title">Profile Database</div><div id="pen-db-list"></div></div>
-        <div class="card glass mt-24"><div class="card-title">Graveyard 🫡🥀</div><div id="graveyard-list" class="flex-col gap-16"></div></div>
-      </div>
-      <div class="card glass" style="align-self: start;">
-          <div class="card-title">Add New Profile</div>
-          <div class="form-group mb-16"><label>Strain / Name</label><input type="text" id="pen-name" class="glass"></div>
-          <div class="form-group mb-16"><label>THC %</label><input type="number" id="pen-thc" class="glass" placeholder="e.g. 75"></div>
-          <div class="form-group mb-16"><label>CBD % (Optional)</label><input type="number" id="pen-cbd" class="glass" placeholder="0"></div>
-          <div class="form-group mb-16">
-             <label>Custom % (Optional)</label>
+    <div class="card glass mb-24" style="align-self: start;">
+        <div class="card-title">Add New Profile</div>
+        <div class="flex-row gap-8 mb-16" style="align-items:flex-end;">
+          <div class="form-group" style="flex:2;"><label>Name / Strain</label><input type="text" id="pen-name" class="glass"></div>
+          <div class="form-group" style="flex:1;">
+              <label>Type</label>
+              <select id="pen-type" class="glass">
+                 <option value="cart">Cartridge / Disposable</option>
+                 <option value="flower">Flower / Joint</option>
+                 <option value="edible">Edible / Pill</option>
+                 <option value="other">Other / Tincture</option>
+              </select>
+          </div>
+          <div class="form-group" style="flex:1;"><label>THC %</label><input type="number" id="pen-thc" class="glass" placeholder="e.g. 75"></div>
+          <div class="form-group" style="flex:1;"><label>CBD % (Opt)</label><input type="number" id="pen-cbd" class="glass" placeholder="0"></div>
+        </div>
+        <div class="flex-row gap-8 mb-16" style="align-items:flex-end;">
+          <div class="form-group" style="flex:2;">
+             <label>Custom % (Opt)</label>
              <div class="flex-row" style="gap:4px;">
                <input type="text" id="pen-c-name" value="CBN" class="glass" style="width:70px; padding:12px 8px; text-align:center;">
                <input type="number" id="pen-c-val" placeholder="0" step="0.1" class="glass" style="flex:1;">
              </div>
           </div>
-          <div class="form-group mb-16"><label>Notes/Terpenes</label><input type="text" id="pen-notes" class="glass" placeholder="e.g. Sativa, citrusy"></div>
-          <button class="btn btn-ghost btn-sm mt-16" onclick="addPen()">+ Add Profile</button>
-      </div>
+          <div class="form-group" style="flex:3;"><label>Notes/Terpenes</label><input type="text" id="pen-notes" class="glass" placeholder="e.g. Sativa, citrusy"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-bottom:2px;" onclick="addPen()">+ Add Profile</button>
+        </div>
     </div>
+    
+    <div id="pens-grid-container" class="mb-24"></div>
+
+    <div class="card glass mt-24"><div class="card-title">Graveyard 🫡🥀</div><div id="graveyard-list" class="flex-col gap-16"></div></div>
   </div>
 
   <div class="content" id="tab-routine">
@@ -499,7 +549,6 @@
     <div class="two-col">
       <div>
         
-        <!-- USER PROFILE & SYSTEM -->
         <div class="settings-card glass" style="border-top: 4px solid var(--text);">
             <div class="card-title" style="color:var(--text);">Profile & System</div>
             <div class="settings-group">
@@ -515,21 +564,52 @@
                 </div>
             </div>
             <div class="settings-group">
+                <div class="settings-label-col"><div class="settings-title">App Font Face</div></div>
+                <div class="settings-control-col">
+                    <select id="s-font" class="glass" onchange="saveSettings(true)">
+                        <option value="'Space Mono', monospace">Space Mono (Default)</option>
+                        <option value="'Roboto', sans-serif">Roboto</option>
+                        <option value="'Inter', sans-serif">Inter</option>
+                        <option value="'Comic Neue', cursive">Comic Neue (Playful)</option>
+                        <option value="sans-serif">System Sans-Serif</option>
+                    </select>
+                </div>
+            </div>
+            <div class="settings-group">
                 <div class="settings-label-col"><div class="settings-title">Theme Interface</div></div>
                 <div class="settings-control-col">
                     <select id="s-theme" class="glass" onchange="saveSettings(true)">
-                        <option value="auto">Auto (Day/Night)</option>
-                        <option value="cyberpunk">Neon Cyberpunk</option>
-                        <option value="nature">Earthy Nature</option>
-                        <option value="sunset">Sunset Orange</option>
-                        <option value="swirly-temple">Swirly Temple (Red/Black)</option>
-                        <option value="galactic-grape">Galactic Grape (Purple)</option>
-                        <option value="lemon-loopz">Lemon Loopz (Maize/Green)</option>
-                        <option value="baja-blazed">Baja Blazed (Blue)</option>
-                        <option value="genderfluid">Genderfluid Swirl</option>
-                        <option value="trans">Trans Swirl</option>
-                        <option value="non-binary">Non-Binary Swirl</option>
-                        <option value="high-contrast">High Contrast Override</option>
+                        <optgroup label="System">
+                          <option value="auto">Auto (Day/Night)</option>
+                          <option value="seasonal">Auto (Holidays & Months)</option>
+                          <option value="random">Random Every Day!</option>
+                          <option value="high-contrast">High Contrast Override</option>
+                        </optgroup>
+                        <optgroup label="Pride Collection">
+                          <option value="pride-rainbow">Pride: Classic Rainbow</option>
+                          <option value="pride-lesbian">Pride: Lesbian</option>
+                          <option value="pride-gay">Pride: MLM / Gay</option>
+                          <option value="pride-bi">Pride: Bisexual</option>
+                          <option value="genderfluid">Pride: Genderfluid</option>
+                          <option value="trans">Pride: Transgender</option>
+                          <option value="non-binary">Pride: Non-Binary</option>
+                        </optgroup>
+                        <optgroup label="Holidays">
+                          <option value="halloween">Spooky Halloween</option>
+                          <option value="thanksgiving">Warm Thanksgiving</option>
+                          <option value="christmas">Festive Christmas</option>
+                          <option value="newyears">New Years Gold</option>
+                          <option value="valentines">Valentine's Love</option>
+                        </optgroup>
+                        <optgroup label="Aesthetics">
+                          <option value="cyberpunk">Neon Cyberpunk</option>
+                          <option value="nature">Earthy Nature</option>
+                          <option value="sunset">Sunset Orange</option>
+                          <option value="swirly-temple">Swirly Temple (Red/Black)</option>
+                          <option value="galactic-grape">Galactic Grape (Purple)</option>
+                          <option value="lemon-loopz">Lemon Loopz (Maize/Green)</option>
+                          <option value="baja-blazed">Baja Blazed (Blue)</option>
+                        </optgroup>
                     </select>
                 </div>
             </div>
@@ -546,7 +626,6 @@
             </div>
         </div>
 
-        <!-- OVERRIDES & QUICK ACTIONS -->
         <div class="settings-card glass" style="border-top: 4px solid var(--amber);">
           <div class="card-title" style="color:var(--amber);">Overrides & Quick Actions</div>
           
@@ -588,7 +667,6 @@
           </div>
         </div>
 
-        <!-- DOSING & TUNING -->
         <div class="settings-card glass" style="border-top: 4px solid var(--green);">
             <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom: 20px;">
                <div class="card-title" style="margin:0; color:var(--green)">Hit Customization</div>
@@ -635,7 +713,6 @@
 
       <div>
           
-        <!-- SMOKING LIMITS -->
         <div class="settings-card glass" style="border-top: 4px solid var(--accent);">
           <div class="card-title" style="color:var(--accent);">Smoking Limits</div>
           
@@ -664,7 +741,6 @@
           </div>
         </div>
 
-        <!-- BREAKS & SCHEDULES -->
         <div class="settings-card glass" style="border-top: 4px solid var(--purple);">
             <div class="card-title" style="color:var(--purple);">Breaks & Protocols</div>
             
@@ -684,21 +760,40 @@
                 <div class="settings-label-col"><div class="settings-title" style="color:var(--purple);">Activate Ween-Off Protocol</div><div class="settings-desc">Slashes limits 1 month prior to Yearly Break.</div></div>
                 <div class="settings-control-col"><label class="toggle purple-toggle"><input type="checkbox" id="s-weenOffEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
             </div>
+            
             <div class="settings-group mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
-                <div class="settings-label-col mb-8"><div class="settings-title">Manual Strict Break Range</div><div class="settings-desc">Blocks dashboard between these dates.</div></div>
+                <div class="settings-label-col mb-8"><div class="settings-title">Auto Monthly Break</div><div class="settings-desc">Take one week off automatically each month.</div></div>
+                <div class="settings-control-col">
+                    <label class="toggle"><input type="checkbox" id="s-autoTBreak" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+                </div>
+            </div>
+            <div class="settings-group pb-16" style="border-bottom:1px solid var(--border2);">
+               <div class="settings-label-col"><div class="settings-desc">Which week of the month?</div></div>
+               <div class="settings-control-col">
+                   <select id="s-autoTBreakWeek" class="glass" onchange="saveSettings(true)">
+                       <option value="1">Week 1 (1st - 7th)</option>
+                       <option value="2">Week 2 (8th - 14th)</option>
+                       <option value="3">Week 3 (15th - 21st)</option>
+                       <option value="4">Week 4 (22nd - End)</option>
+                   </select>
+               </div>
+            </div>
+
+            <div class="settings-group mt-16">
+                <div class="settings-label-col mb-8"><div class="settings-title">Manual Strict Break Range</div><div class="settings-desc">Blocks dashboard. Clears automatically on 1st of month.</div></div>
             </div>
             <div class="flex-row gap-8 pb-16" style="border-bottom:1px solid var(--border2);">
                <input type="date" id="s-breakStart" class="glass" style="flex:1;" onchange="saveSettings(true)">
                <span class="text-muted">to</span>
                <input type="date" id="s-breakEnd" class="glass" style="flex:1;" onchange="saveSettings(true)">
             </div>
+
             <div class="settings-group">
                 <div class="settings-label-col"><div class="settings-title" style="color:var(--red);">Hardcore Absolute Lockout</div><div class="settings-desc">Permanently disables Bypasses and Quick Hits while toggled on.</div></div>
                 <div class="settings-control-col"><label class="toggle red-toggle"><input type="checkbox" id="s-hardcoreLockout" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
             </div>
         </div>
 
-        <!-- EMERGENCY LINKS -->
         <div class="settings-card glass" style="border-top: 4px solid var(--text2);">
             <div class="card-title" style="color:var(--text2);">Emergency Safety Links</div>
             <p class="text-sm text-muted mb-16">Populates your emergency stop screen with safe, comfortable content.</p>
