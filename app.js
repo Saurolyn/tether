@@ -1436,29 +1436,32 @@ function deleteSession(id) {
   ]);
 }
 
-function getLongestSessionStreak() {
+function getLongestBreak() {
   if (!sessions.length) return 0;
 
   const uniqueDays = [...new Set(sessions.map(s => ds(new Date(s.ts))))].sort();
   if (uniqueDays.length === 0) return 0;
 
-  let longest = 1;
-  let current = 1;
+  const sessionDays = new Set(uniqueDays);
+  const firstDay = new Date(uniqueDays[0] + 'T00:00:00');
+  const todayDate = new Date(today() + 'T00:00:00');
 
-  for (let i = 1; i < uniqueDays.length; i++) {
-    const prev = new Date(uniqueDays[i - 1] + 'T00:00:00');
-    const curr = new Date(uniqueDays[i] + 'T00:00:00');
-    const diffDays = Math.round((curr - prev) / 86400000);
+  let longestBreak = 0;
+  let currentBreak = 0;
+  const cursor = new Date(firstDay);
 
-    if (diffDays === 1) {
-      current += 1;
-      longest = Math.max(longest, current);
+  while (cursor <= todayDate) {
+    const dayKey = ds(cursor);
+    if (sessionDays.has(dayKey)) {
+      currentBreak = 0;
     } else {
-      current = 1;
+      currentBreak += 1;
+      longestBreak = Math.max(longestBreak, currentBreak);
     }
+    cursor.setDate(cursor.getDate() + 1);
   }
 
-  return longest;
+  return longestBreak;
 }
 
 function getFavoritePen() {
@@ -1481,38 +1484,60 @@ function renderStats() {
   const totalHits = sessions.reduce((acc, s) => acc + s.hits.length, 0);
   const totalThc = sessions.reduce((acc, s) => acc + sumTHC(s.hits, penById(s.penId), s.method), 0);
   const qhCount = sessions.filter(s=>s.isQuickHit).length;
-  const nonQuick = sessions.filter(s => !s.isQuickHit);
   const feelingValues = sessions.filter(s => typeof s.finalFeeling === 'number').map(s => s.finalFeeling);
   const avgFeel = feelingValues.length ? (feelingValues.reduce((a, b) => a + b, 0) / feelingValues.length) : 0;
-  const longestStreak = getLongestSessionStreak();
+  const longestBreak = getLongestBreak();
   const favoritePen = getFavoritePen();
   const avgHitsPerSess = totalSess ? totalHits / totalSess : 0;
   const avgThcPerSess = totalSess ? totalThc / totalSess : 0;
   const quickHitRate = totalSess ? (qhCount / totalSess) * 100 : 0;
 
-  let daysActive = 1;
-  if (totalSess > 0) {
-      const first = Math.min(...sessions.map(s => s.ts));
-      daysActive = Math.max(1, Math.ceil((Date.now() - first) / 86400000));
-  }
-
   const uniqueDaysLogged = new Set(sessions.map(s => ds(new Date(s.ts)))).size;
   const thisWeekSessions = sessions.filter(s => new Date(s.ts).getTime() >= weekStart() && !s.isQuickHit).length;
 
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat glass"><div class="stat-label">Total Sessions</div><div class="stat-value">${totalSess}</div></div>
-    <div class="stat glass"><div class="stat-label">Total Hits/Doses</div><div class="stat-value">${totalHits}</div></div>
-    <div class="stat glass"><div class="stat-label">Est. Total THC</div><div class="stat-value">${Math.round(totalThc)}<span class="text-sm text-muted">mg</span></div></div>
-    <div class="stat glass"><div class="stat-label">Total Quick Hits</div><div class="stat-value" style="color:var(--amber)">${qhCount}</div></div>
-    <div class="stat glass"><div class="stat-label">Avg Hits / Session</div><div class="stat-value">${avgHitsPerSess.toFixed(1)}</div></div>
-    <div class="stat glass"><div class="stat-label">Avg THC / Session</div><div class="stat-value">${avgThcPerSess.toFixed(1)}<span class="text-sm text-muted">mg</span></div></div>
-    <div class="stat glass"><div class="stat-label">Avg Feel</div><div class="stat-value">${avgFeel.toFixed(1)}<span class="text-sm text-muted">/10</span></div></div>
-    <div class="stat glass"><div class="stat-label">Quick Hit Rate</div><div class="stat-value">${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span></div></div>
-    <div class="stat glass"><div class="stat-label">Longest Streak</div><div class="stat-value">${longestStreak}d</div></div>
-    <div class="stat glass"><div class="stat-label">Most Used Pen</div><div class="stat-value" style="font-size:20px; line-height:1.2;">${favoritePen.name}</div></div>
-    <div class="stat glass"><div class="stat-label">This Week</div><div class="stat-value">${thisWeekSessions}</div></div>
-    <div class="stat glass"><div class="stat-label">Days Logged</div><div class="stat-value">${uniqueDaysLogged}</div></div>
-  `;
+  const statGroups = [
+    {
+      title: 'Session Volume',
+      stats: [
+        { label: 'Total Sessions', value: totalSess },
+        { label: 'Total Hits / Doses', value: totalHits },
+        { label: 'Est. Total THC', value: `${Math.round(totalThc)}<span class="text-sm text-muted">mg</span>` },
+        { label: 'Total Quick Hits', value: `<span style="color:var(--amber)">${qhCount}</span>` },
+      ]
+    },
+    {
+      title: 'Session Quality',
+      stats: [
+        { label: 'Avg Hits / Session', value: avgHitsPerSess.toFixed(1) },
+        { label: 'Avg THC / Session', value: `${avgThcPerSess.toFixed(1)}<span class="text-sm text-muted">mg</span>` },
+        { label: 'Avg Feel', value: `${avgFeel.toFixed(1)}<span class="text-sm text-muted">/10</span>` },
+        { label: 'Quick Hit Rate', value: `${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span>` },
+      ]
+    },
+    {
+      title: 'Patterns & Breaks',
+      stats: [
+        { label: 'Longest Break', value: `${longestBreak}d` },
+        { label: 'Most Used Pen', value: `<span style="font-size:20px; line-height:1.2;">${favoritePen.name}</span>` },
+        { label: 'This Week', value: thisWeekSessions },
+        { label: 'Days Logged', value: uniqueDaysLogged },
+      ]
+    }
+  ];
+
+  document.getElementById('stats-groups').innerHTML = statGroups.map(group => `
+    <div class="stats-category">
+      <div class="stats-category-title">${group.title}</div>
+      <div class="stat-grid">
+        ${group.stats.map(stat => `
+          <div class="stat glass">
+            <div class="stat-label">${stat.label}</div>
+            <div class="stat-value">${stat.value}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
 }
 
 // ── Calendar ────────────────────────────────────────────────────────────────

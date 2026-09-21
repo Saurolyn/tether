@@ -102,6 +102,9 @@ body { background-color: var(--bg); color: var(--text); font-family: var(--app-f
 .settings-control-col { flex-shrink: 0; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stats-category { margin-bottom: 24px; }
+.stats-category:last-child { margin-bottom: 0; }
+.stats-category-title { font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1.8px; color: var(--text3); text-transform: uppercase; margin-bottom: 12px; }
 .stat { background: var(--bg3); border-radius: var(--radius); padding: 18px 20px; border: 0.5px solid var(--border); }
 .stat.ok { border-color: var(--green-border); } .stat.warn { border-color: rgba(212,168,67,0.3); } .stat.danger { border-color: var(--red-border); }
 .stat.black-lock { border-color: rgba(255,255,255,0.05); background: rgba(0,0,0,0.3); opacity: 0.6; }
