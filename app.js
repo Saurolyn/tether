@@ -5,10 +5,15 @@ const WEED_QUOTES = [
   "\"When you smoke the herb, it reveals you to yourself.\" — Bob Marley",
   "\"It really puzzles me to see marijuana connected with narcotics... dope and all that crap. It's a thousand times better than whiskey - it's an assistant - a friend.\" — Louis Armstrong",
   "\"Of course I know how to roll a joint.\" — Martha Stewart",
-  "Fun Fact: George Washington grew hemp at Mount Vernon as one of his primary crops.",
+  "Fun Fact: George Washington, James Madison, and Thomas Jefferson all grew hemp at Mount Vernon as one of their primary crops.",
   "Fun Fact: Cannabis has been used for medicinal purposes for over 3,000 years.",
   "Reminder: Tolerance breaks (T-breaks) help reset your CB1 receptors.",
-  "Reminder: Stay hydrated. Cannabis can temporarily decrease saliva production."
+  "Reminder: Stay hydrated. Cannabis can temporarily decrease saliva production.",
+  "In the early 1970s, students at Stanford and MIT used ARPANET (the early internet) to arrange a marijuana deal, making it the first e-commerce transaction.",
+  "Archaeologists found a 2,700-year-old burial site in China in 2008 with nearly two pounds of well-preserved cannabis.",
+  "NASA sent cannabis plant cells into space on a SpaceX rocket in 2019 to see how microgravity affects plant stress.",
+  "Modern cannabis has much higher THC levels than the weed from the 1960s and 1990s.",
+  "Hemp was planted near the Chernobyl nuclear disaster site in the 1990s to clean toxins from the soil through a process called phytoremediation."
 ];
 const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust", "Skywalker OG", "Granddaddy Purp", "Couch-Lock Supreme", "Green Crack", "Gorilla Glue", "Sour Diesel", "Blue Dream"];
 
@@ -20,9 +25,9 @@ const DEFAULT_SETTINGS = {
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
   autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7,
   daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
-  allowFuckIt: true, fuckItLimitPerMonth: 2, autoTBreakBypassedMonth: -1,
+  allowQuickHit: true, allowFuckIt: true, fuckItLimitPerMonth: 2, fuckItTBreak: 3, autoTBreakBypassedMonth: -1,
   theme: 'auto', font: "'Space Mono', monospace", largeText: false, yearlyBreakMonth: 'none', weenOffEnabled: false,
-  hardcoreLockout: false
+  hardcoreLockout: false, weight: '', bodyFat: ''
 };
 
 const DEFAULT_EQUIPMENT = [
@@ -71,6 +76,8 @@ let routineChecks = ld('t2_routine', DEFAULT_ROUTINE);
 let plannedBreaks = ld('t2_planned_breaks', []); 
 let fuckIts = ld('t2_fuckits', []); 
 let quickHitLockoutUntil = ld('t2_qh_lockout', 0);
+let quickHitTimerUntil = ld('t2_qh_timer', 0);
+let fuckItLockoutUntil = ld('t2_fi_lockout', 0);
 
 let currentMode = 'night'; 
 let activeSession = ld('t2_activeSession', null);
@@ -143,6 +150,27 @@ function getFeelColorObj(val) {
   if (val <= 6) return { bg: 'rgba(255,214,51,0.15)', border: 'rgba(255,214,51,0.5)', text: '#ffd633' };
   if (val <= 8) return { bg: 'rgba(153,230,153,0.15)', border: 'rgba(153,230,153,0.5)', text: '#99e699' };
   return { bg: 'rgba(51,204,51,0.15)', border: 'rgba(51,204,51,0.5)', text: '#33cc33' };
+}
+
+function getQuickHitState() {
+  const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= weekStart() && s.isQuickHit).length;
+  const limit = Math.max(0, parseInt(settings.quickHitsPerWeek, 10) || 3);
+  const remaining = Math.max(0, limit - weekQuickHits);
+  let reason = '';
+
+  if (!settings.allowQuickHit) reason = 'Disabled in Settings';
+  else if (settings.hardcoreLockout) reason = 'Hardcore lockout active';
+  else if (Date.now() < quickHitLockoutUntil) {
+    const daysLeft = Math.max(1, Math.ceil((quickHitLockoutUntil - Date.now()) / 86400000));
+    reason = `Locked for ${daysLeft} more day${daysLeft === 1 ? '' : 's'}`;
+  } else if (remaining <= 0) reason = 'Weekly quick-hit limit reached';
+
+  return {
+    remaining,
+    disabled: !!reason,
+    reason,
+    label: reason ? reason : `${remaining} left`
+  };
 }
 
 // ── Ween-Off Protocol ───────────────────────────────────────────────────────
@@ -318,7 +346,6 @@ function updateGlobalClock() {
     }
   }
 
-  // ── Restored 10-Day Formula Countdown & Decay Tracker ──
   const lastHit = getLastHitInfo();
   let thcInBody = getCurrentTHCInBody();
   let thcIn1Hr = getCurrentTHCInBody(Date.now() + 3600000);
@@ -453,17 +480,25 @@ function completeSetup() {
   const ptype = document.getElementById('setup-pen-type').value;
   const thc = parseFloat(document.getElementById('setup-pen-thc').value);
   const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
+  const terp = parseFloat(document.getElementById('setup-pen-terp').value) || 0;
   const tol = document.getElementById('setup-user-tolerance').value;
+  const weight = document.getElementById('setup-weight').value;
+  const bodyFat = document.getElementById('setup-bodyfat').value;
 
   if(!uname || !pname || !thc) { return showCustomModal('Incomplete', 'Please fill out Name, Profile Name, and THC % to continue.', [{text:'OK'}]); }
   
   username = uname; sv('t2_username', username);
-  settings.tolerance = tol; sv('t2_settings', settings);
-  pens.push({ id: 'p'+Date.now(), name: pname, type: ptype, thc, cbd, customCName: 'CBN', customCVal: 0, notes: '' });
+  settings.tolerance = tol; 
+  if(weight) settings.weight = weight;
+  if(bodyFat) settings.bodyFat = bodyFat;
+  sv('t2_settings', settings);
+  
+  pens.push({ id: 'p'+Date.now(), name: pname, type: ptype, thc, cbd, customCName: 'Terpenes', customCVal: terp, notes: '' });
   sv('t2_pens', pens);
   
   document.getElementById('setup-modal').classList.remove('open');
   renderPens(); renderDashboard(); renderSettings();
+  applyTheme();
   setTimeout(() => { openGuideModal(); }, 500);
 }
 
@@ -484,6 +519,10 @@ function getBlockingReasons(dStr) {
    const dObj = new Date(dStr + "T12:00:00");
 
    if (plannedBreaks.includes(dStr)) reasons.push("Manually Planned No-Smoke Day");
+   
+   if (fuckItLockoutUntil > dayTs) {
+       reasons.push(`Mandatory Break Active (Bypass Used)`);
+   }
 
    if (settings.breakStart && settings.breakEnd) {
        const bs = new Date(settings.breakStart + "T00:00:00").getTime();
@@ -642,7 +681,7 @@ function startLockCountdown(targetTs) {
 
 function promptFuckIt() {
   if (settings.hardcoreLockout) return showToast("Hardcore Lockout is active. Overrides disabled.", false);
-  showCustomModal("Override Lock", "Are you sure you want to bypass your lock? This will use a 'Fuck It' pass to start a full Session.", [
+  showCustomModal("Override Lock", `Are you sure you want to bypass your lock? This will use a 'Fuck It' pass to start a full Session, and initiate a ${settings.fuckItTBreak || 3} day strict lock afterwards.`, [
     {text: "Cancel"},
     {text: "Yes, Override", cls: "btn-primary", onClick: () => {
        showCustomModal("Final Warning", "Bypassing breaks entirely resets your T-break period and flags your calendar. Continue?", [
@@ -660,6 +699,7 @@ function executeFuckIt(dStr = today()) {
   settings.breakStart = null; settings.breakEnd = null;
   plannedBreaks = plannedBreaks.filter(d => d !== dStr);
   settings.autoTBreakBypassedMonth = new Date().getMonth();
+  fuckItLockoutUntil = 0; sv('t2_fi_lockout', 0);
   
   sv('t2_settings', settings); sv('t2_planned_breaks', plannedBreaks);
   showToast("Lock bypassed."); renderDashboard(); renderCalendar();
@@ -678,17 +718,23 @@ function renderDashboard() {
   const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= ws && s.isQuickHit).length;
 
   const activeLimits = getActiveLimits();
-  const weekCls = weekSess.length >= activeLimits.sessPerWeek ? 'danger' : 'ok';
-  const remSess = Math.max(0, activeLimits.sessPerWeek - weekSess.length);
+  let remSess = Math.max(0, activeLimits.sessPerWeek - weekSess.length);
   const qhRem = Math.max(0, (parseInt(settings.quickHitsPerWeek)||3) - weekQuickHits);
 
-  let limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span></div>`;
+  let sessPct = activeLimits.sessPerWeek > 0 ? (remSess / activeLimits.sessPerWeek) : 0;
+  let weekCls = '';
+  if (remSess === 0) weekCls = 'black-lock';
+  else if (sessPct > 0.5) weekCls = 'ok';
+  else if (sessPct >= 0.25) weekCls = 'warn';
+  else weekCls = 'danger';
+
+  let limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted" style="text-decoration:none;"> left</span></div>`;
   if (isWeenOffActive()) {
-      limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span> <span style="font-size:12px; color:var(--purple); display:block; line-height:1;">(Ween-off halved)</span></div>`;
+      limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span> <span style="font-size:12px; color:var(--purple); display:block; line-height:1; text-decoration:none;">(Ween-off halved)</span></div>`;
   }
 
   document.getElementById('dash-stats').innerHTML = `
-    <div class="stat glass ${weekCls}">
+    <div class="stat glass ${weekCls === 'black-lock' ? 'black-lock' : weekCls}">
       <div class="stat-label">Remaining this week</div>
       ${limitsStr}
     </div>
@@ -723,7 +769,7 @@ function renderDashboard() {
       let msg = "";
 
       if (reasons.length > 0) {
-         title = reasons.some(r=>r.includes('Yearly') || r.includes('Auto')) ? "T-Break Active" : "Enjoy your break.";
+         title = reasons.some(r=>r.includes('Yearly') || r.includes('Auto') || r.includes('Bypass')) ? "T-Break Active" : "Enjoy your break.";
          msg = "Dashboard features locked. Next session available 6AM that day. " + reasons.join(", ");
       } else if (dailyStatus.locked) {
          msg = dailyStatus.msg;
@@ -740,33 +786,30 @@ function renderDashboard() {
       }).length;
       const fiRem = Math.max(0, settings.fuckItLimitPerMonth - usedThisMonth);
 
-      let qhDisabled = qhRem <= 0 || Date.now() < quickHitLockoutUntil || settings.hardcoreLockout;
-      let fiDisabled = fiRem <= 0 || settings.hardcoreLockout;
-      let qhSubText = `${qhRem} remaining this week`;
-      
-      if (settings.hardcoreLockout) qhSubText = "HARDCORE LOCKOUT ACTIVE";
-      else if (Date.now() < quickHitLockoutUntil) qhSubText = `Locked for ${Math.ceil((quickHitLockoutUntil - Date.now())/86400000)} days`;
+      const qhState = getQuickHitState();
+      let qhDisabled = qhState.disabled;
+      let fiDisabled = fiRem <= 0 || settings.hardcoreLockout || !settings.allowFuckIt;
+      let qhSubText = qhState.reason || `${qhState.remaining} remaining this week`;
 
       let lockActionsHtml = '<div class="stat-grid" style="margin-top:32px;">';
+      
       lockActionsHtml += `
           <div class="lock-action-card ${qhDisabled ? 'disabled' : ''}" onclick="${!qhDisabled ? 'openQuickHitModal()' : ''}" style="border-color: var(--accent-border);">
               <div class="lock-action-icon">⚡</div>
               <div class="lock-action-title" style="color: var(--accent);">Quick Hit</div>
               <div class="lock-action-qty" style="color: var(--accent);">${qhSubText}</div>
-              <div class="lock-action-desc">Take a single microdose. Bypasses lock, but initiates a ${settings.quickHitTBreak} day penalty.</div>
+              <div class="lock-action-desc">Take a single microdose. Initiates a ${settings.quickHitTBreak} day penalty.</div>
           </div>
       `;
 
-      if (settings.allowFuckIt) {
-          lockActionsHtml += `
-              <div class="lock-action-card ${fiDisabled ? 'disabled' : ''}" onclick="${!fiDisabled ? 'promptFuckIt()' : ''}" style="border-color: rgba(224,94,94,0.3);">
-                  <div class="lock-action-icon">⚠️</div>
-                  <div class="lock-action-title" style="color: var(--amber);">"Fuck It" Pass</div>
-                  <div class="lock-action-qty" style="color: var(--red);">${settings.hardcoreLockout ? "DISABLED" : fiRem + " remaining this month"}</div>
-                  <div class="lock-action-desc">Completely override the lock and start a full session. Resets T-Break progress entirely.</div>
-              </div>
-          `;
-      }
+      lockActionsHtml += `
+          <div class="lock-action-card ${fiDisabled ? 'disabled' : ''}" onclick="${!fiDisabled ? 'promptFuckIt()' : ''}" style="border-color: rgba(224,94,94,0.3);">
+              <div class="lock-action-icon">⚠️</div>
+              <div class="lock-action-title" style="color: var(--amber);">"Fuck It" Pass</div>
+              <div class="lock-action-qty" style="color: var(--red);">${!settings.allowFuckIt ? "Disabled in Settings" : (settings.hardcoreLockout ? "DISABLED" : fiRem + " remaining this month")}</div>
+              <div class="lock-action-desc">Completely override the lock and start a full session. Initiates a ${settings.fuckItTBreak || 3} day penalty.</div>
+          </div>
+      `;
 
       lockActionsHtml += '</div>';
       document.getElementById('lock-overrides-container').innerHTML = lockActionsHtml;
@@ -835,14 +878,19 @@ function renderDashboard() {
       </div>
     `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
 
-    const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight());
+    const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight()) || remSess === 0;
+    
     document.getElementById('btn-start-session').disabled = reqsUnmet;
     
     const btnQhIdle = document.getElementById('btn-quick-hit-idle');
     if (btnQhIdle) {
-        let qhDisabled = qhRem <= 0 || Date.now() < quickHitLockoutUntil || settings.hardcoreLockout;
-        btnQhIdle.disabled = qhDisabled;
-        btnQhIdle.innerText = `Quick Hit ⚡ (${qhRem} left)`;
+        const qhState = getQuickHitState();
+        btnQhIdle.disabled = qhState.disabled;
+        btnQhIdle.style.opacity = qhState.disabled ? '0.55' : '1';
+        btnQhIdle.style.cursor = qhState.disabled ? 'not-allowed' : 'pointer';
+        btnQhIdle.style.display = 'block';
+        btnQhIdle.title = qhState.reason || 'Quick Hit available';
+        btnQhIdle.innerText = `Quick Hit ⚡ (${qhState.label})`;
     }
   }
 
@@ -851,7 +899,7 @@ function renderDashboard() {
   if(!recent.length) rEl.innerHTML = '<div class="empty">No history yet.</div>';
   else {
     rEl.innerHTML = recent.map(s => {
-      const p = penById(s.penId) || {name: 'Deleted Profile'};
+      const p = penById(s.penId) || {name: 'Deleted Profile', type: 'other'};
       const hStr = s.hits.length === 1 ? 'dose' : 'doses';
       const isQuick = s.isQuickHit ? '⚡' : '';
       return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
@@ -899,10 +947,9 @@ function updateConfigMethodUI() {
 }
 
 function openQuickHitModal() {
-    if (settings.hardcoreLockout) return showToast("Hardcore Lockout active. Feature disabled.");
-    if (Date.now() < quickHitLockoutUntil) {
-        let diff = Math.ceil((quickHitLockoutUntil - Date.now()) / 86400000);
-        return showCustomModal("Lockout Active", `Quick hits are locked for ${diff} more days to enforce T-Break padding.`, [{text:"OK"}]);
+    const qhState = getQuickHitState();
+    if (qhState.disabled) {
+        return showCustomModal("Quick Hit Unavailable", `Quick hits are currently unavailable: ${qhState.reason}.`, [{text:"OK"}]);
     }
     const { reasons } = getBlockingReasons(today());
     const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
@@ -992,16 +1039,11 @@ function startDrawSequence() {
 }
 
 function executeHitLogic(isNew, penId, feeling, task, method) {
-    if (isNew && pendingConfigType === 'quick') {
-        quickHitLockoutUntil = Date.now() + (settings.quickHitTBreak * 86400000);
-        sv('t2_qh_lockout', quickHitLockoutUntil);
-    }
-
     let doseSize = document.getElementById('config-dose').value;
     let drawSecs = doseSize === 'low' ? settings.doseLow : (doseSize === 'high' ? settings.doseHigh : (doseSize === 'diablo' ? settings.doseDiablo : settings.doseMed));
     if (isWeenOffActive()) drawSecs = Math.max(1, Math.floor(drawSecs * 0.75));
 
-    if (method === 'vape' && pendingConfigType !== 'quick') {
+    if (method === 'vape') {
         executeVapeSequence(isNew, penId, doseSize, feeling, task, method, drawSecs);
     } else {
         let hitObj = { time: Date.now(), dose: doseSize, feelingPreHit: feeling, drawSeconds: method==='joint'?drawSecs:0, penId: penId };
@@ -1011,7 +1053,7 @@ function executeHitLogic(isNew, penId, feeling, task, method) {
             hitObj.drawSeconds = drawSecs; 
         }
 
-        if (isNew) {
+        if (isNew && pendingConfigType !== 'quick') {
             activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
         }
         finishHitDirect(hitObj);
@@ -1019,7 +1061,7 @@ function executeHitLogic(isNew, penId, feeling, task, method) {
 }
 
 function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs) {
-  if (isNew) activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
+  if (isNew && pendingConfigType !== 'quick') activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
   
   const modal = document.getElementById('draw-modal');
   const circle = document.getElementById('draw-circle');
@@ -1070,20 +1112,38 @@ function finishHitDirect(hitObj) {
     if (pendingConfigType === 'quick') {
         showCustomModal("Quick Hit Reflection", `
           <div class="form-group mb-16 text-left">
+            <label>How are you feeling? (1-10)</label>
+            <div id="qh-feel-grid" class="feel-grid mb-12"></div>
+            <input type="hidden" id="qh-feel-val" value="5">
+          </div>
+          <div class="form-group mb-16 text-left">
             <label>Optional Note</label>
             <textarea id="qh-note" class="glass" rows="3" placeholder="Why did you take this quick hit?"></textarea>
           </div>
         `, [
+          {text: "Cancel Hit", onClick: () => { activeSession = null; renderDashboard(); }},
           {text: "Save Hit", cls: "btn-primary", onClick: () => {
               const note = document.getElementById('qh-note').value.trim();
+              const finalFeeling = parseInt(document.getElementById('qh-feel-val').value || '5', 10);
               sessions.push({
                   id: 'qh_' + Date.now(), ts: Date.now(), endTime: Date.now(), penId: hitObj.penId || (pens[0] ? pens[0].id : null), mode: currentMode,
-                  method: 'vape', hits: [hitObj], isQuickHit: true, notes: "⚡ Quick Hit\n" + note
+                  method: 'vape', hits: [hitObj], isQuickHit: true, notes: "⚡ Quick Hit\n" + note, finalFeeling
               });
-              sv('t2_sessions', sessions); showToast("Quick hit logged! 💧", true);
+              sv('t2_sessions', sessions);
+              
+              quickHitLockoutUntil = Date.now() + (settings.quickHitTBreak * 86400000);
+              sv('t2_qh_lockout', quickHitLockoutUntil);
+              quickHitTimerUntil = Date.now() + ((getActiveLimits().wait || 15) * 60000);
+              sv('t2_qh_timer', quickHitTimerUntil);
+              
+              activeSession = null;
+              sv('t2_activeSession', null);
+              showToast("Quick hit logged! 💧", true);
               renderDashboard(); renderCalendar(); renderStats();
           }}
         ]);
+        generateFeelGrid('qh-feel-grid');
+        selectFeel(5, 'qh-feel-grid');
         return;
     }
 
@@ -1099,6 +1159,12 @@ function finishHitDirect(hitObj) {
     sv('t2_activeSession', activeSession);
     const notesEl = document.getElementById('active-notes');
     if(notesEl) { notesEl.value = activeSession.notes; notesEl.scrollTop = notesEl.scrollHeight; }
+
+    const effectEl = document.getElementById('active-effect-text');
+    if (effectEl) {
+        let eff = hitObj.dose === 'low' ? 'mild' : (hitObj.dose === 'medium' ? 'moderate' : 'heavy');
+        effectEl.innerText = `You should be feeling a ${eff} effect.`;
+    }
 
     renderDashboard();
     startWaitTimerUI();
@@ -1194,6 +1260,14 @@ function saveRecap() {
   activeSession.notes = document.getElementById('recap-notes').value.trim();
   activeSession.taskCompleted = document.getElementById('recap-task-done').checked;
   
+  if (fuckIts.includes(today())) {
+      let tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(6, 0, 0, 0);
+      fuckItLockoutUntil = tomorrow.getTime() + ((settings.fuckItTBreak || 3) * 86400000);
+      sv('t2_fi_lockout', fuckItLockoutUntil);
+  }
+
   sessions.push(activeSession); sv('t2_sessions', sessions);
   activeSession = null; sv('t2_activeSession', null);
   routineChecks.forEach(c=>c.done=false); 
@@ -1338,9 +1412,68 @@ function deleteSession(id) {
   showCustomModal("Delete Record", "Permanently remove this session?", [
     {text: "Cancel"},
     {text: "Delete", cls: "btn-danger-solid", onClick: () => {
-       sessions = sessions.filter(s=>s.id !== id); sv('t2_sessions', sessions); renderHistory(); renderDashboard(); renderCalendar(); renderStats();
+       const deleted = sessions.find(s => s.id === id);
+       sessions = sessions.filter(s=>s.id !== id); sv('t2_sessions', sessions);
+
+       if (deleted && deleted.isQuickHit) {
+         const latestQuickHit = sessions.filter(s => s.isQuickHit).reduce((latest, s) => {
+           const ts = new Date(s.ts).getTime();
+           return ts > latest ? ts : latest;
+         }, 0);
+         quickHitTimerUntil = latestQuickHit > 0 ? latestQuickHit + ((getActiveLimits().wait || 15) * 60000) : 0;
+         sv('t2_qh_timer', quickHitTimerUntil);
+
+         const lockWindowStart = Date.now() - ((parseInt(settings.quickHitTBreak, 10) || 1) * 86400000);
+         const stillHasRecentQuickHit = sessions.some(s => s.isQuickHit && new Date(s.ts).getTime() >= lockWindowStart);
+         if (!stillHasRecentQuickHit) {
+           quickHitLockoutUntil = 0;
+           sv('t2_qh_lockout', quickHitLockoutUntil);
+         }
+       }
+
+       renderHistory(); renderDashboard(); renderCalendar(); renderStats();
     }}
   ]);
+}
+
+function getLongestSessionStreak() {
+  if (!sessions.length) return 0;
+
+  const uniqueDays = [...new Set(sessions.map(s => ds(new Date(s.ts))))].sort();
+  if (uniqueDays.length === 0) return 0;
+
+  let longest = 1;
+  let current = 1;
+
+  for (let i = 1; i < uniqueDays.length; i++) {
+    const prev = new Date(uniqueDays[i - 1] + 'T00:00:00');
+    const curr = new Date(uniqueDays[i] + 'T00:00:00');
+    const diffDays = Math.round((curr - prev) / 86400000);
+
+    if (diffDays === 1) {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else {
+      current = 1;
+    }
+  }
+
+  return longest;
+}
+
+function getFavoritePen() {
+  if (!sessions.length) return { name: 'N/A', count: 0 };
+
+  const counts = sessions.reduce((acc, s) => {
+    if (!s.penId) return acc;
+    acc[s.penId] = (acc[s.penId] || 0) + 1;
+    return acc;
+  }, {});
+
+  const bestEntry = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (!bestEntry) return { name: 'N/A', count: 0 };
+
+  return { name: penById(bestEntry[0])?.name || 'Unknown', count: bestEntry[1] };
 }
 
 function renderStats() {
@@ -1348,20 +1481,37 @@ function renderStats() {
   const totalHits = sessions.reduce((acc, s) => acc + s.hits.length, 0);
   const totalThc = sessions.reduce((acc, s) => acc + sumTHC(s.hits, penById(s.penId), s.method), 0);
   const qhCount = sessions.filter(s=>s.isQuickHit).length;
-  
+  const nonQuick = sessions.filter(s => !s.isQuickHit);
+  const feelingValues = sessions.filter(s => typeof s.finalFeeling === 'number').map(s => s.finalFeeling);
+  const avgFeel = feelingValues.length ? (feelingValues.reduce((a, b) => a + b, 0) / feelingValues.length) : 0;
+  const longestStreak = getLongestSessionStreak();
+  const favoritePen = getFavoritePen();
+  const avgHitsPerSess = totalSess ? totalHits / totalSess : 0;
+  const avgThcPerSess = totalSess ? totalThc / totalSess : 0;
+  const quickHitRate = totalSess ? (qhCount / totalSess) * 100 : 0;
+
   let daysActive = 1;
   if (totalSess > 0) {
       const first = Math.min(...sessions.map(s => s.ts));
       daysActive = Math.max(1, Math.ceil((Date.now() - first) / 86400000));
   }
 
+  const uniqueDaysLogged = new Set(sessions.map(s => ds(new Date(s.ts)))).size;
+  const thisWeekSessions = sessions.filter(s => new Date(s.ts).getTime() >= weekStart() && !s.isQuickHit).length;
+
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat glass"><div class="stat-label">Total Sessions</div><div class="stat-value">${totalSess}</div></div>
     <div class="stat glass"><div class="stat-label">Total Hits/Doses</div><div class="stat-value">${totalHits}</div></div>
-    <div class="stat glass"><div class="stat-label">Total Quick Hits</div><div class="stat-value" style="color:var(--amber)">${qhCount}</div></div>
     <div class="stat glass"><div class="stat-label">Est. Total THC</div><div class="stat-value">${Math.round(totalThc)}<span class="text-sm text-muted">mg</span></div></div>
-    <div class="stat glass"><div class="stat-label">Avg Sess / Week</div><div class="stat-value">${((totalSess / daysActive)*7).toFixed(1)}</div></div>
-    <div class="stat glass"><div class="stat-label">Days Logged</div><div class="stat-value">${daysActive}</div></div>
+    <div class="stat glass"><div class="stat-label">Total Quick Hits</div><div class="stat-value" style="color:var(--amber)">${qhCount}</div></div>
+    <div class="stat glass"><div class="stat-label">Avg Hits / Session</div><div class="stat-value">${avgHitsPerSess.toFixed(1)}</div></div>
+    <div class="stat glass"><div class="stat-label">Avg THC / Session</div><div class="stat-value">${avgThcPerSess.toFixed(1)}<span class="text-sm text-muted">mg</span></div></div>
+    <div class="stat glass"><div class="stat-label">Avg Feel</div><div class="stat-value">${avgFeel.toFixed(1)}<span class="text-sm text-muted">/10</span></div></div>
+    <div class="stat glass"><div class="stat-label">Quick Hit Rate</div><div class="stat-value">${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span></div></div>
+    <div class="stat glass"><div class="stat-label">Longest Streak</div><div class="stat-value">${longestStreak}d</div></div>
+    <div class="stat glass"><div class="stat-label">Most Used Pen</div><div class="stat-value" style="font-size:20px; line-height:1.2;">${favoritePen.name}</div></div>
+    <div class="stat glass"><div class="stat-label">This Week</div><div class="stat-value">${thisWeekSessions}</div></div>
+    <div class="stat glass"><div class="stat-label">Days Logged</div><div class="stat-value">${uniqueDaysLogged}</div></div>
   `;
 }
 
@@ -1371,9 +1521,11 @@ let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 function renderCalendar() {
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cal-month-lbl').textContent=months[calMonth]+' '+calYear;
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const offset=firstDay===0?6:firstDay-1;
-  const daysInMo=new Date(calYear,calMonth+1,0).getDate();
+  
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const offset = (firstDay + 6) % 7; 
+  const daysInMo = new Date(calYear, calMonth + 1, 0).getDate();
+  
   const todayStr=today();
   const dayMap={};
   
@@ -1392,6 +1544,7 @@ function renderCalendar() {
     const dStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const dm=dayMap[dStr]||{sList:[]};
     const isT=dStr===todayStr, isF=dStr>todayStr;
+    const weekdayLabel = new Date(`${dStr}T12:00:00`).toLocaleDateString([], { weekday: 'short' });
     let bg = 'var(--bg3)', border = 'transparent';
     let extraCls = dStr === selectedCalDate ? 'selected-cal-day' : '';
     
@@ -1414,7 +1567,9 @@ function renderCalendar() {
 
     cells+=`
     <div class="cal-cell" style="aspect-ratio:1;">
-      <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')">${d}</div>
+      <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')">
+        <div class="cal-date-num">${d}</div>
+      </div>
       ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
   }
@@ -1506,7 +1661,11 @@ function renderClearance() {
     if (settings.tolerance === 'low') M = 0.6;
     if (settings.tolerance === 'high') M = 1.6;
     const penTHC = pen ? (pen.thc || 75) : 75;
-    M = Math.max(0.4, Math.min(2.0, M + ((penTHC - 50) / 100 * 0.3))); 
+    
+    let weight = parseFloat(settings.weight) || 150;
+    let bodyFat = parseFloat(settings.bodyFat) || 20;
+    
+    M = Math.max(0.4, Math.min(3.0, M + ((penTHC - 50) / 100 * 0.3) + ((weight - 150) / 500) + ((bodyFat - 20) / 100))); 
 
     const sMed = 48 * Math.min(1.5, M); 
     const uMed2 = 60 * Math.min(1.6, M); 
@@ -1519,9 +1678,11 @@ function renderClearance() {
     
     let sPct = Math.min(100, (hoursSince / sMed) * 100);
     salivaBar.style.width = `${sPct}%`; salivaBar.style.background = sColor;
-    
-    let sMedMarker = Math.min(100, ((24*M) / sMed) * 100);
-    salivaMarkers.innerHTML = `<div class="clearance-marker" style="left: ${sMedMarker}%">▼ Med</div><div class="clearance-marker" style="left: 100%">▼ Pass</div>`;
+
+    let salivaLevel = 'Med';
+    if (sStatus === 'CLEAR') salivaLevel = 'Pass';
+    else if (sStatus === 'HIGH RISK') salivaLevel = 'High';
+    salivaMarkers.innerHTML = `<span class="clearance-marker" style="color:${sColor};">▼ ${salivaLevel}</span>`;
     document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. time to pass: ${(sMed - hoursSince).toFixed(1)} hrs`;
 
     let uStatus = '', uColor = '';
@@ -1533,13 +1694,11 @@ function renderClearance() {
     
     let uPct = Math.min(100, (hoursSince / uMed2) * 100);
     urineBar.style.width = `${uPct}%`; urineBar.style.background = uColor;
-    
-    let uHighMarker = Math.min(100, ((12*M) / uMed2) * 100);
-    let uMedMarker2 = Math.min(100, ((36*M) / uMed2) * 100);
-    urineMarkers.innerHTML = `
-      <div class="clearance-marker" style="left: ${uHighMarker}%">▼ High</div>
-      <div class="clearance-marker" style="left: ${uMedMarker2}%">▼ Med</div>
-      <div class="clearance-marker" style="left: 100%">▼ Pass</div>`;
+
+    let urineLevel = 'Med';
+    if (uStatus === 'CLEAR') urineLevel = 'Pass';
+    else if (uStatus.includes('HIGH RISK')) urineLevel = 'High';
+    urineMarkers.innerHTML = `<span class="clearance-marker" style="color:${uColor};">▼ ${urineLevel}</span>`;
     document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. time to pass: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
 }
 
@@ -1548,20 +1707,15 @@ function switchTab(name) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
   
-  const tabs = ['dashboard', 'recap', 'history', 'stats', 'calendar', 'clearance', 'equipment', 'pens', 'routine', 'todo', 'goals', 'guide', 'settings'];
+  const activeBtn = document.querySelector(`.nav-item[onclick*="switchTab('${name}')"]`);
+  const targetContent = document.getElementById('tab-' + name);
   
-  const idx = tabs.indexOf(name);
-  if (idx >= 0) { 
-      const targetBtn = document.querySelectorAll('.nav-item')[idx];
-      const targetContent = document.getElementById('tab-' + name);
-      
-      if (targetBtn) targetBtn.classList.add('active'); 
-      if (targetContent) targetContent.classList.add('active'); 
-      
-      let niceName = name.toUpperCase().replace('-', ' ');
-      if (name === 'todo') niceName = 'TASKS & JOURNAL';
-      document.getElementById('topbar-title').innerText = niceName;
-  }
+  if (activeBtn) activeBtn.classList.add('active'); 
+  if (targetContent) targetContent.classList.add('active'); 
+  
+  let niceName = name.toUpperCase().replace('-', ' ');
+  if (name === 'binder') niceName = 'THE BINDER';
+  document.getElementById('topbar-title').innerText = niceName;
   
   const sidebarEl = document.getElementById('sidebar-nav');
   const overlayEl = document.getElementById('mobile-overlay');
@@ -1577,8 +1731,7 @@ function switchTab(name) {
   if (name === 'equipment') renderEquipment();
   if (name === 'pens') renderPens();
   if (name === 'routine') renderRoutine();
-  if (name === 'todo') { renderTodo(); renderSongs(); }
-  if (name === 'goals') renderGoals();
+  if (name === 'binder') { renderTodo(); renderGoals(); renderSongs(); }
   if (name === 'guide') renderRules();
   if (name === 'settings') renderSettings();
 }
@@ -1669,8 +1822,25 @@ function addHabit() { const val = document.getElementById('new-habit-input').val
 function removeHabit(id) { routineChecks = routineChecks.filter(x => x.id !== id); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 function resetRoutine() { routineChecks.forEach(h => h.done = false); sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); showToast("Checks reset"); }
 
-function renderSongs() { document.getElementById('song-list').innerHTML = songs.map(s => `<div class="check-row" onclick="removeSong('${s.id}')"><div class="check-box" style="border-radius:50%">🎵</div><div class="check-text">${s.text}</div></div>`).join('') || '<div class="empty text-sm">No songs queued.</div>'; }
-function addSong() { const val = document.getElementById('new-song-input').value.trim(); if(val) { songs.push({ id:'s'+Date.now(), text: val }); sv('t2_songs', songs); document.getElementById('new-song-input').value = ''; renderSongs(); } }
+function renderSongs() { 
+    document.getElementById('song-list').innerHTML = songs.map(s => `
+        <div class="check-row" onclick="removeSong('${s.id}')">
+            <div class="check-box" style="border-radius:50%">🎵</div>
+            <div class="check-text"><strong>${s.artist || 'Unknown Artist'}</strong> - ${s.text}</div>
+        </div>
+    `).join('') || '<div class="empty text-sm">No songs queued.</div>'; 
+}
+function addSong() { 
+    const artist = document.getElementById('new-song-artist').value.trim();
+    const val = document.getElementById('new-song-input').value.trim(); 
+    if(val) { 
+        songs.push({ id:'s'+Date.now(), text: val, artist: artist }); 
+        sv('t2_songs', songs); 
+        document.getElementById('new-song-input').value = ''; 
+        document.getElementById('new-song-artist').value = ''; 
+        renderSongs(); 
+    } 
+}
 function removeSong(id) { songs = songs.filter(x => x.id !== id); sv('t2_songs', songs); renderSongs(); }
 
 function renderGoals() { document.getElementById('goals-list').innerHTML = goals.map(g => `<div class="check-row" onclick="toggleGoal('${g.id}')"><div class="check-box ${g.done ? 'checked' : ''}">${g.done ? '✓' : ''}</div><div class="check-text" style="${g.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${g.text}</div><button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeGoal('${g.id}')">Del</button></div>`).join('') || '<div class="empty text-sm">No goals set yet. Add some milestones.</div>'; }
@@ -1852,6 +2022,8 @@ function renderSettings() {
   setVal('s-tolerance', settings.tolerance || 'medium');
   setVal('s-theme', settings.theme || 'auto');
   setVal('s-font', settings.font || "'Space Mono', monospace");
+  setVal('s-weight', settings.weight || '');
+  setVal('s-bodyfat', settings.bodyFat || '');
 
   setVal('s-maxHits', settings.maxHits);
   setVal('s-sessPerWeek', settings.sessPerWeek);
@@ -1869,7 +2041,7 @@ function renderSettings() {
   setCheck('s-diabloEnabled', !!settings.diabloEnabled);
   document.getElementById('diablo-row').style.display = settings.diabloEnabled ? 'flex' : 'none';
 
-  const isAuto = !!settings.autoTuneDosing;
+const isAuto = !!settings.autoTuneDosing;
   ['s-doseLow', 's-doseMed', 's-doseHigh'].forEach(id => {
       const el = document.getElementById(id);
       if(el) { el.disabled = isAuto; el.style.opacity = isAuto ? '0.5' : '1'; }
@@ -1890,6 +2062,7 @@ function renderSettings() {
   setVal('s-breakStart', settings.breakStart || '');
   setVal('s-breakEnd', settings.breakEnd || '');
   setCheck('s-hardcoreLockout', !!settings.hardcoreLockout);
+  setCheck('s-allowQuickHit', !!settings.allowQuickHit);
 
   setCheck('s-allowFuckIt', !!settings.allowFuckIt);
   setVal('s-fuckItLimitPerMonth', settings.fuckItLimitPerMonth);
@@ -1940,6 +2113,7 @@ function saveSettings(silent = false) {
   settings.breakStart = getVal('s-breakStart');
   settings.breakEnd = getVal('s-breakEnd');
   settings.hardcoreLockout = getCheck('s-hardcoreLockout');
+  settings.allowQuickHit = getCheck('s-allowQuickHit');
 
   sv('t2_settings', settings);
   applyTheme();
