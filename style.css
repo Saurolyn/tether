@@ -195,9 +195,14 @@ input, select, textarea { background: var(--bg3); border: 0.5px solid var(--bord
 .cal-cell-inner { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; position: relative; z-index: 1; }
 .cal-day-name { font-size: 8px; line-height: 1; letter-spacing: 0.08em; font-weight: 700; color: var(--text3); text-transform: uppercase; }
 .cal-date-num { font-size: 12px; line-height: 1; }
-.cal-activity { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
-.cal-activity-tag { padding: 2px 3px; border-radius: 3px; background: rgba(74,159,196,0.25); color: #8ed8f4; font: 700 7px/1 var(--app-font); }
-.cal-activity-tag.quick-hit { background: rgba(162,117,255,0.28); color: #d2bbff; }
+.cal-activity { display: flex; flex-direction: column; gap: 2px; width: 90%; max-width: 90%; }
+.cal-activity-row { display: grid; grid-template-columns: 22px minmax(0,1fr); align-items: center; gap: 2px; font: 700 6px/1 var(--app-font); }
+.cal-activity-row > span:first-child { text-align: left; }
+.cal-activity-row.day { color: #8ed8f4; }
+.cal-activity-row.night { color: #f1cb69; }
+.cal-activity-row.quick-hit { color: #d2bbff; }
+.cal-activity-track { display: block; height: 5px; overflow: hidden; border: 1px solid currentColor; border-radius: 2px; background: var(--bg4); }
+.cal-activity-fill { display: block; height: 100%; background: currentColor; }
 .calendar-key { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-top: 16px; }
 .calendar-key-title { color: var(--text3); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
 .calendar-key-items { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 14px; max-width: 100%; }
