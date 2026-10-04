@@ -187,6 +187,10 @@ input, select, textarea { background: var(--bg3); border: 0.5px solid var(--bord
 .clearance-marker { display: inline-flex; align-items: center; font-size: 10px; line-height: 1; font-weight: 700; letter-spacing: 0.08em; color: var(--text2); }
 
 .cal-badge { position: absolute; top: 2px; right: 2px; font-size: 10px; line-height: 1; pointer-events: none; z-index: 3; }
+.calendar-plan-status { padding: 12px 14px; border: 1px solid; border-radius: var(--radius); text-align: center; font-weight: 700; margin: 0 0 16px; }
+.calendar-plan-status.no-smoke { color: var(--red); background: var(--red-bg); border-color: var(--red-border); }
+.calendar-plan-status.quick-hit { color: var(--amber); background: rgba(212,168,67,0.12); border-color: rgba(212,168,67,0.35); }
+.calendar-plan-status.session { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
 .cal-cell { position: relative; }
 .cal-cell-inner { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; position: relative; z-index: 1; }
 .cal-day-name { font-size: 8px; line-height: 1; letter-spacing: 0.08em; font-weight: 700; color: var(--text3); text-transform: uppercase; }

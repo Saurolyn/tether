@@ -74,6 +74,7 @@ let journalText = ld('t2_journal', '');
 let equipment = ld('t2_equipment', DEFAULT_EQUIPMENT);
 let routineChecks = ld('t2_routine', DEFAULT_ROUTINE);
 let plannedBreaks = ld('t2_planned_breaks', []); 
+let sessionAllowedDays = ld('t2_session_allowed_days', []);
 let fuckIts = ld('t2_fuckits', []); 
 let quickHitLockoutUntil = ld('t2_qh_lockout', 0);
 let quickHitTimerUntil = ld('t2_qh_timer', 0);
@@ -160,6 +161,9 @@ function getQuickHitState() {
 
   if (!settings.allowQuickHit) reason = 'Disabled in Settings';
   else if (settings.hardcoreLockout) reason = 'Hardcore lockout active';
+  else if (plannedBreaks.includes(today())) reason = 'No-Smoke Day planned';
+  else if (!routineChecks.some(c => c.mode === 'all' || c.mode === currentMode)) reason = 'Add a routine check to unlock Quick Hit';
+  else if (!checkAllPreflight()) reason = 'Complete all routine checks first';
   else if (Date.now() < quickHitLockoutUntil) {
     const daysLeft = Math.max(1, Math.ceil((quickHitLockoutUntil - Date.now()) / 86400000));
     reason = `Locked for ${daysLeft} more day${daysLeft === 1 ? '' : 's'}`;
@@ -200,6 +204,10 @@ function getActiveLimits() {
     }
     return lim;
 }
+
+  function getSessionHitLimit(session = activeSession) {
+    return session && session.isQuickHit ? 1 : getActiveLimits().maxHits;
+  }
 
 // ── Init & Global Clock ─────────────────────────────────────────────────────
 window.onload = () => {
@@ -513,7 +521,7 @@ function checkAllPreflight() {
   return routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode).every(c => c.done); 
 }
 
-function getBlockingReasons(dStr) {
+function getBlockingReasons(dStr, type = 'session') {
    let reasons = [];
    const dayTs = new Date(dStr + "T12:00:00").getTime();
    const dObj = new Date(dStr + "T12:00:00");
@@ -591,6 +599,9 @@ function checkDailyLock() {
       return t.getTime();
   };
 
+    if (plannedBreaks.includes(today())) {
+      return { locked: true, msg: "Today is planned as a No-Smoke Day.", endTs: getNextTarget(6) };
+    }
   if (currentMode === 'night') {
       if (!settings.nightSmokingEnabled) return { locked: true, msg: "Night smoking is disabled. Waiting for morning.", endTs: getNextTarget(6) };
       if (hasNight) return { locked: true, msg: "Good night. You've completed your session for today.", endTs: settings.daySmokingEnabled ? getNextTarget(6) : getNextTarget(18) };
@@ -720,6 +731,14 @@ function renderDashboard() {
   const activeLimits = getActiveLimits();
   let remSess = Math.max(0, activeLimits.sessPerWeek - weekSess.length);
   const qhRem = Math.max(0, (parseInt(settings.quickHitsPerWeek)||3) - weekQuickHits);
+  const unlockTs = calculateUnlockTime();
+  const isLockedOut = !!(unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay());
+  const dayStatus = getPlannedDayStatus(today());
+  const activityStatus = activeSession ? 'IN PROGRESS' : (isLockedOut ? 'LOCKED OUT' : 'IDLE');
+  const activityStatusClass = activeSession ? 'warn' : (isLockedOut ? 'danger' : 'ok');
+  const dayStatusLabel = dayStatus.key === 'session'
+      ? 'SESSION DAY 🔥'
+      : (dayStatus.key === 'no-smoke' ? 'NO-SMOKE DAY 🚭' : 'QUICK-HIT-ONLY DAY ⚡');
 
   let sessPct = activeLimits.sessPerWeek > 0 ? (remSess / activeLimits.sessPerWeek) : 0;
   let weekCls = '';
@@ -748,19 +767,19 @@ function renderDashboard() {
       <div class="stat-value" id="dash-clear-countdown">--:--:--</div>
       <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Time until zero THC</div>
     </div>
-    <div class="stat glass ${activeSession ? 'warn' : 'ok'}">
+    <div class="stat glass ${activityStatusClass}">
       <div class="stat-label">Status</div>
-      <div class="stat-value ${activeSession ? 'warn' : 'ok'}" style="font-size:20px;">
-        ${activeSession ? 'IN PROGRESS' : 'IDLE'}
+      <div class="stat-value ${activityStatusClass}" style="font-size:20px;">
+        ${activityStatus}
       </div>
+      <div class="text-sm text-muted" style="font-size:10px; font-weight:700; margin-top:6px;">${dayStatusLabel}</div>
     </div>
   `;
 
   const lockPane = document.getElementById('dashboard-lock');
   const mainPane = document.getElementById('dashboard-main-content');
-  const unlockTs = calculateUnlockTime();
 
-  if (unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay()) {
+  if (isLockedOut) {
       lockPane.style.display = 'block'; mainPane.style.display = 'none';
 
       const { reasons } = getBlockingReasons(today());
@@ -832,18 +851,18 @@ function renderDashboard() {
     document.getElementById('active-focus-task').innerText = activeSession.focusTask || 'None selected';
 
     const limits = getActiveLimits();
-    const remHits = limits.maxHits - activeSession.hits.length;
+    const remHits = getSessionHitLimit(activeSession) - activeSession.hits.length;
     const hitTxt = document.getElementById('hits-remaining-txt');
     
     if (remHits <= 0) {
-      hitTxt.innerText = "Session limit reached."; hitTxt.style.color = "var(--red)";
+      hitTxt.innerText = activeSession.isQuickHit ? "Quick Hit limit reached." : "Session limit reached."; hitTxt.style.color = "var(--red)";
       document.getElementById('btn-take-hit').disabled = true;
       document.getElementById('btn-add-time').disabled = true;
       document.getElementById('wait-timer').innerText = "COMPLETE";
       document.getElementById('wait-timer').className = "timer-display expired";
       document.getElementById('wait-timer-lbl').innerText = "Log session to clear limits.";
     } else {
-      hitTxt.innerText = `${remHits} doses remaining.`; hitTxt.style.color = "var(--accent)";
+      hitTxt.innerText = `${remHits} ${activeSession.isQuickHit ? 'Quick Hit' : 'doses'} remaining.`; hitTxt.style.color = "var(--accent)";
       document.getElementById('btn-take-hit').disabled = false;
       document.getElementById('btn-add-time').disabled = false;
     }
@@ -878,7 +897,7 @@ function renderDashboard() {
       </div>
     `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
 
-    const reqsUnmet = (applicableChecks.length > 0 && !checkAllPreflight()) || remSess === 0;
+    const reqsUnmet = !sessionAllowedDays.includes(today()) || (applicableChecks.length > 0 && !checkAllPreflight()) || remSess === 0;
     
     document.getElementById('btn-start-session').disabled = reqsUnmet;
     
@@ -890,7 +909,7 @@ function renderDashboard() {
         btnQhIdle.style.cursor = qhState.disabled ? 'not-allowed' : 'pointer';
         btnQhIdle.style.display = 'block';
         btnQhIdle.title = qhState.reason || 'Quick Hit available';
-        btnQhIdle.innerText = `Quick Hit ⚡ (${qhState.label})`;
+        btnQhIdle.innerText = `Quick Hit ⚡ (${qhState.remaining} left)`;
     }
   }
 
@@ -951,7 +970,7 @@ function openQuickHitModal() {
     if (qhState.disabled) {
         return showCustomModal("Quick Hit Unavailable", `Quick hits are currently unavailable: ${qhState.reason}.`, [{text:"OK"}]);
     }
-    const { reasons } = getBlockingReasons(today());
+  const { reasons } = getBlockingReasons(today(), 'quick');
     const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
     
     if (reasons.length > 0) {
@@ -972,6 +991,9 @@ function openQuickHitModal() {
 
 function openConfigModal(isNewSession, type = 'normal') {
   if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain or profile in the Profiles tab first.", [{text:"OK"}]);
+  if (isNewSession && type !== 'quick' && !sessionAllowedDays.includes(today())) {
+      return showCustomModal("Quick-Hit-Only Day", "Today is planned for Quick Hits only. Enable Allow Session for today in the calendar to start a full session.", [{text:"OK"}]);
+  }
   if (isYearlyBreakActive() && !fuckIts.includes(today())) {
       return showCustomModal("T-Break Active", "It is your designated Yearly T-Break month. Dashboard locked.", [{text:"Understood"}]);
   }
@@ -994,7 +1016,7 @@ function openConfigModalBypass(isNewSession, type) {
   pendingConfigType = type;
   document.getElementById('config-title').innerText = type === 'quick' ? "Quick Hit" : (isNewSession ? "Start Session" : "Log a Dose");
   
-  document.getElementById('config-method-group').style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
+  document.getElementById('config-method-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">[${p.type.toUpperCase()}] ${p.name}</option>`).join('');
   
@@ -1006,7 +1028,7 @@ function openConfigModalBypass(isNewSession, type) {
   if(settings.diabloEnabled) doseHtml += `<option value="diablo">DIABLO (${settings.doseDiablo}s)</option>`;
   document.getElementById('config-dose').innerHTML = doseHtml;
 
-  document.getElementById('config-task-group').style.display = isNewSession && type !== 'quick' ? 'flex' : 'none';
+  document.getElementById('config-task-group').style.display = isNewSession ? 'flex' : 'none';
   if(todos.length > 0) {
       document.getElementById('config-task-select').innerHTML = todos.map(t=>`<option value="${t.text}">${t.text}</option>`).join('');
   } else {
@@ -1022,12 +1044,12 @@ function closeConfigModal() { document.getElementById('config-modal').classList.
 
 function startDrawSequence() {
   const isNew = !activeSession;
-  const method = isNew ? (pendingConfigType === 'quick' ? 'vape' : document.getElementById('config-method').value) : activeSession.method;
+  const method = isNew ? document.getElementById('config-method').value : activeSession.method;
   const penId = isNew ? document.getElementById('config-pen').value : activeSession.penId;
   const feeling = parseInt(document.getElementById('config-feel-val').value);
   const task = isNew ? document.getElementById('config-task-select').value : activeSession.focusTask;
   
-  if (pendingConfigType !== 'quick' && feeling <= 3) {
+  if (feeling <= 3) {
       return showCustomModal("Mood Check", "⚠️ Low headspace detected. Getting elevated right now might worsen your mood. Are you sure you want to continue?", [
           {text: "Cancel", onClick: () => closeConfigModal() },
           {text: "Continue", cls: "btn-primary", onClick: () => { closeConfigModal(); executeHitLogic(isNew, penId, feeling, task, method); }}
@@ -1049,19 +1071,19 @@ function executeHitLogic(isNew, penId, feeling, task, method) {
         let hitObj = { time: Date.now(), dose: doseSize, feelingPreHit: feeling, drawSeconds: method==='joint'?drawSecs:0, penId: penId };
         if (method === 'edible') {
             hitObj.directMg = parseFloat(document.getElementById('config-edible-mg').value) || 10;
-        } else if (method === 'joint' || pendingConfigType === 'quick') {
+        } else if (method === 'joint') {
             hitObj.drawSeconds = drawSecs; 
         }
 
-        if (isNew && pendingConfigType !== 'quick') {
-            activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
+        if (isNew) {
+          activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task, isQuickHit: pendingConfigType === 'quick' };
         }
         finishHitDirect(hitObj);
     }
 }
 
 function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs) {
-  if (isNew && pendingConfigType !== 'quick') activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task };
+  if (isNew) activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task, isQuickHit: pendingConfigType === 'quick' };
   
   const modal = document.getElementById('draw-modal');
   const circle = document.getElementById('draw-circle');
@@ -1109,44 +1131,7 @@ function cancelDraw() {
 }
 
 function finishHitDirect(hitObj) {
-    if (pendingConfigType === 'quick') {
-        showCustomModal("Quick Hit Reflection", `
-          <div class="form-group mb-16 text-left">
-            <label>How are you feeling? (1-10)</label>
-            <div id="qh-feel-grid" class="feel-grid mb-12"></div>
-            <input type="hidden" id="qh-feel-val" value="5">
-          </div>
-          <div class="form-group mb-16 text-left">
-            <label>Optional Note</label>
-            <textarea id="qh-note" class="glass" rows="3" placeholder="Why did you take this quick hit?"></textarea>
-          </div>
-        `, [
-          {text: "Cancel Hit", onClick: () => { activeSession = null; renderDashboard(); }},
-          {text: "Save Hit", cls: "btn-primary", onClick: () => {
-              const note = document.getElementById('qh-note').value.trim();
-              const finalFeeling = parseInt(document.getElementById('qh-feel-val').value || '5', 10);
-              sessions.push({
-                  id: 'qh_' + Date.now(), ts: Date.now(), endTime: Date.now(), penId: hitObj.penId || (pens[0] ? pens[0].id : null), mode: currentMode,
-                  method: 'vape', hits: [hitObj], isQuickHit: true, notes: "⚡ Quick Hit\n" + note, finalFeeling
-              });
-              sv('t2_sessions', sessions);
-              
-              quickHitLockoutUntil = Date.now() + (settings.quickHitTBreak * 86400000);
-              sv('t2_qh_lockout', quickHitLockoutUntil);
-              quickHitTimerUntil = Date.now() + ((getActiveLimits().wait || 15) * 60000);
-              sv('t2_qh_timer', quickHitTimerUntil);
-              
-              activeSession = null;
-              sv('t2_activeSession', null);
-              showToast("Quick hit logged! 💧", true);
-              renderDashboard(); renderCalendar(); renderStats();
-          }}
-        ]);
-        generateFeelGrid('qh-feel-grid');
-        selectFeel(5, 'qh-feel-grid');
-        return;
-    }
-
+    if (!activeSession) return;
     activeSession.hits.push(hitObj);
     const limits = getActiveLimits();
     activeSession.nextHitReadyAt = Date.now() + (limits.wait * 60000);
@@ -1179,9 +1164,9 @@ function startWaitTimerUI() {
     const el = document.getElementById('wait-timer');
     if (!el) return;
     
-    if(activeSession.hits.length >= limits.maxHits) {
+    if(activeSession.hits.length >= getSessionHitLimit(activeSession)) {
         el.className = 'timer-display expired'; el.innerText = 'LIMIT';
-        document.getElementById('wait-timer-lbl').innerText = "Session limit reached.";
+      document.getElementById('wait-timer-lbl').innerText = activeSession.isQuickHit ? "Quick Hit limit reached." : "Session limit reached.";
         clearInterval(waitTimerInterval); return;
     }
 
@@ -1269,6 +1254,12 @@ function saveRecap() {
   }
 
   sessions.push(activeSession); sv('t2_sessions', sessions);
+  if (activeSession.isQuickHit) {
+      quickHitLockoutUntil = Date.now() + ((parseInt(settings.quickHitTBreak, 10) || 0) * 86400000);
+      quickHitTimerUntil = Date.now() + ((getActiveLimits().wait || 15) * 60000);
+      sv('t2_qh_lockout', quickHitLockoutUntil);
+      sv('t2_qh_timer', quickHitTimerUntil);
+  }
   activeSession = null; sv('t2_activeSession', null);
   routineChecks.forEach(c=>c.done=false); 
   sv('t2_routine', routineChecks); 
@@ -1543,6 +1534,12 @@ function renderStats() {
 // ── Calendar ────────────────────────────────────────────────────────────────
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 
+function getPlannedDayStatus(dStr) {
+  if (plannedBreaks.includes(dStr)) return { key: 'no-smoke', label: 'No-Smoke 🚭Day', icon: '🚭' };
+  if (sessionAllowedDays.includes(dStr)) return { key: 'session', label: 'Session🔥Day', icon: '🔥' };
+  return { key: 'quick-hit', label: 'Quick-Hit⚡only Day', icon: '⚡' };
+}
+
 function renderCalendar() {
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cal-month-lbl').textContent=months[calMonth]+' '+calYear;
@@ -1581,14 +1578,8 @@ function renderCalendar() {
     if(isT && dStr !== selectedCalDate) style += `box-shadow: 0 0 0 2px var(--border2);`;
     if(isF) style += `opacity: 0.5;`;
 
-    let icon = '';
-    let dayReasons = getBlockingReasons(dStr).reasons;
-    if (fuckIts.includes(dStr)) icon = '⚠️';
-    else if (dayReasons.length > 0) icon = '🚭'; 
-    else if (dm.sList.length > 0 && !dm.sList.every(s=>s.isQuickHit)) icon = '✅'; 
-    
-    if (isF && dayReasons.length === 0 && !icon) icon = '<span style="opacity:0.3;">✅</span>';
-    if (dm.hasQuickHit) icon = icon && !icon.includes('✅') ? icon + '⚡' : '⚡';
+    const status = getPlannedDayStatus(dStr);
+    const icon = status.icon + (fuckIts.includes(dStr) ? '⚠️' : '');
 
     cells+=`
     <div class="cal-cell" style="aspect-ratio:1;">
@@ -1615,16 +1606,25 @@ function showCalDetailsPane(dStr) {
   const dObj = new Date(dStr + "T12:00:00");
   const dSess = sessions.filter(s => ds(new Date(s.ts)) === dStr);
   const pane = document.getElementById('cal-details-pane');
+  const status = getPlannedDayStatus(dStr);
+  const statusHtml = `<div class="calendar-plan-status ${status.key}">This Day is a ${status.label}</div>`;
   
-  let plannedText = plannedBreaks.includes(dStr) ? 'Remove Planned Break' : 'Set No-Smoke Day';
+  const noSmokeDay = plannedBreaks.includes(dStr);
   let planBtn = `
   <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
-      <label class="toggle-label" for="cal-planned-break">${plannedText}</label>
-      <label class="toggle"><input type="checkbox" id="cal-planned-break" ${plannedBreaks.includes(dStr) ? 'checked' : ''} onchange="togglePlannedBreak('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      <label class="toggle-label" for="cal-planned-break">No-Smoke Day 🚭</label>
+      <label class="toggle"><input type="checkbox" id="cal-planned-break" ${noSmokeDay ? 'checked' : ''} onchange="togglePlannedBreak('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
   </div>`;
+  const allowSession = !noSmokeDay ? `
+    <div class="toggle-row" style="border-top:1px dashed var(--border2);">
+      <label class="toggle-label" for="cal-allow-session">Allow Session 🔥</label>
+      <label class="toggle"><input type="checkbox" id="cal-allow-session" ${sessionAllowedDays.includes(dStr) ? 'checked' : ''} onchange="toggleSessionAllowed('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+  ` : '';
+  const calendarControls = planBtn + allowSession;
 
   let blockHtml = '';
-  let blockReasons = getBlockingReasons(dStr).reasons;
+  let blockReasons = getBlockingReasons(dStr, 'all').reasons.filter(r => r !== 'Manually Planned No-Smoke Day');
   if (blockReasons.length > 0) {
       blockHtml = `<div class="alert warn mt-16" style="flex-direction:column; align-items:flex-start; background:rgba(212,168,67,0.1);">
         <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px;">🚭</span> Blocked By:</strong>
@@ -1634,7 +1634,7 @@ function showCalDetailsPane(dStr) {
 
   if(dSess.length === 0) { 
     const badge = fuckIts.includes(dStr) ? '⚠️ Bypassed' : (dStr > today() ? 'Future Day' : 'Sober day!');
-    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${blockHtml}${planBtn}`; 
+    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${statusHtml}${blockHtml}${calendarControls}`; 
     return; 
   }
   
@@ -1646,15 +1646,31 @@ function showCalDetailsPane(dStr) {
       const qb = s.isQuickHit ? '⚡ Quick Hit' : s.method;
       return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name||'Unknown'} (${s.mode}) [${qb}] - ${s.hits.length} doses</div>`;
     }).join('')}
+    ${statusHtml}
     ${blockHtml}
-    ${planBtn}
+    ${calendarControls}
   `;
 }
 
 function togglePlannedBreak(dStr) {
-  if (plannedBreaks.includes(dStr)) plannedBreaks = plannedBreaks.filter(d => d !== dStr);
-  else plannedBreaks.push(dStr);
+  if (plannedBreaks.includes(dStr)) {
+      plannedBreaks = plannedBreaks.filter(d => d !== dStr);
+  } else {
+      plannedBreaks.push(dStr);
+      sessionAllowedDays = sessionAllowedDays.filter(d => d !== dStr);
+      sv('t2_session_allowed_days', sessionAllowedDays);
+  }
   sv('t2_planned_breaks', plannedBreaks); renderCalendar(); renderDashboard();
+}
+
+function toggleSessionAllowed(dStr) {
+  if (plannedBreaks.includes(dStr)) return;
+  sessionAllowedDays = sessionAllowedDays.includes(dStr)
+      ? sessionAllowedDays.filter(d => d !== dStr)
+      : [...sessionAllowedDays, dStr];
+  sv('t2_session_allowed_days', sessionAllowedDays);
+  renderCalendar();
+  renderDashboard();
 }
 
 // ── Clearance Tests Tab ─────────────────────────────────────────────────────
