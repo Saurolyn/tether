@@ -20,7 +20,7 @@ const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust"
 // ── State & Defaults ────────────────────────────────────────────────────────
 const DEFAULT_SETTINGS = { 
   maxHits: 4, sessPerWeek: 5, quickHitsPerWeek: 3, quickHitTBreak: 1, 
-  nightWait: 15, dayWait: 120, breakStart: null, breakEnd: null, tolerance: 'medium', 
+  nightWait: 15, dayWait: 120, dayStart: '06:00', nightStart: '18:00', breakStart: null, breakEnd: null, tolerance: 'medium', 
   diabloEnabled: false, doseDiablo: 10, autoTBreak: false, autoTBreakWeek: 4, 
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
   autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7,
@@ -116,6 +116,32 @@ function weekStartFromDate(d) {
 function weekStart() { return weekStartFromDate(new Date()); }
 function penById(id) { return pens.find(p=>p.id===id) || graveyard.find(p=>p.id===id); }
 function isFuckItDay(dStr = today()) { return fuckIts.includes(dStr); }
+function getModeStart(mode) {
+  const fallback = mode === 'day' ? '06:00' : '18:00';
+  const configured = mode === 'day' ? settings.dayStart : settings.nightStart;
+  return typeof configured === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(configured) ? configured : fallback;
+}
+function timeToMinutes(time) {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+function getModeForDate(date = new Date()) {
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+  const dayStart = timeToMinutes(getModeStart('day'));
+  const nightStart = timeToMinutes(getModeStart('night'));
+  const isDay = dayStart < nightStart
+    ? nowMinutes >= dayStart && nowMinutes < nightStart
+    : nowMinutes >= dayStart || nowMinutes < nightStart;
+  return isDay ? 'day' : 'night';
+}
+function setTimeOnDate(date, time) {
+  const [hours, minutes] = time.split(':').map(Number);
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+function formatStartTime(time) {
+  return setTimeOnDate(new Date(), time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
 
 function sumTHC(hitsArray, penObj, method = 'vape') {
   if(!hitsArray) return 0;
@@ -332,8 +358,7 @@ function updateGlobalClock() {
   const elDate = document.getElementById('greeting-date');
   if (elDate) elDate.innerText = now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ' · ' + fmtTime(now);
 
-  const hr = now.getHours();
-  const newMode = (hr >= 6 && hr < 18) ? 'day' : 'night';
+  const newMode = getModeForDate(now);
   if (newMode !== currentMode) {
     currentMode = newMode;
     routineChecks.forEach(c => c.done = false); sv('t2_routine', routineChecks);
@@ -592,21 +617,25 @@ function checkDailyLock() {
   const hasDay = todaySess.some(s => s.mode === 'day');
   const hasNight = todaySess.some(s => s.mode === 'night');
 
-  let getNextTarget = (hour) => {
+    let getNextTarget = (time) => {
       let t = new Date(now);
-      t.setHours(hour, 0, 0, 0);
+        setTimeOnDate(t, time);
       if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
       return t.getTime();
   };
 
     if (plannedBreaks.includes(today())) {
-      return { locked: true, msg: "Today is planned as a No-Smoke Day.", endTs: getNextTarget(6) };
+        const nextStart = settings.daySmokingEnabled ? getModeStart('day') : getModeStart('night');
+        return { locked: true, msg: "Today is planned as a No-Smoke Day.", endTs: getNextTarget(nextStart) };
     }
-  if (currentMode === 'night') {
-      if (!settings.nightSmokingEnabled) return { locked: true, msg: "Night smoking is disabled. Waiting for morning.", endTs: getNextTarget(6) };
-      if (hasNight) return { locked: true, msg: "Good night. You've completed your session for today.", endTs: settings.daySmokingEnabled ? getNextTarget(6) : getNextTarget(18) };
-  } else if (currentMode === 'day') {
-      if (!settings.daySmokingEnabled) return { locked: true, msg: "Day smoking is disabled. Hang tight until 6 PM.", endTs: getNextTarget(18) };
+    if (currentMode === 'night') {
+        if (!settings.nightSmokingEnabled) return { locked: true, msg: `Night smoking is disabled. Waiting until ${formatStartTime(getModeStart('day'))}.`, endTs: getNextTarget(getModeStart('day')) };
+        if (hasNight) {
+          const nextStart = settings.daySmokingEnabled ? getModeStart('day') : getModeStart('night');
+          return { locked: true, msg: "Good night. You've completed your session for today.", endTs: getNextTarget(nextStart) };
+        }
+    } else if (currentMode === 'day') {
+        if (!settings.daySmokingEnabled) return { locked: true, msg: `Day smoking is disabled. Hang tight until ${formatStartTime(getModeStart('night'))}.`, endTs: getNextTarget(getModeStart('night')) };
       
       const mo = now.getMonth();
       const yr = now.getFullYear();
@@ -617,10 +646,10 @@ function checkDailyLock() {
       });
       
       if (daySessDates.size >= settings.daySmokingDaysPerMonth && !daySessDates.has(ds(now))) {
-           return { locked: true, msg: `Monthly day limit reached (${settings.daySmokingDaysPerMonth} days). Waiting for night mode.`, endTs: getNextTarget(18) };
+           return { locked: true, msg: `Monthly day limit reached (${settings.daySmokingDaysPerMonth} days). Waiting for night mode.`, endTs: getNextTarget(getModeStart('night')) };
       }
       
-      if (hasDay) return { locked: true, msg: "You've already had your day session. Hang tight until night mode activates at 6 PM.", endTs: getNextTarget(18) };
+      if (hasDay) return { locked: true, msg: `You've already had your day session. Hang tight until night mode activates at ${formatStartTime(getModeStart('night'))}.`, endTs: getNextTarget(getModeStart('night')) };
   }
   return { locked: false };
 }
@@ -661,7 +690,7 @@ function calculateUnlockTime() {
     if (!nextUnblockedDate) return Date.now() + 60 * 86400000;
 
     let unlockDate = new Date(nextUnblockedDate);
-    unlockDate.setHours(settings.daySmokingEnabled ? 6 : 18, 0, 0, 0);
+    setTimeOnDate(unlockDate, getModeStart(settings.daySmokingEnabled ? 'day' : 'night'));
     if (unlockDate.getTime() < now.getTime()) unlockDate.setDate(unlockDate.getDate() + 1);
 
     return unlockDate.getTime();
@@ -789,7 +818,7 @@ function renderDashboard() {
 
       if (reasons.length > 0) {
          title = reasons.some(r=>r.includes('Yearly') || r.includes('Auto') || r.includes('Bypass')) ? "T-Break Active" : "Enjoy your break.";
-         msg = "Dashboard features locked. Next session available 6AM that day. " + reasons.join(", ");
+         msg = `Dashboard features locked. Next session available ${new Date(unlockTs).toLocaleString()}. ` + reasons.join(", ");
       } else if (dailyStatus.locked) {
          msg = dailyStatus.msg;
       }
@@ -1248,7 +1277,7 @@ function saveRecap() {
   if (fuckIts.includes(today())) {
       let tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(6, 0, 0, 0);
+      setTimeOnDate(tomorrow, getModeStart('day'));
       fuckItLockoutUntil = tomorrow.getTime() + ((settings.fuckItTBreak || 3) * 86400000);
       sv('t2_fi_lockout', fuckItLockoutUntil);
   }
@@ -1553,9 +1582,14 @@ function renderCalendar() {
   
   sessions.forEach(s=>{
     const d=ds(new Date(s.ts));
-    if(!dayMap[d])dayMap[d]={ day:false, night:false, sList:[], hasQuickHit:false };
-    if(!s.isQuickHit) dayMap[d][s.mode]=true;
-    if(s.isQuickHit) dayMap[d].hasQuickHit=true;
+    if(!dayMap[d])dayMap[d]={ day:false, night:false, dayHits:0, nightHits:0, quickHitHits:0, sList:[], hasQuickHit:false };
+    if(s.isQuickHit) {
+      dayMap[d].hasQuickHit=true;
+      dayMap[d].quickHitHits += s.hits.length;
+    } else if(s.mode === 'day' || s.mode === 'night') {
+      dayMap[d][s.mode]=true;
+      dayMap[d][`${s.mode}Hits`] += s.hits.length;
+    }
     dayMap[d].sList.push(s);
   });
   
@@ -1571,6 +1605,7 @@ function renderCalendar() {
     let extraCls = dStr === selectedCalDate ? 'selected-cal-day' : '';
     
     if(dm.day && dm.night) { bg = 'rgba(224,94,94,0.15)'; border = 'var(--red)'; }
+    else if(dm.hasQuickHit) { bg = 'rgba(162,117,255,0.15)'; border = 'var(--purple)'; }
     else if(dm.day) { bg = 'rgba(74,159,196,0.15)'; border = '#4a9fc4'; }
     else if(dm.night) { bg = 'rgba(212,168,67,0.15)'; border = 'var(--amber)'; }
     
@@ -1580,11 +1615,23 @@ function renderCalendar() {
 
     const status = getPlannedDayStatus(dStr);
     const icon = status.icon + (fuckIts.includes(dStr) ? '⚠️' : '');
+    const activity = [
+      { label: 'DAY', hits: dm.dayHits || 0, color: 'day' },
+      { label: 'NIGHT', hits: dm.nightHits || 0, color: 'night' },
+      { label: 'QH', hits: dm.quickHitHits || 0, color: 'quick-hit' }
+    ].filter(item => item.hits > 0);
+    const activityLabel = activity.length ? activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`).join(', ') : 'No recorded use';
+    const activityHtml = activity.map(item => `
+      <div class="cal-activity-row ${item.color}" title="${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}">
+        <span>${item.label}</span>
+        <span class="cal-activity-track"><span class="cal-activity-fill" style="width:${Math.min(item.hits, 4) * 25}%;"></span></span>
+      </div>`).join('');
 
     cells+=`
     <div class="cal-cell" style="aspect-ratio:1;">
-      <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')">
+      <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')" title="${dStr}: ${activityLabel}" aria-label="${dStr}: ${activityLabel}">
         <div class="cal-date-num">${d}</div>
+        ${activityHtml ? `<div class="cal-activity">${activityHtml}</div>` : ''}
       </div>
       ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
@@ -2072,6 +2119,8 @@ function renderSettings() {
   setVal('s-quickHitTBreak', settings.quickHitTBreak);
   setVal('s-nightWait', settings.nightWait);
   setVal('s-dayWait', settings.dayWait);
+  setVal('s-dayStart', getModeStart('day'));
+  setVal('s-nightStart', getModeStart('night'));
   
   setVal('s-doseLow', settings.doseLow);
   setVal('s-doseMed', settings.doseMed);
@@ -2115,6 +2164,13 @@ function saveSettings(silent = false) {
   const getVal = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
   const getInt = (id, dflt=0) => { const v = getVal(id); return v ? parseInt(v, 10) : dflt; };
   const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : false; };
+  const dayStart = getVal('s-dayStart');
+  const nightStart = getVal('s-nightStart');
+  if (!dayStart || !nightStart || dayStart === nightStart) {
+    showToast("Daytime and nighttime start times must be different.");
+    renderSettings();
+    return;
+  }
 
   username = getVal('s-username'); sv('t2_username', username);
   settings.tolerance = getVal('s-tolerance');
@@ -2127,6 +2183,8 @@ function saveSettings(silent = false) {
   settings.quickHitTBreak = getInt('s-quickHitTBreak', settings.quickHitTBreak);
   settings.nightWait = getInt('s-nightWait', settings.nightWait);
   settings.dayWait = getInt('s-dayWait', settings.dayWait);
+  settings.dayStart = dayStart;
+  settings.nightStart = nightStart;
   
   settings.diabloEnabled = getCheck('s-diabloEnabled');
   settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
@@ -2157,6 +2215,7 @@ function saveSettings(silent = false) {
   settings.allowQuickHit = getCheck('s-allowQuickHit');
 
   sv('t2_settings', settings);
+  updateGlobalClock();
   applyTheme();
   if (!silent) showToast("Settings saved!");
   renderDashboard();

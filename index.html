@@ -195,7 +195,7 @@
 </div>
 
 <div class="sidebar glass" id="sidebar-nav">
-  <div class="logo">TETHER&trade; v.&#958;</div>
+  <div class="logo">TETHER&trade; v.&#959;</div>
   <div class="gamma-banner">Trip Safety Tracker </div>
 
   <nav class="nav mt-16">
@@ -399,6 +399,18 @@
                 <div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div><div>SUN</div>
             </div>
             <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;"></div>
+            <div class="calendar-key" aria-label="Calendar key">
+                <div class="calendar-key-title">KEY</div>
+                <div class="calendar-key-items">
+                    <span><i class="calendar-key-swatch day"></i>Day session</span>
+                    <span><i class="calendar-key-swatch night"></i>Night session</span>
+                    <span><i class="calendar-key-swatch both"></i>Day + night</span>
+                    <span><i class="calendar-key-swatch quick-hit"></i>Quick hit (QH)</span>
+                    <span><b>⚡</b>Quick-hit-only plan</span>
+                    <span><b>🔥</b>Session allowed</span>
+                    <span><b>🚭</b>No-smoke plan</span>
+                </div>
+            </div>
           </div>
           <div class="cal-details glass" id="cal-details-pane"></div>
       </div>
@@ -747,6 +759,14 @@
             <div class="settings-group">
                 <div class="settings-label-col"><div class="settings-title">Day Wait Timer (Mins)</div></div>
                 <div class="settings-control-col"><input class="num-input glass" type="number" id="s-dayWait" min="5" max="120" onchange="saveSettings(true)"></div>
+            </div>
+            <div class="settings-group" style="border-top:1px dashed var(--border2); padding-top:16px;">
+                <div class="settings-label-col"><div class="settings-title">Daytime Session Starts</div><div class="settings-desc">Local time when Day Mode begins.</div></div>
+                <div class="settings-control-col"><input class="glass" type="time" id="s-dayStart" onchange="saveSettings(true)"></div>
+            </div>
+            <div class="settings-group">
+                <div class="settings-label-col"><div class="settings-title">Nighttime Session Starts</div><div class="settings-desc">Local time when Night Mode begins.</div></div>
+                <div class="settings-control-col"><input class="glass" type="time" id="s-nightStart" onchange="saveSettings(true)"></div>
             </div>
         </div>
 
