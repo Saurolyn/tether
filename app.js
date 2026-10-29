@@ -19,7 +19,7 @@ const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust"
 
 // ── State & Defaults ────────────────────────────────────────────────────────
 const DEFAULT_SETTINGS = { 
-  maxHits: 4, sessPerWeek: 5, quickHitsPerWeek: 3, quickHitTBreak: 1, 
+  maxHits: 4, maxMiniSessionHits: 2, sessPerWeek: 5, quickHitsPerWeek: 3, quickHitTBreak: 1, 
   nightWait: 15, dayWait: 120, dayStart: '06:00', nightStart: '18:00', breakStart: null, breakEnd: null, tolerance: 'medium', 
   diabloEnabled: false, doseDiablo: 10, autoTBreak: false, autoTBreakWeek: 4, 
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
@@ -188,12 +188,12 @@ function getQuickHitState() {
   if (!settings.allowQuickHit) reason = 'Disabled in Settings';
   else if (settings.hardcoreLockout) reason = 'Hardcore lockout active';
   else if (plannedBreaks.includes(today())) reason = 'No-Smoke Day planned';
-  else if (!routineChecks.some(c => c.mode === 'all' || c.mode === currentMode)) reason = 'Add a routine check to unlock Quick Hit';
+  else if (!routineChecks.some(c => c.mode === 'all' || c.mode === currentMode)) reason = 'Add a routine check to unlock Mini Session';
   else if (!checkAllPreflight()) reason = 'Complete all routine checks first';
   else if (Date.now() < quickHitLockoutUntil) {
     const daysLeft = Math.max(1, Math.ceil((quickHitLockoutUntil - Date.now()) / 86400000));
     reason = `Locked for ${daysLeft} more day${daysLeft === 1 ? '' : 's'}`;
-  } else if (remaining <= 0) reason = 'Weekly quick-hit limit reached';
+  } else if (remaining <= 0) reason = 'Weekly Mini Session limit reached';
 
   return {
     remaining,
@@ -232,7 +232,11 @@ function getActiveLimits() {
 }
 
   function getSessionHitLimit(session = activeSession) {
-    return session && session.isQuickHit ? 1 : getActiveLimits().maxHits;
+    if (session && session.isQuickHit) {
+      const configuredLimit = parseInt(settings.maxMiniSessionHits, 10);
+      return Math.min(20, Math.max(1, Number.isFinite(configuredLimit) ? configuredLimit : DEFAULT_SETTINGS.maxMiniSessionHits));
+    }
+    return getActiveLimits().maxHits;
   }
 
 // ── Init & Global Clock ─────────────────────────────────────────────────────
@@ -767,7 +771,7 @@ function renderDashboard() {
   const activityStatusClass = activeSession ? 'warn' : (isLockedOut ? 'danger' : 'ok');
   const dayStatusLabel = dayStatus.key === 'session'
       ? 'SESSION DAY 🔥'
-      : (dayStatus.key === 'no-smoke' ? 'NO-SMOKE DAY 🚭' : 'QUICK-HIT-ONLY DAY ⚡');
+      : (dayStatus.key === 'no-smoke' ? 'NO-SMOKE DAY 🚭' : 'MINI-SESSION-ONLY DAY ⚡');
 
   let sessPct = activeLimits.sessPerWeek > 0 ? (remSess / activeLimits.sessPerWeek) : 0;
   let weekCls = '';
@@ -844,9 +848,9 @@ function renderDashboard() {
       lockActionsHtml += `
           <div class="lock-action-card ${qhDisabled ? 'disabled' : ''}" onclick="${!qhDisabled ? 'openQuickHitModal()' : ''}" style="border-color: var(--accent-border);">
               <div class="lock-action-icon">⚡</div>
-              <div class="lock-action-title" style="color: var(--accent);">Quick Hit</div>
+              <div class="lock-action-title" style="color: var(--accent);">Mini Session</div>
               <div class="lock-action-qty" style="color: var(--accent);">${qhSubText}</div>
-              <div class="lock-action-desc">Take a single microdose. Initiates a ${settings.quickHitTBreak} day penalty.</div>
+              <div class="lock-action-desc">Take up to ${getSessionHitLimit({ isQuickHit: true })} hits. Initiates a ${settings.quickHitTBreak} day penalty.</div>
           </div>
       `;
 
@@ -884,14 +888,14 @@ function renderDashboard() {
     const hitTxt = document.getElementById('hits-remaining-txt');
     
     if (remHits <= 0) {
-      hitTxt.innerText = activeSession.isQuickHit ? "Quick Hit limit reached." : "Session limit reached."; hitTxt.style.color = "var(--red)";
+      hitTxt.innerText = activeSession.isQuickHit ? "Mini Session limit reached." : "Session limit reached."; hitTxt.style.color = "var(--red)";
       document.getElementById('btn-take-hit').disabled = true;
       document.getElementById('btn-add-time').disabled = true;
       document.getElementById('wait-timer').innerText = "COMPLETE";
       document.getElementById('wait-timer').className = "timer-display expired";
       document.getElementById('wait-timer-lbl').innerText = "Log session to clear limits.";
     } else {
-      hitTxt.innerText = `${remHits} ${activeSession.isQuickHit ? 'Quick Hit' : 'doses'} remaining.`; hitTxt.style.color = "var(--accent)";
+      hitTxt.innerText = `${remHits} ${activeSession.isQuickHit ? `Mini Session hit${remHits === 1 ? '' : 's'}` : 'doses'} remaining.`; hitTxt.style.color = "var(--accent)";
       document.getElementById('btn-take-hit').disabled = false;
       document.getElementById('btn-add-time').disabled = false;
     }
@@ -937,8 +941,8 @@ function renderDashboard() {
         btnQhIdle.style.opacity = qhState.disabled ? '0.55' : '1';
         btnQhIdle.style.cursor = qhState.disabled ? 'not-allowed' : 'pointer';
         btnQhIdle.style.display = 'block';
-        btnQhIdle.title = qhState.reason || 'Quick Hit available';
-        btnQhIdle.innerText = `Quick Hit ⚡ (${qhState.remaining} left)`;
+        btnQhIdle.title = qhState.reason || 'Mini Session available';
+        btnQhIdle.innerText = `Mini Session ⚡ (${qhState.remaining} left)`;
     }
   }
 
@@ -997,21 +1001,21 @@ function updateConfigMethodUI() {
 function openQuickHitModal() {
     const qhState = getQuickHitState();
     if (qhState.disabled) {
-        return showCustomModal("Quick Hit Unavailable", `Quick hits are currently unavailable: ${qhState.reason}.`, [{text:"OK"}]);
+        return showCustomModal("Mini Session Unavailable", `Mini Sessions are currently unavailable: ${qhState.reason}.`, [{text:"OK"}]);
     }
   const { reasons } = getBlockingReasons(today(), 'quick');
     const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
     
     if (reasons.length > 0) {
-        let msg = "You are currently locked out. A Quick Hit bypasses this lock but will incur a " + settings.quickHitTBreak + " day penalty. Continue?";
+        let msg = "You are currently locked out. A Mini Session bypasses this lock but will incur a " + settings.quickHitTBreak + " day penalty. Continue?";
         showCustomModal("⚠️ Warning", msg, [
             {text: "Cancel"},
-            {text: "Take Quick Hit", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
+            {text: "Take Mini Session", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
         ]);
     } else if (modeSessToday.length > 0) {
-        showCustomModal("⚠️ Already Smoked", `You've already had a session. Take a Quick Hit anyway?`, [
+        showCustomModal("⚠️ Already Smoked", `You've already had a session. Take a Mini Session anyway?`, [
             {text: "Cancel"},
-            {text: "Take Quick Hit", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
+            {text: "Take Mini Session", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
         ]);
     } else {
         openConfigModal(true, 'quick');
@@ -1021,7 +1025,7 @@ function openQuickHitModal() {
 function openConfigModal(isNewSession, type = 'normal') {
   if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain or profile in the Profiles tab first.", [{text:"OK"}]);
   if (isNewSession && type !== 'quick' && !sessionAllowedDays.includes(today())) {
-      return showCustomModal("Quick-Hit-Only Day", "Today is planned for Quick Hits only. Enable Allow Session for today in the calendar to start a full session.", [{text:"OK"}]);
+      return showCustomModal("Mini-Session-Only Day", "Today is planned for Mini Sessions only. Enable Allow Session for today in the calendar to start a full session.", [{text:"OK"}]);
   }
   if (isYearlyBreakActive() && !fuckIts.includes(today())) {
       return showCustomModal("T-Break Active", "It is your designated Yearly T-Break month. Dashboard locked.", [{text:"Understood"}]);
@@ -1043,7 +1047,7 @@ function openConfigModal(isNewSession, type = 'normal') {
 
 function openConfigModalBypass(isNewSession, type) {
   pendingConfigType = type;
-  document.getElementById('config-title').innerText = type === 'quick' ? "Quick Hit" : (isNewSession ? "Start Session" : "Log a Dose");
+  document.getElementById('config-title').innerText = type === 'quick' ? "Mini Session" : (isNewSession ? "Start Session" : "Log a Dose");
   
   document.getElementById('config-method-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
@@ -1195,7 +1199,7 @@ function startWaitTimerUI() {
     
     if(activeSession.hits.length >= getSessionHitLimit(activeSession)) {
         el.className = 'timer-display expired'; el.innerText = 'LIMIT';
-      document.getElementById('wait-timer-lbl').innerText = activeSession.isQuickHit ? "Quick Hit limit reached." : "Session limit reached.";
+      document.getElementById('wait-timer-lbl').innerText = activeSession.isQuickHit ? "Mini Session limit reached." : "Session limit reached.";
         clearInterval(waitTimerInterval); return;
     }
 
@@ -1409,7 +1413,7 @@ function renderHistory() {
         </div>
         <div class="text-sm text-muted mb-16">
             ${new Date(s.ts).toLocaleDateString()} • Started: ${fmtTime(new Date(s.ts))} 
-            ${s.isQuickHit ? '⚡ Quick Hit' : `• Method: ${s.method}`}
+            ${s.isQuickHit ? '⚡ Mini Session' : `• Method: ${s.method}`}
         </div>
         
         <div style="border-top:1px dashed var(--border2); padding-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
@@ -1522,7 +1526,7 @@ function renderStats() {
         { label: 'Total Sessions', value: totalSess },
         { label: 'Total Hits / Doses', value: totalHits },
         { label: 'Est. Total THC', value: `${Math.round(totalThc)}<span class="text-sm text-muted">mg</span>` },
-        { label: 'Total Quick Hits', value: `<span style="color:var(--amber)">${qhCount}</span>` },
+        { label: 'Total Mini Sessions', value: `<span style="color:var(--amber)">${qhCount}</span>` },
       ]
     },
     {
@@ -1531,7 +1535,7 @@ function renderStats() {
         { label: 'Avg Hits / Session', value: avgHitsPerSess.toFixed(1) },
         { label: 'Avg THC / Session', value: `${avgThcPerSess.toFixed(1)}<span class="text-sm text-muted">mg</span>` },
         { label: 'Avg Feel', value: `${avgFeel.toFixed(1)}<span class="text-sm text-muted">/10</span>` },
-        { label: 'Quick Hit Rate', value: `${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span>` },
+        { label: 'Mini Session Rate', value: `${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span>` },
       ]
     },
     {
@@ -1566,7 +1570,7 @@ let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 function getPlannedDayStatus(dStr) {
   if (plannedBreaks.includes(dStr)) return { key: 'no-smoke', label: 'No-Smoke 🚭Day', icon: '🚭' };
   if (sessionAllowedDays.includes(dStr)) return { key: 'session', label: 'Session🔥Day', icon: '🔥' };
-  return { key: 'quick-hit', label: 'Quick-Hit⚡only Day', icon: '⚡' };
+  return { key: 'quick-hit', label: 'Mini-Session⚡only Day', icon: '⚡' };
 }
 
 function renderCalendar() {
@@ -1618,7 +1622,7 @@ function renderCalendar() {
     const activity = [
       { label: 'DAY', hits: dm.dayHits || 0, color: 'day' },
       { label: 'NIGHT', hits: dm.nightHits || 0, color: 'night' },
-      { label: 'QH', hits: dm.quickHitHits || 0, color: 'quick-hit' }
+      { label: 'MS', hits: dm.quickHitHits || 0, color: 'quick-hit' }
     ].filter(item => item.hits > 0);
     const activityLabel = activity.length ? activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`).join(', ') : 'No recorded use';
     const activityHtml = activity.map(item => `
@@ -1690,7 +1694,7 @@ function showCalDetailsPane(dStr) {
     <div class="card-title">${dObj.toDateString()} ${fuckIts.includes(dStr) ? '<span style="color:var(--amber);">⚠️ Bypassed Lock</span>' : ''}</div>
     <div class="flex-row mb-16"><div class="stat glass" style="flex:1;padding:10px;">Est. THC: ${totalThc}mg</div></div>
     ${dSess.map(s=>{
-      const qb = s.isQuickHit ? '⚡ Quick Hit' : s.method;
+      const qb = s.isQuickHit ? '⚡ Mini Session' : s.method;
       return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name||'Unknown'} (${s.mode}) [${qb}] - ${s.hits.length} doses</div>`;
     }).join('')}
     ${statusHtml}
@@ -2114,6 +2118,7 @@ function renderSettings() {
   setVal('s-bodyfat', settings.bodyFat || '');
 
   setVal('s-maxHits', settings.maxHits);
+  setVal('s-maxMiniSessionHits', settings.maxMiniSessionHits);
   setVal('s-sessPerWeek', settings.sessPerWeek);
   setVal('s-quickHitsPerWeek', settings.quickHitsPerWeek);
   setVal('s-quickHitTBreak', settings.quickHitTBreak);
@@ -2178,6 +2183,10 @@ function saveSettings(silent = false) {
   settings.font = getVal('s-font');
 
   settings.maxHits = getInt('s-maxHits', settings.maxHits);
+  const maxMiniSessionHits = getInt('s-maxMiniSessionHits', settings.maxMiniSessionHits);
+  settings.maxMiniSessionHits = Number.isFinite(maxMiniSessionHits)
+    ? Math.min(20, Math.max(1, maxMiniSessionHits))
+    : DEFAULT_SETTINGS.maxMiniSessionHits;
   settings.sessPerWeek = getInt('s-sessPerWeek', settings.sessPerWeek);
   settings.quickHitsPerWeek = getInt('s-quickHitsPerWeek', settings.quickHitsPerWeek);
   settings.quickHitTBreak = getInt('s-quickHitTBreak', settings.quickHitTBreak);

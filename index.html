@@ -253,7 +253,7 @@
           
           <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" disabled onclick="openConfigModal(true, 'normal')">Start Session</button>
-            <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Quick Hit ⚡</button>
+            <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Mini Session ⚡</button>
           </div>
         </div>
 
@@ -405,8 +405,8 @@
                     <span><i class="calendar-key-swatch day"></i>Day session</span>
                     <span><i class="calendar-key-swatch night"></i>Night session</span>
                     <span><i class="calendar-key-swatch both"></i>Day + night</span>
-                    <span><i class="calendar-key-swatch quick-hit"></i>Quick hit (QH)</span>
-                    <span><b>⚡</b>Quick-hit-only plan</span>
+                    <span><i class="calendar-key-swatch quick-hit"></i>Mini Session (MS)</span>
+                    <span><b>⚡</b>Mini-Session-only plan</span>
                     <span><b>🔥</b>Session allowed</span>
                     <span><b>🚭</b>No-smoke plan</span>
                 </div>
@@ -693,8 +693,8 @@
           
           <div class="settings-group mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
               <div class="settings-label-col">
-                  <div class="settings-title">⚡ Allow Quick Hits</div>
-                  <div class="settings-desc">Enable taking a single microdose without a session.</div>
+                  <div class="settings-title">⚡ Allow Mini Sessions</div>
+                  <div class="settings-desc">Enable short sessions without starting a full session.</div>
               </div>
               <div class="settings-control-col">
                   <label class="toggle"><input type="checkbox" id="s-allowQuickHit" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
@@ -702,8 +702,8 @@
           </div>
           <div class="settings-group">
               <div class="settings-label-col">
-                  <div class="settings-title">Max Quick Hits</div>
-                  <div class="settings-desc">Weekly limit for quick microdoses.</div>
+                  <div class="settings-title">Max Mini Sessions per Week</div>
+                  <div class="settings-desc">Weekly limit for Mini Sessions.</div>
               </div>
               <div class="settings-control-col">
                   <input class="num-input glass" type="number" id="s-quickHitsPerWeek" min="0" max="20" onchange="saveSettings(true)">
@@ -711,8 +711,17 @@
           </div>
           <div class="settings-group">
               <div class="settings-label-col">
-                  <div class="settings-title">⚡ Quick Hit Lockout</div>
-                  <div class="settings-desc">Days to lock quick hits after use.</div>
+                  <div class="settings-title">Max Hits per Mini Session</div>
+                  <div class="settings-desc">Maximum hits allowed in a Mini Session (default: 2).</div>
+              </div>
+              <div class="settings-control-col">
+                  <input class="num-input glass" type="number" id="s-maxMiniSessionHits" min="1" max="20" onchange="saveSettings(true)">
+              </div>
+          </div>
+          <div class="settings-group">
+              <div class="settings-label-col">
+                  <div class="settings-title">⚡ Mini Session Lockout</div>
+                  <div class="settings-desc">Days to lock Mini Sessions after use.</div>
               </div>
               <div class="settings-control-col">
                   <input class="num-input glass" type="number" id="s-quickHitTBreak" min="0" max="7" onchange="saveSettings(true)">
@@ -850,7 +859,7 @@
             </div>
 
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title" style="color:var(--red);">Hardcore Absolute Lockout</div><div class="settings-desc">Permanently disables Bypasses and Quick Hits while toggled on.</div></div>
+                <div class="settings-label-col"><div class="settings-title" style="color:var(--red);">Hardcore Absolute Lockout</div><div class="settings-desc">Permanently disables Bypasses and Mini Sessions while toggled on.</div></div>
                 <div class="settings-control-col"><label class="toggle red-toggle"><input type="checkbox" id="s-hardcoreLockout" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
             </div>
         </div>
