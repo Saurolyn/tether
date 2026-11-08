@@ -193,6 +193,7 @@ input, select, textarea { background: var(--bg3); border: 0.5px solid var(--bord
 .calendar-plan-status.session { color: var(--green); background: var(--green-bg); border-color: var(--green-border); }
 .cal-cell { position: relative; }
 .cal-cell-inner { width: 100%; height: 100%; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; position: relative; z-index: 1; }
+.cal-day-label { color: var(--text2); font: 700 8px/1 var(--app-font); }
 .cal-day-name { font-size: 8px; line-height: 1; letter-spacing: 0.08em; font-weight: 700; color: var(--text3); text-transform: uppercase; }
 .cal-date-num { font-size: 12px; line-height: 1; }
 .cal-activity { display: flex; flex-direction: column; gap: 2px; width: 90%; max-width: 90%; }
@@ -224,8 +225,15 @@ input, select, textarea { background: var(--bg3); border: 0.5px solid var(--bord
 .lock-action-desc { font-size: 11px; color: var(--text3); }
 
 /* Grid Layout for Pens */
-#pens-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: start;}
-.pen-col { display: flex; flex-direction: column; gap: 16px; }
+#pens-grid-container { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;}
+.pen-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; align-items: start; }
+.pen-col-header { grid-column: 1 / -1; }
+.pen-draw-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.token-status-list { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-start; }
+.token-status-item { font-weight: 700; }
+.token-status-item.ready { color: var(--green); }
+.token-status-item.used { color: var(--amber); }
+.token-countdown { margin-top: 4px; color: var(--text2); font-size: 12px; font-weight: 400; }
 .pen-col-header { font-family: 'Unbounded', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text2); letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px dashed var(--border2); padding-bottom: 8px;}
 
 /* Restored Sidebar Mobile Responsiveness Layer */

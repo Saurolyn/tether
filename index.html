@@ -41,11 +41,12 @@
     </div>
     <p class="text-sm text-muted mb-24">Tether is a mindful consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive habits.</p>
     <h3 class="mb-8" style="color:var(--accent);">1. The Core Loop & Intentions</h3>
-    <p class="text-sm text-muted mb-24">Complete your Pre-Flight Routine to unlock your daily session. You must select a Focus Task before starting to ensure you have a goal while elevated. When finished, hit End Session & Log to recap your feelings and task completion.</p>
+    <p class="text-sm text-muted mb-24">Complete the checklist for your chosen Session or Mini Session. Each pool resets Monday. Used tokens begin cooling when the session starts, even if discarded or the first draw is cancelled. Fuck It tokens start extra full Sessions and reset on the first of each month. They bypass breaks and cooldowns, but never Hardcore Lockout or the Session checklist.</p>
     <h3 class="mb-8" style="color:var(--accent);">2. Methods (Vape, Joint, Edible)</h3>
     <p class="text-sm text-muted mb-24">Tether adapts to your method. Vapes use timed breathing cycles. Joints log generic hits and duration. Edibles ask for straight milligram dosage and bypass breathing visuals entirely.</p>
-    <h3 class="mb-8" style="color:var(--accent);">3. Ween-Off Protocol & T-Breaks</h3>
-    <p class="text-sm text-muted mb-24">If you configure a Yearly T-Break month in Settings, Tether will automatically activate "Ween-Off Mode" exactly one month prior. This mode slowly halves your limits and increases wait times to prepare your tolerance.</p>
+    <p class="text-sm text-muted mb-24">Cart THC vaporized is estimated using draw seconds × 1.2–2.2 mg oil per second × THC fraction. The displayed average is the midpoint of this illustrative range, not a measured value or a prediction of absorbed THC. Flower hits have no timed estimate, and edible label amounts are shown separately. Hits with a recorded THC percentage retain it; older hits use their linked profile's current percentage, so editing that profile can change past estimates. Methodless hits linked to a cart profile are treated as cart hits. Missing or invalid data cannot produce an estimate.</p>
+    <h3 class="mb-8" style="color:var(--accent);">3. Tokens &amp; Calendar</h3>
+    <p class="text-sm text-muted mb-24">Configure tokens, per-session waits, hit limits, cooldowns and strict breaks in Settings. An optional Fuck It penalty begins when the session starts. Calendar day plans remain reminders, not restrictions. Future availability assumes no new sessions or settings changes. Existing history is preserved.</p>
   </div>
 </div>
 
@@ -76,23 +77,23 @@
 
     <div class="form-group mb-16" id="config-pen-group">
       <label>Select Profile/Pen</label>
-      <select id="config-pen" class="glass"></select>
+      <select id="config-pen" class="glass" onchange="updateConfigDoseOptions()"></select>
     </div>
 
     <div class="form-group mb-16" id="config-dose-vape">
       <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
-        <label style="margin:0;">Select Dose Size</label>
+        <label style="margin:0;">Select Draw Time</label>
         <button class="btn btn-ghost btn-sm" onclick="openDoseGuide()" style="padding:2px 6px; font-size:10px;">[?] Guide</button>
       </div>
       <select id="config-dose" class="glass" onchange="checkDoseWarning()"></select>
       <div id="dose-warning" class="alert warn" style="display:none; margin-top:8px;">
         <span class="alert-icon">⚠</span>
-        <span>High doses in Daytime mode are not recommended. Proceed with caution.</span>
+        <span>A longer timed draw can increase exposure. Effects vary; do not drive or operate machinery while impaired.</span>
       </div>
     </div>
 
     <div class="form-group mb-16" id="config-dose-edible" style="display:none;">
-      <label>Estimated THC Amount (mg)</label>
+      <label>Label THC Amount (mg)</label>
       <input type="number" id="config-edible-mg" class="glass" placeholder="e.g. 10" min="1" step="0.5">
     </div>
 
@@ -132,7 +133,19 @@
            <option value="other">Other / Tincture</option>
         </select>
     </div>
-    <div class="form-group mb-16"><label>THC %</label><input type="number" id="edit-pen-thc" class="glass"></div>
+    <div class="form-group mb-16"><label>THC %</label><input type="number" id="edit-pen-thc" min="0" max="100" step="any" class="glass"></div>
+    <div class="card-title">Draw-Time Presets</div>
+    <p class="text-sm text-muted mb-16">Set these separately for this pen/profile. They are personal timer presets, not standardized doses or effect guarantees.</p>
+    <div class="form-row flex-row gap-8 mb-16">
+      <div class="form-group" style="flex:1;"><label>Low Draw (sec)</label><input type="number" id="edit-pen-draw-low" class="glass" min="1" max="60" step="1"></div>
+      <div class="form-group" style="flex:1;"><label>Medium Draw (sec)</label><input type="number" id="edit-pen-draw-med" class="glass" min="1" max="60" step="1"></div>
+      <div class="form-group" style="flex:1;"><label>High Draw (sec)</label><input type="number" id="edit-pen-draw-high" class="glass" min="1" max="60" step="1"></div>
+    </div>
+    <div class="settings-group mb-16">
+      <div class="settings-label-col"><div class="settings-title">Enable Diablo Draw</div></div>
+      <div class="settings-control-col"><label class="toggle purple-toggle"><input type="checkbox" id="edit-pen-diablo-enabled"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+    </div>
+    <div class="form-group mb-16"><label>Diablo Draw (sec)</label><input type="number" id="edit-pen-draw-diablo" class="glass" min="1" max="60" step="1"></div>
     <div class="form-group mb-16"><label>CBD %</label><input type="number" id="edit-pen-cbd" class="glass"></div>
     <div class="form-group mb-16">
         <label>Custom Compound %</label>
@@ -152,12 +165,10 @@
 <div class="modal-overlay glass" id="setup-modal">
   <div class="modal glass">
     <div class="modal-title" style="color:var(--accent)">Welcome to Tether.</div>
-    <p class="mb-24" style="color:var(--text2)">Let's personalize your experience. Add your name, physical traits, and your first profile to start tracking.</p>
+    <p class="mb-24" style="color:var(--text2)">Let's personalize your experience. Add your name and first profile to start tracking.</p>
     
     <div class="form-row flex-row gap-8 mb-16">
-        <div class="form-group" style="flex:2;"><label>Your Name</label><input type="text" id="setup-user-name" placeholder="e.g. John" class="glass"></div>
-        <div class="form-group" style="flex:1;"><label>Weight (lbs)</label><input type="number" id="setup-weight" placeholder="150" class="glass"></div>
-        <div class="form-group" style="flex:1;"><label>Body Fat %</label><input type="number" id="setup-bodyfat" placeholder="20" class="glass"></div>
+        <div class="form-group" style="flex:1;"><label>Your Name</label><input type="text" id="setup-user-name" placeholder="e.g. John" class="glass"></div>
     </div>
     
     <div class="form-row flex-row gap-8 mb-16">
@@ -174,18 +185,11 @@
     </div>
     
     <div class="form-row flex-row gap-8 mb-16">
-      <div class="form-group" style="flex:1;"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" step="0.1" class="glass"></div>
+      <div class="form-group" style="flex:1;"><label>Est. THC %</label><input type="number" id="setup-pen-thc" placeholder="e.g. 75" min="0" max="100" step="any" class="glass"></div>
       <div class="form-group" style="flex:1;"><label>CBD %</label><input type="number" id="setup-pen-cbd" placeholder="0" step="0.1" class="glass"></div>
       <div class="form-group" style="flex:1;"><label>Terpene %</label><input type="number" id="setup-pen-terp" placeholder="0" step="0.1" class="glass"></div>
     </div>
 
-    <div class="form-group mb-24"><label>Your THC Tolerance</label>
-        <select id="setup-user-tolerance" class="glass">
-            <option value="low">Low (Beginner / Sensitive)</option>
-            <option value="medium" selected>Medium (Regular)</option>
-            <option value="high">High (Daily / Frequent)</option>
-        </select>
-    </div>
     <button class="btn btn-primary btn-block" onclick="completeSetup()">Start Using Tether</button>
   </div>
 </div>
@@ -195,7 +199,7 @@
 </div>
 
 <div class="sidebar glass" id="sidebar-nav">
-  <div class="logo">TETHER&trade; v.&#959;</div>
+  <div class="logo">TETHER&trade; v.π</div>
   <div class="gamma-banner">Trip Safety Tracker </div>
 
   <nav class="nav mt-16">
@@ -223,7 +227,6 @@
     <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
     <div class="topbar-title" id="topbar-title">Dashboard</div>
     <div class="topbar-right">
-      <div class="mode-badge" id="ween-badge" style="display:none; background:rgba(162,117,255,0.15); color:var(--purple); border:0.5px solid var(--purple);">📉 WEEN-OFF ACTIVE</div>
       <div class="mode-badge night" id="mode-badge">☽ NIGHT MODE</div>
     </div>
   </div>
@@ -236,24 +239,20 @@
     </div>
 
     <div class="stat-grid" id="dash-stats"></div>
+    <div class="card glass"><div class="card-title">Token Status</div><div id="dash-token-status"></div></div>
     
-    <div class="card glass text-center" id="dashboard-lock" style="display:none; border-color:var(--red);">
-      <h2 style="font-family:'Unbounded',sans-serif; color:var(--red); font-size:28px; margin-bottom:12px;" id="lock-title">Session Locked.</h2>
-      <p style="color:var(--text2); margin-bottom:24px;" id="lock-msg">Your session features are currently locked.</p>
-      <div class="timer-display" id="lock-countdown">--:--:--</div>
-      <div id="lock-overrides-container"></div>
-    </div>
-
     <div class="two-col" id="dashboard-main-content">
       <div>
         <div class="card glass" id="session-card-idle">
           <div class="card-title">Start a Session</div>
-          <div class="text-muted mb-16 text-sm">Complete your daily routine to unlock. Ensure you have tasks populated in the Tasks tab.</div>
+          <div class="text-muted mb-16 text-sm">Complete your applicable routine to unlock either token type.</div>
           <div id="preflight-list" class="mb-24 flex-col gap-8"></div>
+          <div id="token-start-reasons" class="text-sm text-muted"></div>
           
           <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" disabled onclick="openConfigModal(true, 'normal')">Start Session</button>
             <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Mini Session ⚡</button>
+            <button class="btn btn-ghost" id="btn-fuck-it" style="flex:1; min-width:140px; padding:16px;font-size:16px;" onclick="openConfigModal(true, 'fuckit')">Fuck It ⚠️</button>
           </div>
         </div>
 
@@ -268,8 +267,8 @@
                 <span class="session-stat-lbl">Hits Taken</span>
               </div>
               <div class="session-stat">
-                <span class="session-stat-val" id="active-thc">0</span>
-                <span class="session-stat-lbl">Est. mg THC</span>
+                <span class="session-stat-val" id="active-thc" style="font-size:14px;">No THC logged</span>
+                <span class="session-stat-lbl">THC Summary</span>
               </div>
             </div>
             
@@ -342,7 +341,7 @@
         
         <div class="stat-grid mb-24">
           <div class="stat glass"><div class="stat-label">Total Hits</div><div class="stat-value" id="recap-hits">0</div></div>
-          <div class="stat glass"><div class="stat-label">Total Est. THC</div><div class="stat-value" id="recap-thc">0mg</div></div>
+          <div class="stat glass"><div class="stat-label">THC Summary</div><div class="text-sm" id="recap-thc">No THC logged</div></div>
           <div class="stat glass"><div class="stat-label">Total Time</div><div class="stat-value" id="recap-time">0m</div></div>
         </div>
 
@@ -392,6 +391,8 @@
   </div>
   
   <div class="content" id="tab-calendar">
+      <div class="card glass"><div class="card-title">Token Status Now</div><div id="calendar-token-status"></div></div>
+      <div class="alert warn mb-16">Weekly token allowances reset Monday at midnight; token cooldowns continue through the reset.</div>
       <div class="two-col">
           <div class="card glass">
             <div class="flex-row mb-24"><button class="btn btn-ghost" onclick="calPrev()">← Prev</button><div style="flex:1;text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;font-size:18px" id="cal-month-lbl"></div><button class="btn btn-ghost" onclick="calNext()">Next →</button></div>
@@ -402,13 +403,14 @@
             <div class="calendar-key" aria-label="Calendar key">
                 <div class="calendar-key-title">KEY</div>
                 <div class="calendar-key-items">
-                    <span><i class="calendar-key-swatch day"></i>Day session</span>
-                    <span><i class="calendar-key-swatch night"></i>Night session</span>
-                    <span><i class="calendar-key-swatch both"></i>Day + night</span>
-                    <span><i class="calendar-key-swatch quick-hit"></i>Mini Session (MS)</span>
-                    <span><b>⚡</b>Mini-Session-only plan</span>
-                    <span><b>🔥</b>Session allowed</span>
+                    <span><i class="calendar-key-swatch night"></i>Session</span>
+                    <span><i class="calendar-key-swatch both"></i>Session + Mini Session</span>
+                    <span><i class="calendar-key-swatch quick-hit"></i>Mini Session</span>
+                    <span><b>⚡</b>Mini Session plan</span>
+                    <span><b>🔥</b>Session plan</span>
                     <span><b>🚭</b>No-smoke plan</span>
+                    <span><b>🔄</b>Token cooldown ends / monthly reset</span>
+                    <span><b>🔒</b>Strict break</span>
                 </div>
             </div>
           </div>
@@ -417,36 +419,37 @@
   </div>
   
   <div class="content" id="tab-clearance">
-      <div class="card glass text-center mb-24" style="border-color:var(--green-border);">
-         <div class="text-sm text-muted mb-8 text-uppercase" style="letter-spacing:1px;font-weight:bold;">Absolute Clearance (10-Day Formula)</div>
-         <div style="font-size: 42px; font-weight: 800; font-family: 'Unbounded', sans-serif; color: var(--green); letter-spacing: -1px;" id="cl-time-to-clear">--:--:--</div>
-         <div class="text-sm text-muted mt-8">This counts down strictly 240 hours (10 days) from your last recorded hit.</div>
+      <div class="card glass text-center mb-24">
+         <div class="text-sm text-muted mb-8 text-uppercase" style="letter-spacing:1px;font-weight:bold;">Time Since Last Logged Use</div>
+         <div style="font-size: 24px; font-weight: 800; font-family: 'Unbounded', sans-serif; color: var(--text); letter-spacing: -1px;" id="cl-time-to-clear">--</div>
+         <div class="text-sm text-muted mt-8">Last recorded use: <span id="cl-last-use">No use logged</span></div>
          <div class="alert warn mt-16 text-left" style="margin: 24px auto 0; max-width:600px;">
-             <strong>Disclaimer:</strong> Pharmacokinetic data is estimated based on entered weight, body fat, and tolerance limits. Do not rely on this countdown for legal or employment purposes.
+             <strong>Important:</strong> This tracker cannot predict impairment or whether a saliva or urine test will be negative. Detection depends on the test and cutoff, dose, route, frequency of use, and individual factors. Do not rely on elapsed time for driving, work, or legal decisions.
          </div>
+      </div>
+      <div class="card glass">
+          <div class="form-group">
+              <label for="cl-frequency">Typical use frequency</label>
+              <select id="cl-frequency" class="glass" onchange="saveClearanceFrequency()">
+                  <option value="">Select frequency</option>
+                  <option value="single">Single use</option>
+                  <option value="weekly">About 3 times per week</option>
+                  <option value="daily">Daily</option>
+                  <option value="heavy">Very heavy use</option>
+              </select>
+              <div class="text-sm text-muted mt-8">Frequency is used for broad reference windows; self-rated tolerance does not reliably predict a test result.</div>
+          </div>
       </div>
       <div class="two-col">
           <div class="card glass">
-              <div class="flex-row mb-16" style="justify-content:space-between; align-items:center; gap:12px;">
-                  <div class="card-title" style="margin:0;">Saliva / Mouth Swab</div>
-                  <div class="clearance-marker-row" id="cl-saliva-markers"></div>
-              </div>
+              <div class="card-title mb-16">Saliva / Mouth Swab</div>
               <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-saliva-status">--</div>
-              <div class="text-sm text-muted" id="cl-saliva-desc"></div>
-              <div class="clearance-progress-bg" style="position:relative;">
-                  <div class="clearance-progress-fill" id="cl-saliva-bar"></div>
-              </div>
+              <div class="text-sm text-muted">A general published example, not an upper limit or an individual prediction. Some results may differ. <a href="https://www.testing.com/tests/marijuana-thc-testing/" target="_blank" rel="noopener noreferrer">Source</a>.</div>
           </div>
           <div class="card glass">
-              <div class="flex-row mb-16" style="justify-content:space-between; align-items:center; gap:12px;">
-                  <div class="card-title" style="margin:0;">Urine Test</div>
-                  <div class="clearance-marker-row" id="cl-urine-markers"></div>
-              </div>
+              <div class="card-title mb-16">Urine Test</div>
               <div style="font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="cl-urine-status">--</div>
-              <div class="text-sm text-muted" id="cl-urine-desc"></div>
-              <div class="clearance-progress-bg" style="position:relative;">
-                  <div class="clearance-progress-fill" id="cl-urine-bar"></div>
-              </div>
+              <div class="text-sm text-muted">Illustrative detection window for the selected frequency, not a prediction or guarantee. Urine tests commonly target THC metabolites, not impairment. <a href="https://www.aafp.org/pubs/afp/issues/2019/0101/p33.html" target="_blank" rel="noopener noreferrer">Source</a>.</div>
           </div>
       </div>
   </div>
@@ -476,7 +479,7 @@
                  <option value="other">Other / Tincture</option>
               </select>
           </div>
-          <div class="form-group" style="flex:1;"><label>THC %</label><input type="number" id="pen-thc" class="glass" placeholder="e.g. 75"></div>
+          <div class="form-group" style="flex:1;"><label>THC %</label><input type="number" id="pen-thc" min="0" max="100" step="any" class="glass" placeholder="e.g. 75"></div>
           <div class="form-group" style="flex:1;"><label>CBD % (Opt)</label><input type="number" id="pen-cbd" class="glass" placeholder="0"></div>
         </div>
         <div class="flex-row gap-8 mb-16" style="align-items:flex-end;">
@@ -500,7 +503,7 @@
   <div class="content" id="tab-routine">
     <div class="two-col">
       <div class="card glass"><div class="card-title">Pre-Flight Routine</div>
-        <p class="text-sm text-muted mb-16">Items checked here reset daily and MUST be completed to unlock your dashboard session.</p>
+        <p class="text-sm text-muted mb-16">Checks reset daily. Complete the items for your chosen session type and Both.</p>
         <div id="routine-list"></div>
         <button class="btn btn-ghost btn-sm mt-16" onclick="resetRoutine()">Reset Checks</button>
       </div>
@@ -511,9 +514,9 @@
            <div class="flex-row gap-8 mt-8">
              <input type="text" id="new-habit-input" placeholder="e.g. Drink a glass of water" class="glass" style="flex:1;">
              <select id="new-habit-mode" class="glass" style="width:140px;">
-               <option value="all">All Sessions</option>
-               <option value="day">Day Only</option>
-               <option value="night">Night Only</option>
+               <option value="all">Both</option>
+               <option value="mini">Mini Session</option>
+               <option value="session">Session</option>
              </select>
            </div>
         </div>
@@ -582,22 +585,6 @@
                 <div class="settings-control-col"><input class="glass" type="text" id="s-username" onchange="saveSettings(true)" style="width:140px; text-align:right;"></div>
             </div>
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Default Tolerance</div></div>
-                <div class="settings-control-col">
-                    <select id="s-tolerance" class="glass" onchange="saveSettings(true)">
-                        <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
-                    </select>
-                </div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Weight (lbs)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-weight" placeholder="150" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Body Fat %</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-bodyfat" placeholder="20" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
                 <div class="settings-label-col"><div class="settings-title">App Font Face</div></div>
                 <div class="settings-control-col">
                     <select id="s-font" class="glass" onchange="saveSettings(true)">
@@ -661,6 +648,21 @@
         </div>
 
         <div class="settings-card glass" style="border-top: 4px solid var(--amber);">
+          <div class="card-title" style="color:var(--amber);">Tokens &amp; Cooldowns</div>
+          <p class="text-sm text-muted mb-16">Weekly allowances reset Monday. Existing cooldowns continue even if settings change or a new week starts.</p>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Session Tokens per Week</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-sessionTokensPerWeek" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Mini Session Tokens per Week</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-miniTokensPerWeek" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Tokens per Month</div><div class="settings-desc">Reset on the first of each month; start an extra full Session.</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-fuckItTokensPerMonth" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Penalty</div><div class="settings-desc">Optional break starting when a Fuck It session starts.</div></div><div class="settings-control-col"><label class="toggle"><input type="checkbox" id="s-fuckItPenaltyEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Penalty (days)</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-fuckItPenaltyDays" min="1" max="30" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Hits per Session</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenMaxHits" min="1" max="20" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Hits per Mini Session</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenMiniHits" min="1" max="20" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Token Cooldown (hours)</div><div class="settings-desc">Applies to each newly used token.</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenCooldownHours" min="0" max="720" step="1" onchange="saveSettings(true)"></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Automatic Global Cooldown</div><div class="settings-desc">After starting either session, temporarily blocks both token types.</div></div><div class="settings-control-col"><label class="toggle"><input type="checkbox" id="s-globalCooldownEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div></div>
+          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Global Cooldown (hours)</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-globalCooldownHours" min="0" max="720" step="1" onchange="saveSettings(true)"></div></div>
+        </div>
+
+        <div class="settings-card glass" style="display:none; border-top: 4px solid var(--amber);">
           <div class="card-title" style="color:var(--amber);">Overrides & Quick Actions</div>
           
           <div class="settings-group">
@@ -730,51 +732,21 @@
         </div>
 
         <div class="settings-card glass" style="border-top: 4px solid var(--green);">
-            <div class="flex-row" style="justify-content:space-between; align-items:center; margin-bottom: 20px;">
-               <div class="card-title" style="margin:0; color:var(--green)">Hit Customization</div>
-               <label class="toggle" style="display:flex; align-items:center; gap:8px;" title="Auto-adjust hit times based on 14-day usage">
-                  <span style="font-size:10px; color:var(--accent); text-transform:uppercase; font-weight:700;">Auto-Tune</span>
-                  <div style="position:relative; width:36px; height:20px;">
-                    <input type="checkbox" id="s-autoTuneDosing" onchange="saveSettings(true)">
-                    <div class="toggle-track" style="border-radius:10px;"></div><div class="toggle-thumb" style="width:14px; height:14px; top:2px; left:2px;"></div>
-                  </div>
-               </label>
-            </div>
-            
+            <div class="card-title" style="margin-bottom:16px; color:var(--green)">Session Timing</div>
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Low Dose (Secs)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-doseLow" min="1" max="15" onchange="saveSettings(true)"></div>
+                <div class="settings-label-col"><div class="settings-title">Session Wait Timer (Mins)</div></div>
+                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-sessionWait" min="1" max="240" onchange="saveSettings(true)"></div>
             </div>
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Med Dose (Secs)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-doseMed" min="1" max="20" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">High Dose (Secs)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-doseHigh" min="1" max="20" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title" style="color:var(--purple);">Enable Diablo Dose</div><div class="settings-desc">Extreme hit setting enabled in views.</div></div>
-                <div class="settings-control-col"><label class="toggle purple-toggle"><input type="checkbox" id="s-diabloEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
-            </div>
-            <div class="settings-group" id="diablo-row">
-                <div class="settings-label-col"><div class="settings-title" style="color:var(--purple);">Diablo Dose (Secs)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-doseDiablo" min="1" max="30" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Night Wait Timer (Mins)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-nightWait" min="5" max="120" onchange="saveSettings(true)"></div>
-            </div>
-            <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Day Wait Timer (Mins)</div></div>
-                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-dayWait" min="5" max="120" onchange="saveSettings(true)"></div>
+                <div class="settings-label-col"><div class="settings-title">Mini Session Wait Timer (Mins)</div></div>
+                <div class="settings-control-col"><input class="num-input glass" type="number" id="s-miniWait" min="1" max="240" onchange="saveSettings(true)"></div>
             </div>
             <div class="settings-group" style="border-top:1px dashed var(--border2); padding-top:16px;">
-                <div class="settings-label-col"><div class="settings-title">Daytime Session Starts</div><div class="settings-desc">Local time when Day Mode begins.</div></div>
+                <div class="settings-label-col"><div class="settings-title">Day Theme Starts</div><div class="settings-desc">Local time when the day theme begins.</div></div>
                 <div class="settings-control-col"><input class="glass" type="time" id="s-dayStart" onchange="saveSettings(true)"></div>
             </div>
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Nighttime Session Starts</div><div class="settings-desc">Local time when Night Mode begins.</div></div>
+                <div class="settings-label-col"><div class="settings-title">Night Theme Starts</div><div class="settings-desc">Local time when the night theme begins.</div></div>
                 <div class="settings-control-col"><input class="glass" type="time" id="s-nightStart" onchange="saveSettings(true)"></div>
             </div>
         </div>
@@ -783,7 +755,7 @@
 
       <div>
           
-        <div class="settings-card glass" style="border-top: 4px solid var(--accent);">
+        <div class="settings-card glass" style="display:none; border-top: 4px solid var(--accent);">
           <div class="card-title" style="color:var(--accent);">Smoking Limits</div>
           
           <div class="settings-group">
@@ -815,7 +787,7 @@
             <div class="card-title" style="color:var(--purple);">Breaks & Protocols</div>
             
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title">Yearly T-Break Month</div><div class="settings-desc">Annual 30-day block.</div></div>
+                <div class="settings-label-col"><div class="settings-title">Yearly T-Break Month</div><div class="settings-desc">Blocks sessions during the chosen calendar month.</div></div>
                 <div class="settings-control-col">
                     <select id="s-yearlyBreakMonth" class="glass" onchange="saveSettings(true)">
                         <option value="none">Disabled</option>
@@ -827,7 +799,7 @@
                 </div>
             </div>
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title" style="color:var(--purple);">Activate Ween-Off Protocol</div><div class="settings-desc">Slashes limits 1 month prior to Yearly Break.</div></div>
+                <div class="settings-label-col"><div class="settings-title" style="color:var(--purple);">Activate Ween-Off Protocol</div><div class="settings-desc">Month before the yearly break: halves weekly Session and Mini token limits and hit caps (minimum 1), doubles waits, and shortens draw presets by 25% (minimum 1 second).</div></div>
                 <div class="settings-control-col"><label class="toggle purple-toggle"><input type="checkbox" id="s-weenOffEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
             </div>
             
@@ -850,7 +822,7 @@
             </div>
 
             <div class="settings-group mt-16">
-                <div class="settings-label-col mb-8"><div class="settings-title">Manual Strict Break Range</div><div class="settings-desc">Blocks dashboard. Clears automatically on 1st of month.</div></div>
+                <div class="settings-label-col mb-8"><div class="settings-title">Manual Strict Break Range</div><div class="settings-desc">Blocks normal sessions for the inclusive date range.</div></div>
             </div>
             <div class="flex-row gap-8 pb-16" style="border-bottom:1px solid var(--border2);">
                <input type="date" id="s-breakStart" class="glass" style="flex:1;" onchange="saveSettings(true)">
@@ -859,7 +831,7 @@
             </div>
 
             <div class="settings-group">
-                <div class="settings-label-col"><div class="settings-title" style="color:var(--red);">Hardcore Absolute Lockout</div><div class="settings-desc">Permanently disables Bypasses and Mini Sessions while toggled on.</div></div>
+                <div class="settings-label-col"><div class="settings-title" style="color:var(--red);">Hardcore Absolute Lockout</div><div class="settings-desc">Blocks all new sessions, including Fuck It tokens, while enabled.</div></div>
                 <div class="settings-control-col"><label class="toggle red-toggle"><input type="checkbox" id="s-hardcoreLockout" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
             </div>
         </div>

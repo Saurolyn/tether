@@ -20,14 +20,20 @@ const WACKY_NAMES = ["Alaskan Thunderfuck", "Snoop's Dream", "Purple Space Dust"
 // ── State & Defaults ────────────────────────────────────────────────────────
 const DEFAULT_SETTINGS = { 
   maxHits: 4, maxMiniSessionHits: 2, sessPerWeek: 5, quickHitsPerWeek: 3, quickHitTBreak: 1, 
-  nightWait: 15, dayWait: 120, dayStart: '06:00', nightStart: '18:00', breakStart: null, breakEnd: null, tolerance: 'medium', 
-  diabloEnabled: false, doseDiablo: 10, autoTBreak: false, autoTBreakWeek: 4, 
+  sessionTokensPerWeek: 3, miniTokensPerWeek: 3, tokenCooldownHours: 24,
+  fuckItTokensPerMonth: 1, fuckItPenaltyEnabled: false, fuckItPenaltyDays: 3,
+  sessionWait: 15, miniWait: 15,
+  globalCooldownEnabled: false, globalCooldownHours: 24, clearanceFrequency: '',
+  nightWait: 15, dayWait: 120, dayStart: '06:00', nightStart: '18:00', breakStart: null, breakEnd: null,
+  autoTBreak: false, autoTBreakWeek: 4, 
   enforceWeeklyLimit: true, enforceRestDays: true, restDays: 2,
-  autoTuneDosing: false, doseLow: 3, doseMed: 5, doseHigh: 7,
   daySmokingEnabled: true, daySmokingDaysPerMonth: 5, nightSmokingEnabled: true,
   allowQuickHit: true, allowFuckIt: true, fuckItLimitPerMonth: 2, fuckItTBreak: 3, autoTBreakBypassedMonth: -1,
   theme: 'auto', font: "'Space Mono', monospace", largeText: false, yearlyBreakMonth: 'none', weenOffEnabled: false,
-  hardcoreLockout: false, weight: '', bodyFat: ''
+  hardcoreLockout: false
+};
+const DEFAULT_PEN_DRAW_SETTINGS = {
+  drawLow: 3, drawMed: 5, drawHigh: 7, drawDiablo: 10, diabloEnabled: false
 };
 
 const DEFAULT_EQUIPMENT = [
@@ -45,8 +51,8 @@ const DEFAULT_EQUIPMENT = [
 
 const DEFAULT_ROUTINE = [
   { id:'r1', text:'Drink a full glass of water', done:false, mode:'all' },
-  { id:'r5', text:'Finished all critical daytime work', done:false, mode:'day' },
-  { id:'r2', text:'No major commitments early tomorrow', done:false, mode:'night' },
+  { id:'r5', text:'Finished all critical daytime work', done:false, mode:'mini' },
+  { id:'r2', text:'No major commitments early tomorrow', done:false, mode:'session' },
   { id:'r3', text:'Completed a self-care task today', done:false, mode:'all' },
   { id:'r4', text:'I am not smoking to escape severe anxiety', done:false, mode:'all' }
 ];
@@ -60,7 +66,10 @@ const DEFAULT_RULES = [
 function ld(k,d) { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } }
 function sv(k,v) { localStorage.setItem(k,JSON.stringify(v)); }
 
-let settings = { ...DEFAULT_SETTINGS, ...ld('t2_settings', {}) };
+const savedSettings = ld('t2_settings', {});
+let settings = { ...DEFAULT_SETTINGS, ...savedSettings };
+if (!Object.prototype.hasOwnProperty.call(savedSettings, 'sessionWait')) settings.sessionWait = savedSettings.nightWait || DEFAULT_SETTINGS.sessionWait;
+if (!Object.prototype.hasOwnProperty.call(savedSettings, 'miniWait')) settings.miniWait = savedSettings.nightWait || DEFAULT_SETTINGS.miniWait;
 let username = ld('t2_username', 'User');
 let pens = ld('t2_pens', []); 
 let graveyard = ld('t2_graveyard', []);
@@ -73,6 +82,14 @@ let rules = ld('t2_rules', DEFAULT_RULES);
 let journalText = ld('t2_journal', '');
 let equipment = ld('t2_equipment', DEFAULT_EQUIPMENT);
 let routineChecks = ld('t2_routine', DEFAULT_ROUTINE);
+let routineMigrated = false;
+routineChecks.forEach(check => {
+  if (check.mode === 'day' || check.mode === 'night') {
+    check.mode = check.mode === 'day' ? 'mini' : 'session';
+    routineMigrated = true;
+  }
+});
+if (routineMigrated) sv('t2_routine', routineChecks);
 let plannedBreaks = ld('t2_planned_breaks', []); 
 let sessionAllowedDays = ld('t2_session_allowed_days', []);
 let fuckIts = ld('t2_fuckits', []); 
@@ -82,6 +99,7 @@ let fuckItLockoutUntil = ld('t2_fi_lockout', 0);
 
 let currentMode = 'night'; 
 let activeSession = ld('t2_activeSession', null);
+let tokenUses = ld('t2_token_uses', []);
 let waitTimerInterval = null;
 let lockTimerInterval = null;
 let quoteInterval = null;
@@ -89,9 +107,10 @@ let drawSequenceState = { timeout: null, interval: null };
 let selectedCalDate = null; 
 let emStep = 0; 
 let pendingConfigType = 'normal'; 
-let cachedClearanceStr = "--:--:--";
 
 // ── Helper Functions ────────────────────────────────────────────────────────
+const OIL_RATE_LOW = 1.2;
+const OIL_RATE_HIGH = 2.2;
 function ds(d) { const l = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)); return l.toISOString().slice(0,10); }
 function today() { return ds(new Date()); }
 function fmtTime(d) { return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
@@ -143,19 +162,140 @@ function formatStartTime(time) {
   return setTimeOnDate(new Date(), time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-function sumTHC(hitsArray, penObj, method = 'vape') {
-  if(!hitsArray) return 0;
-  let total = 0;
-  hitsArray.forEach(h => {
-      if (h.directMg) {
-          total += h.directMg;
-      } else if (penObj) {
-          const thcFraction = (penObj.thc || 0) / 100;
-          const rate = method === 'joint' ? 1.5 : 1.2;
-          total += (h.drawSeconds * rate * thcFraction);
+function validTHCPercent(value) {
+  const number = Number(value);
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(number) && number > 0 && number <= 100 ? number : null;
+}
+
+function calculateTHC(sessionList) {
+  const result = { low: 0, high: 0, vapeHits: 0, edibleMg: 0, edibleHits: 0, unavailable: 0, missingMethod: 0, missingPercent: 0, missingDuration: 0, unsupported: 0, profilePercentHits: 0, inferredMethodHits: 0 };
+  sessionList.forEach(session => {
+    (session.hits || []).forEach(hit => {
+      const method = hit.method || session.method;
+      const profile = penById(hit.penId || session.penId);
+      const inferredVape = !method && profile && profile.type === 'cart';
+      if (method === 'edible' || Number.isFinite(hit.directMg)) {
+        if (Number.isFinite(hit.directMg) && hit.directMg >= 0) {
+          result.edibleMg += hit.directMg;
+          result.edibleHits++;
+        } else result.unavailable++;
+      } else if (method === 'vape' || inferredVape) {
+        const recordedPercent = validTHCPercent(hit.thcPercent);
+        const percent = recordedPercent !== null ? recordedPercent : validTHCPercent(profile && profile.thc);
+        const seconds = Number(hit.drawSeconds);
+        if (percent !== null && Number.isFinite(seconds) && seconds > 0) {
+          result.low += seconds * OIL_RATE_LOW * percent / 100;
+          result.high += seconds * OIL_RATE_HIGH * percent / 100;
+          result.vapeHits++;
+          if (recordedPercent === null) result.profilePercentHits++;
+          if (inferredVape) result.inferredMethodHits++;
+        } else {
+          result.unavailable++;
+          if (percent === null) result.missingPercent++;
+          else result.missingDuration++;
+        }
+      } else {
+        result.unavailable++;
+        if (!method) result.missingMethod++;
+        else result.unsupported++;
       }
+    });
   });
-  return Math.round(total * 100) / 100; 
+  return result;
+}
+
+function formatTHCRange(low, high) {
+  return `${((low + high) / 2).toFixed(2)} mg (${low.toFixed(2)}–${high.toFixed(2)} mg)`;
+}
+
+function thcMissingDetails(result) {
+  const reasons = [];
+  if (result.missingMethod) reasons.push(`${result.missingMethod} missing method`);
+  if (result.missingPercent) reasons.push(`${result.missingPercent} missing THC % or linked profile`);
+  if (result.missingDuration) reasons.push(`${result.missingDuration} missing draw duration`);
+  if (result.unsupported) reasons.push(`${result.unsupported} non-cart hits`);
+  return reasons.length ? ` (${reasons.join(', ')})` : '';
+}
+
+function formatTHCSummary(result) {
+  const parts = [];
+  if (result.vapeHits) parts.push(`Cart: ${formatTHCRange(result.low, result.high)} estimated vaporized`);
+  if (result.edibleHits) parts.push(`Edible: ${result.edibleMg.toFixed(2)} mg labeled`);
+  if (result.unavailable) parts.push(`${result.unavailable} hit${result.unavailable === 1 ? '' : 's'} not estimated${thcMissingDetails(result)}`);
+  if (result.profilePercentHits) parts.push(`${result.profilePercentHits} hit${result.profilePercentHits === 1 ? '' : 's'} use linked profile THC %`);
+  if (result.inferredMethodHits) parts.push(`${result.inferredMethodHits} hit${result.inferredMethodHits === 1 ? '' : 's'} inferred as cart`);
+  return parts.length ? parts.join(' · ') : 'No THC logged';
+}
+
+function getPenDrawSettings(pen) {
+  const legacyDefaults = {
+    drawLow: settings.doseLow || 3,
+    drawMed: settings.doseMed || 5,
+    drawHigh: settings.doseHigh || 7,
+    drawDiablo: settings.doseDiablo || 10,
+    diabloEnabled: !!settings.diabloEnabled
+  };
+  let changed = false;
+  ['drawLow', 'drawMed', 'drawHigh', 'drawDiablo'].forEach(key => {
+    const storedValue = Number(pen[key]);
+    const legacyValue = Number(legacyDefaults[key]);
+    const fallback = Number.isInteger(legacyValue) && legacyValue >= 1 && legacyValue <= 60 ? legacyValue : DEFAULT_PEN_DRAW_SETTINGS[key];
+    const value = Number.isInteger(storedValue) && storedValue >= 1 && storedValue <= 60 ? storedValue : fallback;
+    if (pen[key] !== value) {
+      pen[key] = value;
+      changed = true;
+    }
+  });
+  if (typeof pen.diabloEnabled !== 'boolean') {
+    pen.diabloEnabled = legacyDefaults.diabloEnabled;
+    changed = true;
+  }
+  if (changed) {
+    if (pens.includes(pen)) sv('t2_pens', pens);
+    else if (graveyard.includes(pen)) sv('t2_graveyard', graveyard);
+  }
+  return pen;
+}
+
+function getConfigPen() {
+  const penId = activeSession ? activeSession.penId : document.getElementById('config-pen').value;
+  const pen = penById(penId);
+  return pen ? getPenDrawSettings(pen) : null;
+}
+
+function updateConfigDoseOptions() {
+  const doseSelect = document.getElementById('config-dose');
+  const pen = getConfigPen();
+  if (!doseSelect || !pen) return;
+  const selected = doseSelect.value;
+  const options = [
+    ['low', 'Low Draw', pen.drawLow],
+    ['medium', 'Medium Draw', pen.drawMed],
+    ['high', 'High Draw', pen.drawHigh]
+  ];
+  doseSelect.innerHTML = options.map(([value, label, seconds]) =>
+    `<option value="${value}">${label} (${seconds}s)</option>`
+  ).join('');
+  if (pen.diabloEnabled) {
+    doseSelect.insertAdjacentHTML('beforeend', `<option value="diablo">Diablo Draw (${pen.drawDiablo}s)</option>`);
+  }
+  doseSelect.value = options.some(([value]) => value === selected) || (selected === 'diablo' && pen.diabloEnabled)
+    ? selected
+    : 'medium';
+  checkDoseWarning();
+}
+
+function getTodayTHCEstimate() {
+  const date = today();
+  const allSessions = activeSession ? [...sessions, activeSession] : sessions;
+  const todaySessions = allSessions.map(session => ({
+    ...session,
+    hits: (session.hits || []).filter(hit => {
+      const timestamp = Number.isFinite(hit.time) ? hit.time : session.ts;
+      return ds(new Date(timestamp)) === date;
+    })
+  }));
+  return calculateTHC(todaySessions);
 }
 
 function getLastHitInfo() {
@@ -180,35 +320,138 @@ function getFeelColorObj(val) {
 }
 
 function getQuickHitState() {
-  const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= weekStart() && s.isQuickHit).length;
-  const limit = Math.max(0, parseInt(settings.quickHitsPerWeek, 10) || 3);
-  const remaining = Math.max(0, limit - weekQuickHits);
+  return getTokenStartState('mini');
+}
+
+function getBreakReasons(at = Date.now()) {
+  const date = new Date(at);
+  const day = ds(date);
+  const reasons = [];
+  if (settings.hardcoreLockout) reasons.push('Hardcore Lockout');
+  if (settings.breakStart && settings.breakEnd && day >= settings.breakStart && day <= settings.breakEnd) reasons.push('Scheduled break');
+  if (settings.yearlyBreakMonth !== 'none' && Number(settings.yearlyBreakMonth) === date.getMonth()) reasons.push('Yearly T-Break');
+  if (settings.autoTBreak) {
+    const week = Number(settings.autoTBreakWeek);
+    const dayOfMonth = date.getDate();
+    if ((week === 1 && dayOfMonth <= 7) || (week === 2 && dayOfMonth >= 8 && dayOfMonth <= 14) ||
+        (week === 3 && dayOfMonth >= 15 && dayOfMonth <= 21) || (week === 4 && dayOfMonth >= 22)) reasons.push('Monthly T-Break');
+  }
+  const penaltyUntil = tokenUses.reduce((end, use) => use.startedAt <= at ? Math.max(end, use.penaltyUntil || 0) : end, 0);
+  if (penaltyUntil > at) reasons.push(`Fuck It penalty until ${new Date(penaltyUntil).toLocaleString()}`);
+  return reasons;
+}
+
+function getTokenPool(type, at = Date.now()) {
+  if (type === 'fuckit') {
+    const capacity = settings.fuckItTokensPerMonth;
+    const d = new Date(at);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    const used = tokenUses.filter(use => use.type === type && use.startedAt >= start && use.startedAt <= at).length;
+    const available = Math.max(0, capacity - used);
+    return { capacity, available, weeklyRemaining: available, slots: [] };
+  }
+  const configured = type === 'mini' ? settings.miniTokensPerWeek : settings.sessionTokensPerWeek;
+  const capacity = isWeenOffActive(new Date(at)) && configured > 0 ? Math.max(1, Math.floor(configured / 2)) : configured;
+  const start = weekStartFromDate(new Date(at));
+  const uses = tokenUses.filter(use => use.type === type && use.startedAt <= at);
+  const weeklyRemaining = Math.max(0, capacity - uses.filter(use => use.startedAt >= start).length);
+  const slots = Array.from({ length: capacity }, (_, slot) => {
+    const lastUse = uses.filter(use => use.slot === slot).sort((a, b) => b.startedAt - a.startedAt)[0];
+    return { slot, readyAt: lastUse ? lastUse.readyAt : 0 };
+  });
+  const ready = slots.filter(slot => slot.readyAt <= at).length;
+  return { capacity, weeklyRemaining, slots, available: Math.min(ready, weeklyRemaining) };
+}
+
+function getGlobalCooldownUntil(at = Date.now()) {
+  return tokenUses.reduce((end, use) => use.startedAt <= at ? Math.max(end, use.globalUntil || 0) : end, 0);
+}
+
+function getTokenStartState(type) {
+  const pool = getTokenPool(type);
+  const globalUntil = getGlobalCooldownUntil();
   let reason = '';
+  const breaks = getBreakReasons();
+  if (settings.hardcoreLockout) reason = 'Hardcore Lockout is active';
+  else if (!checkAllPreflight(type === 'mini' ? 'mini' : 'session')) reason = 'Complete the applicable checklist first';
+  else if (type !== 'fuckit' && breaks.length) reason = breaks.join(', ');
+  else if (type !== 'fuckit' && globalUntil > Date.now()) reason = `Global cooldown until ${new Date(globalUntil).toLocaleString()}`;
+  else if (type === 'fuckit' && !pool.available) reason = 'Monthly Fuck It tokens used; resets on the first';
+  else if (!pool.weeklyRemaining) reason = 'Weekly token allowance used; resets Monday';
+  else if (!pool.available) reason = 'All tokens are cooling down';
+  return { ...pool, remaining: pool.available, disabled: !!reason, reason };
+}
 
-  if (!settings.allowQuickHit) reason = 'Disabled in Settings';
-  else if (settings.hardcoreLockout) reason = 'Hardcore lockout active';
-  else if (plannedBreaks.includes(today())) reason = 'No-Smoke Day planned';
-  else if (!routineChecks.some(c => c.mode === 'all' || c.mode === currentMode)) reason = 'Add a routine check to unlock Mini Session';
-  else if (!checkAllPreflight()) reason = 'Complete all routine checks first';
-  else if (Date.now() < quickHitLockoutUntil) {
-    const daysLeft = Math.max(1, Math.ceil((quickHitLockoutUntil - Date.now()) / 86400000));
-    reason = `Locked for ${daysLeft} more day${daysLeft === 1 ? '' : 's'}`;
-  } else if (remaining <= 0) reason = 'Weekly Mini Session limit reached';
+function nextTokenRefresh(type, at, pool) {
+  if (pool.available >= pool.capacity) return null;
+  if (type === 'fuckit') {
+    const date = new Date(at);
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
+  }
+  const nextWeek = new Date(weekStartFromDate(new Date(at)));
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const date = new Date(at);
+  const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
+  const candidates = [nextWeek.getTime(), nextMonth, ...pool.slots.map(slot => slot.readyAt)]
+    .filter(time => time > at)
+    .sort((a, b) => a - b);
+  return candidates.find(time => getTokenPool(type, time).available > pool.available) || null;
+}
 
-  return {
-    remaining,
-    disabled: !!reason,
-    reason,
-    label: reason ? reason : `${remaining} left`
+function formatCountdown(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function refreshTokenCountdowns() {
+  document.querySelectorAll('[data-token-refresh]').forEach(element => {
+    element.textContent = `${formatCountdown(Number(element.dataset.tokenRefresh) - Date.now())} Until Refresh`;
+  });
+}
+
+function renderTokenStatus(at = Date.now(), live = true) {
+  const globalUntil = getGlobalCooldownUntil(at);
+  const pools = ['session', 'mini', 'fuckit'].map(type => {
+    const pool = getTokenPool(type, at);
+    const name = type === 'mini' ? 'Mini Session' : (type === 'fuckit' ? 'Fuck It' : 'Session');
+    const refresh = nextTokenRefresh(type, at, pool);
+    const color = pool.available === pool.capacity ? 'ready' : 'used';
+    const countdown = refresh ? `<div class="token-countdown"${live ? ` data-token-refresh="${refresh}"` : ''}>${formatCountdown(refresh - at)} Until Refresh</div>` : '';
+    return `<div class="token-status-item ${color}"><div><span aria-hidden="true">${type === 'mini' ? '⚡' : (type === 'fuckit' ? '⚠️' : '🔥')}</span> ${name} Tokens: ${pool.available}/${pool.capacity}</div>${countdown}</div>`;
+  }).join('');
+  const global = globalUntil > at ? `<div class="text-sm text-muted">Global cooldown until ${new Date(globalUntil).toLocaleString()}</div>` : '';
+  return `<div class="token-status-list">${pools}${global}</div>`;
+}
+
+function beginTokenSession(penId, task, method) {
+  const type = pendingConfigType === 'quick' ? 'mini' : (pendingConfigType === 'fuckit' ? 'fuckit' : 'session');
+  const state = getTokenStartState(type);
+  if (state.disabled) {
+    showCustomModal('Token unavailable', state.reason, [{text: 'OK'}]);
+    return false;
+  }
+  const now = Date.now();
+  const slot = type === 'fuckit' ? null : state.slots.find(item => item.readyAt <= now).slot;
+  const monthlyReset = new Date(new Date(now).getFullYear(), new Date(now).getMonth() + 1, 1).getTime();
+  const use = {
+    type, slot, startedAt: now,
+    readyAt: type === 'fuckit' ? monthlyReset : now + settings.tokenCooldownHours * 3600000,
+    globalUntil: settings.globalCooldownEnabled ? now + settings.globalCooldownHours * 3600000 : 0,
+    penaltyUntil: type === 'fuckit' && settings.fuckItPenaltyEnabled ? now + settings.fuckItPenaltyDays * 86400000 : 0
   };
+  tokenUses.push(use);
+  sv('t2_token_uses', tokenUses);
+  activeSession = { id: now.toString(), ts: now, penId, mode: currentMode, method, hits: [], notes: '', media: [], focusTask: task, isQuickHit: type === 'mini', isFuckIt: type === 'fuckit' };
+  sv('t2_activeSession', activeSession);
+  return true;
 }
 
 // ── Ween-Off Protocol ───────────────────────────────────────────────────────
-function isWeenOffActive() {
+function isWeenOffActive(date = new Date()) {
     if (!settings.weenOffEnabled || settings.yearlyBreakMonth === 'none') return false;
-    let target = parseInt(settings.yearlyBreakMonth);
-    let weenMonth = target === 0 ? 11 : target - 1; 
-    return new Date().getMonth() === weenMonth;
+    return date.getMonth() === (Number(settings.yearlyBreakMonth) + 11) % 12;
 }
 
 function isYearlyBreakActive() {
@@ -217,24 +460,16 @@ function isYearlyBreakActive() {
 }
 
 function getActiveLimits() {
-    let lim = { maxHits: parseInt(settings.maxHits, 10) || 4, wait: currentMode === 'night' ? (parseInt(settings.nightWait)||15) : (parseInt(settings.dayWait)||120), sessPerWeek: parseInt(settings.sessPerWeek, 10) || 5 };
-    if (isWeenOffActive()) {
-        lim.maxHits = Math.max(1, Math.floor(lim.maxHits / 2));
-        lim.wait = lim.wait * 2;
-        lim.sessPerWeek = Math.max(1, Math.floor(lim.sessPerWeek / 2));
-        const b = document.getElementById('ween-badge');
-        if(b) b.style.display = 'block';
-    } else {
-        const b = document.getElementById('ween-badge');
-        if(b) b.style.display = 'none';
-    }
-    return lim;
+    const mini = activeSession && activeSession.isQuickHit;
+    const wait = mini ? settings.miniWait : settings.sessionWait;
+    return { maxHits: isWeenOffActive() ? Math.max(1, Math.floor(settings.maxHits / 2)) : settings.maxHits, wait: wait * (isWeenOffActive() ? 2 : 1) };
 }
 
   function getSessionHitLimit(session = activeSession) {
     if (session && session.isQuickHit) {
       const configuredLimit = parseInt(settings.maxMiniSessionHits, 10);
-      return Math.min(20, Math.max(1, Number.isFinite(configuredLimit) ? configuredLimit : DEFAULT_SETTINGS.maxMiniSessionHits));
+      const limit = Math.min(20, Math.max(1, Number.isFinite(configuredLimit) ? configuredLimit : DEFAULT_SETTINGS.maxMiniSessionHits));
+      return isWeenOffActive() ? Math.max(1, Math.floor(limit / 2)) : limit;
     }
     return getActiveLimits().maxHits;
   }
@@ -261,30 +496,6 @@ function verifyAge() {
 
 function initApp() {
   if (pens.length === 0 && graveyard.length === 0) { document.getElementById('setup-modal').classList.add('open'); }
-  if (settings.weenOffEnabled && settings.yearlyBreakMonth !== 'none') {
-      let target = parseInt(settings.yearlyBreakMonth);
-      let weenMonth = target === 0 ? 11 : target - 1;
-      let now = new Date();
-      if (now.getMonth() === weenMonth && now.getDate() === 1) {
-          let storageKey = 't2_ween_prompt_' + now.getFullYear() + '_' + weenMonth;
-          if (!ld(storageKey, false)) {
-              showCustomModal("Ween-Off Activated", "It's the 1st of the month before your Yearly T-Break. Ween-Off Mode is now active: your session limits and draw times are halved to smoothly lower your tolerance.", [{text: "Understood"}]);
-              sv(storageKey, true);
-          }
-      }
-  }
-  
-  // Clean up old manual breaks if 1st of the month
-  let now = new Date();
-  if (now.getDate() === 1) {
-      let storageKey = 't2_manual_break_clear_' + now.getFullYear() + '_' + now.getMonth();
-      if (!ld(storageKey, false)) {
-          settings.breakStart = null;
-          settings.breakEnd = null;
-          sv('t2_settings', settings);
-          sv(storageKey, true);
-      }
-  }
 
   const spn = document.getElementById('setup-pen-name');
   if (spn) spn.placeholder = `e.g. ${WACKY_NAMES[Math.floor(Math.random()*WACKY_NAMES.length)]}`;
@@ -299,7 +510,6 @@ function initApp() {
   const journalEl = document.getElementById('journal-text');
   if (journalEl) journalEl.value = journalText;
   
-  applyAutoDosing();
   updateGlobalClock();
   applyTheme(); 
   setInterval(updateGlobalClock, 1000);
@@ -363,9 +573,15 @@ function updateGlobalClock() {
   if (elDate) elDate.innerText = now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ' · ' + fmtTime(now);
 
   const newMode = getModeForDate(now);
+  const lastRoutineDay = ld('t2_routine_day', today());
+  if (lastRoutineDay !== today()) {
+    routineChecks.forEach(c => c.done = false);
+    sv('t2_routine', routineChecks);
+    renderRoutine(); renderDashboard();
+  }
+  if (lastRoutineDay !== today() || !localStorage.getItem('t2_routine_day')) sv('t2_routine_day', today());
   if (newMode !== currentMode) {
     currentMode = newMode;
-    routineChecks.forEach(c => c.done = false); sv('t2_routine', routineChecks);
     applyTheme(); renderDashboard(); renderRoutine();
   }
 
@@ -384,93 +600,30 @@ function updateGlobalClock() {
   }
 
   const lastHit = getLastHitInfo();
-  let thcInBody = getCurrentTHCInBody();
-  let thcIn1Hr = getCurrentTHCInBody(Date.now() + 3600000);
-  let decayRate = Math.max(0, thcInBody - thcIn1Hr).toFixed(3);
-  
-  if (lastHit.time === 0) {
-      cachedClearanceStr = "CLEAR";
-  } else {
-      const targetTs = lastHit.time + (10 * 86400000); 
-      const rem = targetTs - Date.now();
-      if (rem <= 0) {
-          cachedClearanceStr = "CLEAR";
-      } else {
-          const d = Math.floor(rem / 86400000);
-          const h2 = Math.floor((rem % 86400000) / 3600000);
-          const m2 = Math.floor((rem % 3600000) / 60000);
-          const s2 = Math.floor((rem % 60000) / 1000);
-          cachedClearanceStr = `${d}d ${String(h2).padStart(2,'0')}:${String(m2).padStart(2,'0')}:${String(s2).padStart(2,'0')}`;
-      }
-  }
+  const todayThcEstimate = formatTHCSummary(getTodayTHCEstimate());
+  const sinceLastUse = lastHit.time ? formatDuration(Date.now() - lastHit.time) : "No use logged";
 
   const clTab = document.getElementById('tab-clearance');
   const dashClEl = document.getElementById('dash-clear-countdown');
   const tabClEl = document.getElementById('cl-time-to-clear');
-  const thcBodyEl = document.getElementById('dash-thc-body-val');
-  const dashDecayEl = document.getElementById('dash-decay-rate');
+  const thcTodayEl = document.getElementById('dash-thc-today-val');
 
-  if (dashClEl) { dashClEl.innerText = cachedClearanceStr; dashClEl.style.color = cachedClearanceStr === "CLEAR" ? "var(--green)" : "var(--text)"; }
-  if (tabClEl) tabClEl.innerText = cachedClearanceStr === "CLEAR" ? "00:00:00" : cachedClearanceStr;
-  if (thcBodyEl) thcBodyEl.innerText = thcInBody.toFixed(3);
-  if (dashDecayEl) dashDecayEl.innerText = decayRate;
+  if (dashClEl) dashClEl.innerText = sinceLastUse;
+  if (tabClEl) tabClEl.innerText = sinceLastUse;
+  if (thcTodayEl) thcTodayEl.innerText = todayThcEstimate;
 
   if (clTab && clTab.classList.contains('active')) renderClearance();
-}
-
-function applyAutoDosing() {
-  if (!settings.autoTuneDosing) return;
-  const now = Date.now();
-  const fourteenDaysAgo = now - (14 * 24 * 3600 * 1000);
-  let recentHits = 0;
-  sessions.forEach(s => { s.hits.forEach(h => { if (h.time >= fourteenDaysAgo) recentHits++; }); });
-  if (activeSession) { activeSession.hits.forEach(h => { if (h.time >= fourteenDaysAgo) recentHits++; }); }
-  
-  let bLow = 3, bMed = 5, bHigh = 7;
-  let extraSecs = Math.floor(recentHits / 15);
-  if (extraSecs > 5) extraSecs = 5;
-  if(isWeenOffActive()) extraSecs = Math.floor(extraSecs / 2);
-  
-  settings.doseLow = bLow + extraSecs;
-  settings.doseMed = bMed + extraSecs;
-  settings.doseHigh = bHigh + extraSecs;
-}
-
-// ── Pharmacokinetic Decay ───────────────────────────────────────────────────
-function getCurrentTHCInBody(evalTime = Date.now()) {
-    let total = 0;
-    const cutoff = evalTime - (30 * 24 * 3600 * 1000); 
-    const BIOAVAILABILITY = 0.35; 
-
-    const processHits = (s) => {
-        const pen = penById(s.penId);
-        const thcFraction = pen ? (pen.thc / 100) : 0.50; 
-
-        s.hits.forEach(h => {
-            if(h.time > cutoff && h.time <= evalTime) {
-                let hitMg = 0;
-                let hoursElapsed = (evalTime - h.time) / 3600000;
-
-                if (h.directMg) {
-                    hitMg = h.directMg;
-                    hoursElapsed = Math.max(0, hoursElapsed - 1.0); 
-                } else {
-                    const rate = s.method === 'joint' ? 1.5 : 1.2;
-                    const totalMgVaporized = rate * h.drawSeconds * thcFraction;
-                    hitMg = totalMgVaporized * BIOAVAILABILITY;
-                }
-                
-                const alphaDecay = 0.8 * Math.pow(0.5, hoursElapsed / 0.5); 
-                const betaDecay = 0.2 * Math.pow(0.5, hoursElapsed / 36.0); 
-                total += hitMg * (alphaDecay + betaDecay); 
-            }
-        });
-    };
-
-    sessions.forEach(processHits);
-    if(activeSession) processHits(activeSession);
-
-    return total;
+  refreshTokenCountdowns();
+  const tokenClockKey = [
+    today(), weekStart(), ...['session', 'mini'].flatMap(type => getTokenPool(type).slots.map(slot => slot.readyAt > Date.now())),
+    getTokenPool('session').available, getTokenPool('mini').available,
+    getTokenPool('fuckit').available, getGlobalCooldownUntil() > Date.now(), getBreakReasons().join(',')
+  ].join(':');
+  if (window.lastTokenClockKey !== tokenClockKey) {
+    window.lastTokenClockKey = tokenClockKey;
+    renderDashboard();
+    if (document.getElementById('tab-calendar').classList.contains('active')) renderCalendar();
+  }
 }
 
 // ── Modals & Notifications ──────────────────────────────────────────────────
@@ -518,19 +671,13 @@ function completeSetup() {
   const thc = parseFloat(document.getElementById('setup-pen-thc').value);
   const cbd = parseFloat(document.getElementById('setup-pen-cbd').value) || 0;
   const terp = parseFloat(document.getElementById('setup-pen-terp').value) || 0;
-  const tol = document.getElementById('setup-user-tolerance').value;
-  const weight = document.getElementById('setup-weight').value;
-  const bodyFat = document.getElementById('setup-bodyfat').value;
-
   if(!uname || !pname || !thc) { return showCustomModal('Incomplete', 'Please fill out Name, Profile Name, and THC % to continue.', [{text:'OK'}]); }
+  if (validTHCPercent(thc) === null) return showCustomModal('Invalid THC percentage', 'Enter a THC percentage greater than 0 and no more than 100.', [{text:'OK'}]);
   
   username = uname; sv('t2_username', username);
-  settings.tolerance = tol; 
-  if(weight) settings.weight = weight;
-  if(bodyFat) settings.bodyFat = bodyFat;
   sv('t2_settings', settings);
   
-  pens.push({ id: 'p'+Date.now(), name: pname, type: ptype, thc, cbd, customCName: 'Terpenes', customCVal: terp, notes: '' });
+  pens.push({ id: 'p'+Date.now(), name: pname, type: ptype, thc, cbd, customCName: 'Terpenes', customCVal: terp, notes: '', ...DEFAULT_PEN_DRAW_SETTINGS });
   sv('t2_pens', pens);
   
   document.getElementById('setup-modal').classList.remove('open');
@@ -546,8 +693,8 @@ function togglePreflight(id) {
   renderDashboard(); renderRoutine(); 
 }
 
-function checkAllPreflight() { 
-  return routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode).every(c => c.done); 
+function checkAllPreflight(type = 'session') {
+  return routineChecks.filter(c => c.mode === 'all' || c.mode === type).every(c => c.done);
 }
 
 function getBlockingReasons(dStr, type = 'session') {
@@ -757,119 +904,30 @@ function renderDashboard() {
   const grt = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
   document.getElementById('greeting-txt').innerText = `${grt}, ${username}.`;
   
-  const ws = weekStart();
-  const weekSess = sessions.filter(s => new Date(s.ts).getTime() >= ws && !s.isQuickHit);
-  const weekQuickHits = sessions.filter(s => new Date(s.ts).getTime() >= ws && s.isQuickHit).length;
-
-  const activeLimits = getActiveLimits();
-  let remSess = Math.max(0, activeLimits.sessPerWeek - weekSess.length);
-  const qhRem = Math.max(0, (parseInt(settings.quickHitsPerWeek)||3) - weekQuickHits);
-  const unlockTs = calculateUnlockTime();
-  const isLockedOut = !!(unlockTs && unlockTs > Date.now() && !activeSession && !isFuckItDay());
   const dayStatus = getPlannedDayStatus(today());
-  const activityStatus = activeSession ? 'IN PROGRESS' : (isLockedOut ? 'LOCKED OUT' : 'IDLE');
-  const activityStatusClass = activeSession ? 'warn' : (isLockedOut ? 'danger' : 'ok');
-  const dayStatusLabel = dayStatus.key === 'session'
-      ? 'SESSION DAY 🔥'
-      : (dayStatus.key === 'no-smoke' ? 'NO-SMOKE DAY 🚭' : 'MINI-SESSION-ONLY DAY ⚡');
-
-  let sessPct = activeLimits.sessPerWeek > 0 ? (remSess / activeLimits.sessPerWeek) : 0;
-  let weekCls = '';
-  if (remSess === 0) weekCls = 'black-lock';
-  else if (sessPct > 0.5) weekCls = 'ok';
-  else if (sessPct >= 0.25) weekCls = 'warn';
-  else weekCls = 'danger';
-
-  let limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted" style="text-decoration:none;"> left</span></div>`;
-  if (isWeenOffActive()) {
-      limitsStr = `<div class="stat-value ${weekCls}">${remSess}<span class="text-sm text-muted"> left</span> <span style="font-size:12px; color:var(--purple); display:block; line-height:1; text-decoration:none;">(Ween-off halved)</span></div>`;
-  }
-
+  const globalCooling = getGlobalCooldownUntil() > Date.now();
+  const activityStatus = activeSession ? 'IN PROGRESS' : (globalCooling ? 'COOLDOWN' : 'IDLE');
+  const activityStatusClass = activeSession || globalCooling ? 'warn' : 'ok';
   document.getElementById('dash-stats').innerHTML = `
-    <div class="stat glass ${weekCls === 'black-lock' ? 'black-lock' : weekCls}">
-      <div class="stat-label">Remaining this week</div>
-      ${limitsStr}
+    <div class="stat glass">
+      <div class="stat-label">THC Logged Today</div>
+      <div class="text-sm" id="dash-thc-today-val">${formatTHCSummary(getTodayTHCEstimate())}</div>
+      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Cart estimate is not absorbed dose; edible amounts are label values.</div>
     </div>
     <div class="stat glass">
-      <div class="stat-label">Est. Active THC in Body</div>
-      <div class="stat-value"><span id="dash-thc-body-val">0.000</span><span class="text-sm text-muted">mg</span></div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);"><span id="dash-decay-rate">0.000</span> mg/hr decay</div>
-    </div>
-    <div class="stat glass">
-      <div class="stat-label">Clearance (10-Day Formula)</div>
+      <div class="stat-label">Since Last Logged Use</div>
       <div class="stat-value" id="dash-clear-countdown">--:--:--</div>
-      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Time until zero THC</div>
+      <div style="font-size:11px; margin-top:4px; font-weight:700; color:var(--text3);">Elapsed time; not a clearance estimate</div>
     </div>
     <div class="stat glass ${activityStatusClass}">
       <div class="stat-label">Status</div>
       <div class="stat-value ${activityStatusClass}" style="font-size:20px;">
         ${activityStatus}
       </div>
-      <div class="text-sm text-muted" style="font-size:10px; font-weight:700; margin-top:6px;">${dayStatusLabel}</div>
+      <div class="text-sm text-muted" style="font-size:10px; font-weight:700; margin-top:6px;">${dayStatus.label}</div>
     </div>
   `;
-
-  const lockPane = document.getElementById('dashboard-lock');
-  const mainPane = document.getElementById('dashboard-main-content');
-
-  if (isLockedOut) {
-      lockPane.style.display = 'block'; mainPane.style.display = 'none';
-
-      const { reasons } = getBlockingReasons(today());
-      const dailyStatus = checkDailyLock();
-      let title = "Session Locked.";
-      let msg = "";
-
-      if (reasons.length > 0) {
-         title = reasons.some(r=>r.includes('Yearly') || r.includes('Auto') || r.includes('Bypass')) ? "T-Break Active" : "Enjoy your break.";
-         msg = `Dashboard features locked. Next session available ${new Date(unlockTs).toLocaleString()}. ` + reasons.join(", ");
-      } else if (dailyStatus.locked) {
-         msg = dailyStatus.msg;
-      }
-
-      document.getElementById('lock-title').innerText = title;
-      document.getElementById('lock-msg').innerText = msg;
-      startLockCountdown(unlockTs);
-      
-      const now = new Date();
-      const usedThisMonth = fuckIts.filter(dStr => {
-          const d = new Date(dStr + "T12:00:00");
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }).length;
-      const fiRem = Math.max(0, settings.fuckItLimitPerMonth - usedThisMonth);
-
-      const qhState = getQuickHitState();
-      let qhDisabled = qhState.disabled;
-      let fiDisabled = fiRem <= 0 || settings.hardcoreLockout || !settings.allowFuckIt;
-      let qhSubText = qhState.reason || `${qhState.remaining} remaining this week`;
-
-      let lockActionsHtml = '<div class="stat-grid" style="margin-top:32px;">';
-      
-      lockActionsHtml += `
-          <div class="lock-action-card ${qhDisabled ? 'disabled' : ''}" onclick="${!qhDisabled ? 'openQuickHitModal()' : ''}" style="border-color: var(--accent-border);">
-              <div class="lock-action-icon">⚡</div>
-              <div class="lock-action-title" style="color: var(--accent);">Mini Session</div>
-              <div class="lock-action-qty" style="color: var(--accent);">${qhSubText}</div>
-              <div class="lock-action-desc">Take up to ${getSessionHitLimit({ isQuickHit: true })} hits. Initiates a ${settings.quickHitTBreak} day penalty.</div>
-          </div>
-      `;
-
-      lockActionsHtml += `
-          <div class="lock-action-card ${fiDisabled ? 'disabled' : ''}" onclick="${!fiDisabled ? 'promptFuckIt()' : ''}" style="border-color: rgba(224,94,94,0.3);">
-              <div class="lock-action-icon">⚠️</div>
-              <div class="lock-action-title" style="color: var(--amber);">"Fuck It" Pass</div>
-              <div class="lock-action-qty" style="color: var(--red);">${!settings.allowFuckIt ? "Disabled in Settings" : (settings.hardcoreLockout ? "DISABLED" : fiRem + " remaining this month")}</div>
-              <div class="lock-action-desc">Completely override the lock and start a full session. Initiates a ${settings.fuckItTBreak || 3} day penalty.</div>
-          </div>
-      `;
-
-      lockActionsHtml += '</div>';
-      document.getElementById('lock-overrides-container').innerHTML = lockActionsHtml;
-      return;
-  }
-  
-  lockPane.style.display = 'none'; mainPane.style.display = 'grid';
-  if(lockTimerInterval) clearInterval(lockTimerInterval);
+  document.getElementById('dash-token-status').innerHTML = renderTokenStatus();
 
   if (activeSession) {
     document.getElementById('session-card-idle').style.display = 'none';
@@ -877,9 +935,9 @@ function renderDashboard() {
     
     const pen = penById(activeSession.penId);
     let nameStr = pen ? pen.name : 'Unknown';
-    document.getElementById('active-pen-name').innerText = `${nameStr} (${activeSession.method} - ${activeSession.mode} mode)`;
+    document.getElementById('active-pen-name').innerText = `${nameStr} (${activeSession.method} - ${activeSession.isQuickHit ? 'Mini Session' : (activeSession.isFuckIt ? 'Fuck It Session' : 'Session')})`;
     document.getElementById('active-hits').innerText = activeSession.hits.length;
-    document.getElementById('active-thc').innerText = sumTHC(activeSession.hits, pen, activeSession.method) + 'mg';
+    document.getElementById('active-thc').innerText = formatTHCSummary(calculateTHC([activeSession]));
     document.getElementById('active-notes').value = activeSession.notes || '';
     document.getElementById('active-focus-task').innerText = activeSession.focusTask || 'None selected';
 
@@ -917,12 +975,13 @@ function renderDashboard() {
     document.getElementById('session-card-idle').style.display = 'block';
     document.getElementById('session-card-active').style.display = 'none';
     
-    const applicableChecks = routineChecks.filter(c => c.mode === 'all' || c.mode === currentMode);
+    const applicableChecks = routineChecks;
     
     document.getElementById('preflight-list').innerHTML = applicableChecks.map(c => {
       let badge = '';
-      if (c.mode === 'day') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">DAY</span>';
-      if (c.mode === 'night') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">NIGHT</span>';
+      if (c.mode === 'mini') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">MINI</span>';
+      if (c.mode === 'session') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">SESSION</span>';
+      if (c.mode === 'all') badge = '<span class="mode-badge" style="margin-left:8px; padding:2px 6px; font-size:8px;">BOTH</span>';
       return `
       <div class="check-row" onclick="togglePreflight('${c.id}')">
         <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
@@ -930,9 +989,20 @@ function renderDashboard() {
       </div>
     `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
 
-    const reqsUnmet = !sessionAllowedDays.includes(today()) || (applicableChecks.length > 0 && !checkAllPreflight()) || remSess === 0;
-    
-    document.getElementById('btn-start-session').disabled = reqsUnmet;
+    const sessionState = getTokenStartState('session');
+    document.getElementById('btn-start-session').disabled = sessionState.disabled;
+    document.getElementById('btn-start-session').title = sessionState.reason || 'Session token available';
+    const miniState = getTokenStartState('mini');
+    const fuckItState = getTokenStartState('fuckit');
+    const fuckItButton = document.getElementById('btn-fuck-it');
+    fuckItButton.disabled = fuckItState.disabled;
+    fuckItButton.title = fuckItState.reason || 'Start an extra Session';
+    fuckItButton.innerText = `Fuck It ⚠️ (${fuckItState.available} left)`;
+    document.getElementById('token-start-reasons').innerText = [
+      sessionState.reason ? `Session: ${sessionState.reason}.` : '',
+      miniState.reason ? `Mini Session: ${miniState.reason}.` : '',
+      fuckItState.reason ? `Fuck It: ${fuckItState.reason}.` : ''
+    ].filter(Boolean).join(' ');
     
     const btnQhIdle = document.getElementById('btn-quick-hit-idle');
     if (btnQhIdle) {
@@ -955,7 +1025,7 @@ function renderDashboard() {
       const hStr = s.hits.length === 1 ? 'dose' : 'doses';
       const isQuick = s.isQuickHit ? '⚡' : '';
       return `<div style="padding:12px 0; border-bottom:0.5px solid var(--border)">
-        <div style="font-weight:700; margin-bottom:4px;">${p.name} ${isQuick} <span class="mode-badge ${s.mode}" style="padding:2px 6px;font-size:8px">${s.mode}</span></div>
+        <div style="font-weight:700; margin-bottom:4px;">${p.name} ${isQuick} <span class="mode-badge ${s.isQuickHit ? 'day' : 'night'}" style="padding:2px 6px;font-size:8px">${s.isQuickHit ? 'MINI' : (s.isFuckIt ? 'FUCK IT' : 'SESSION')}</span></div>
         <div class="text-sm text-muted">${new Date(s.ts).toLocaleDateString([], {month:'short', day:'numeric'})} · ${s.method} · ${s.hits.length} ${hStr}</div>
       </div>`;
     }).join('');
@@ -964,20 +1034,23 @@ function renderDashboard() {
 
 // ── Draw Sequence & Hit Logging ─────────────────────────────────────────────
 function openDoseGuide() {
+  const pen = getConfigPen();
+  const drawSettings = pen || DEFAULT_PEN_DRAW_SETTINGS;
   showCustomModal("Dose Guide", `
     <div style="display:flex; flex-direction:column; gap:16px;">
       <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--green); border-radius:4px;">
-        <strong style="color:var(--green)">Low Dose (${settings.doseLow}s)</strong>
-        <div class="text-sm text-muted mt-8">Perfect for beginners or a light buzz. Enhances mood without heavy impairment. Easy to control.</div>
+        <strong style="color:var(--green)">Low Draw (${drawSettings.drawLow}s)</strong>
+        <div class="text-sm text-muted mt-8">A user-configured draw-time preset, not a standardized dose or safety level.</div>
       </div>
       <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--amber); border-radius:4px;">
-        <strong style="color:var(--amber)">Medium Dose (${settings.doseMed}s)</strong>
-        <div class="text-sm text-muted mt-8">Standard recreational hit. Noticeable euphoria and body relaxation.</div>
+        <strong style="color:var(--amber)">Medium Draw (${drawSettings.drawMed}s)</strong>
+        <div class="text-sm text-muted mt-8">A user-configured draw-time preset; effects and delivered THC vary.</div>
       </div>
       <div style="background:var(--bg3); padding:16px; border-left:3px solid var(--red); border-radius:4px;">
-        <strong style="color:var(--red)">High Dose (${settings.doseHigh}s)</strong>
-        <div class="text-sm text-muted mt-8">For experienced users. Heavy psychoactive effects, potential couch-lock and dry mouth.</div>
+        <strong style="color:var(--red)">High Draw (${drawSettings.drawHigh}s)</strong>
+        <div class="text-sm text-muted mt-8">A user-configured draw-time preset, not a measured or recommended THC dose.</div>
       </div>
+      <div class="text-sm text-muted">Cart THC vaporized is estimated as draw seconds × 1.2–2.2 mg oil/second × profile THC fraction. The rate is an illustrative assumption, not a measurement; device power, oil and inhalation can change it substantially. It does not estimate absorption. Flower hits cannot be estimated from draw time; edible values are label amounts.</div>
     </div>
   `, [{text: "Close"}]);
 }
@@ -985,7 +1058,7 @@ function openDoseGuide() {
 function checkDoseWarning() {
   const d = document.getElementById('config-dose').value;
   const w = document.getElementById('dose-warning');
-  if (currentMode === 'day' && d === 'high') {
+  if (d === 'high') {
     w.style.display = 'flex';
   } else {
     w.style.display = 'none';
@@ -996,6 +1069,7 @@ function updateConfigMethodUI() {
     const m = document.getElementById('config-method').value;
     document.getElementById('config-dose-vape').style.display = m !== 'edible' ? 'block' : 'none';
     document.getElementById('config-dose-edible').style.display = m === 'edible' ? 'block' : 'none';
+    updateConfigDoseOptions();
 }
 
 function openQuickHitModal() {
@@ -1003,32 +1077,29 @@ function openQuickHitModal() {
     if (qhState.disabled) {
         return showCustomModal("Mini Session Unavailable", `Mini Sessions are currently unavailable: ${qhState.reason}.`, [{text:"OK"}]);
     }
-  const { reasons } = getBlockingReasons(today(), 'quick');
-    const modeSessToday = sessions.filter(s => ds(new Date(s.ts)) === today() && s.mode === currentMode && !s.isQuickHit);
-    
-    if (reasons.length > 0) {
-        let msg = "You are currently locked out. A Mini Session bypasses this lock but will incur a " + settings.quickHitTBreak + " day penalty. Continue?";
-        showCustomModal("⚠️ Warning", msg, [
-            {text: "Cancel"},
-            {text: "Take Mini Session", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
-        ]);
-    } else if (modeSessToday.length > 0) {
-        showCustomModal("⚠️ Already Smoked", `You've already had a session. Take a Mini Session anyway?`, [
-            {text: "Cancel"},
-            {text: "Take Mini Session", cls: "btn-primary", onClick: () => openConfigModal(true, 'quick')}
-        ]);
-    } else {
-        openConfigModal(true, 'quick');
-    }
+    openConfigModal(true, 'quick');
 }
 
-function openConfigModal(isNewSession, type = 'normal') {
+function openConfigModal(isNewSession, type = 'normal', planConfirmed = false) {
   if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain or profile in the Profiles tab first.", [{text:"OK"}]);
-  if (isNewSession && type !== 'quick' && !sessionAllowedDays.includes(today())) {
-      return showCustomModal("Mini-Session-Only Day", "Today is planned for Mini Sessions only. Enable Allow Session for today in the calendar to start a full session.", [{text:"OK"}]);
-  }
-  if (isYearlyBreakActive() && !fuckIts.includes(today())) {
-      return showCustomModal("T-Break Active", "It is your designated Yearly T-Break month. Dashboard locked.", [{text:"Understood"}]);
+  if (isNewSession) {
+      const state = getTokenStartState(type === 'quick' ? 'mini' : (type === 'fuckit' ? 'fuckit' : 'session'));
+      if (state.disabled) return showCustomModal("Token unavailable", state.reason, [{text:"OK"}]);
+      const plan = getPlannedDayStatus(today()).key;
+      const againstPlan = plan === 'no-smoke' || (plan === 'session' && type === 'quick') || (plan === 'quick-hit' && type !== 'quick');
+      if (type === 'fuckit' && !planConfirmed) {
+        const penalty = settings.fuckItPenaltyEnabled ? ` A ${settings.fuckItPenaltyDays}-day penalty starts when the session begins.` : '';
+        const planWarning = againstPlan ? " You're going against your plan for today." : '';
+        return showCustomModal('Use Fuck It Token', `Start an extra Session and bypass active breaks and cooldowns?${penalty}${planWarning}`, [
+          {text:'Cancel'}, {text:'Continue', cls:'btn-primary', onClick:() => openConfigModal(isNewSession, type, true)}
+        ]);
+      }
+      if (againstPlan && !planConfirmed) {
+        return showCustomModal("Plan Reminder", "You're going against your plan for today. Continue?", [
+          {text: "Cancel"},
+          {text: "Continue", cls: "btn-primary", onClick: () => openConfigModal(isNewSession, type, true)}
+        ]);
+      }
   }
   if (isNewSession && emergencyLinks.length === 0 && !ld('t2_ignored_safety', false)) {
       return showCustomModal("Safety First", "You have not set any emergency safety links in Settings. These are crucial if you experience anxiety while elevated.", [
@@ -1047,19 +1118,14 @@ function openConfigModal(isNewSession, type = 'normal') {
 
 function openConfigModalBypass(isNewSession, type) {
   pendingConfigType = type;
-  document.getElementById('config-title').innerText = type === 'quick' ? "Mini Session" : (isNewSession ? "Start Session" : "Log a Dose");
+  document.getElementById('config-title').innerText = type === 'quick' ? "Mini Session" : (type === 'fuckit' ? "Fuck It Session" : (isNewSession ? "Start Session" : "Log a Dose"));
   
   document.getElementById('config-method-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
-  document.getElementById('config-pen').innerHTML = pens.map(p=>`<option value="${p.id}">[${p.type.toUpperCase()}] ${p.name}</option>`).join('');
-  
-  let doseHtml = `
-    <option value="low">Low Dose (${settings.doseLow}s)</option>
-    <option value="medium" selected>Medium Dose (${settings.doseMed}s)</option>
-    <option value="high">High Dose (${settings.doseHigh}s)</option>
-  `;
-  if(settings.diabloEnabled) doseHtml += `<option value="diablo">DIABLO (${settings.doseDiablo}s)</option>`;
-  document.getElementById('config-dose').innerHTML = doseHtml;
+  const penSelect = document.getElementById('config-pen');
+  penSelect.innerHTML = pens.map(p=>`<option value="${p.id}">[${p.type.toUpperCase()}] ${p.name}</option>`).join('');
+  if (activeSession) penSelect.value = activeSession.penId;
+  updateConfigDoseOptions();
 
   document.getElementById('config-task-group').style.display = isNewSession ? 'flex' : 'none';
   if(todos.length > 0) {
@@ -1095,29 +1161,41 @@ function startDrawSequence() {
 
 function executeHitLogic(isNew, penId, feeling, task, method) {
     let doseSize = document.getElementById('config-dose').value;
-    let drawSecs = doseSize === 'low' ? settings.doseLow : (doseSize === 'high' ? settings.doseHigh : (doseSize === 'diablo' ? settings.doseDiablo : settings.doseMed));
+    const pen = penById(penId);
+    if (!pen) return showCustomModal("Profile unavailable", "The selected pen/profile could not be found. Select a profile and try again.", [{text:"OK"}]);
+    getPenDrawSettings(pen);
+    let drawSecs = doseSize === 'low' ? pen.drawLow : (doseSize === 'high' ? pen.drawHigh : (doseSize === 'diablo' ? pen.drawDiablo : pen.drawMed));
     if (isWeenOffActive()) drawSecs = Math.max(1, Math.floor(drawSecs * 0.75));
-
+    if (method === 'edible') {
+        const edibleMg = Number(document.getElementById('config-edible-mg').value);
+        if (!Number.isFinite(edibleMg) || edibleMg <= 0) {
+            return showCustomModal("Invalid THC amount", "Enter the positive THC amount shown on the edible label.", [{text:"OK"}]);
+        }
+    }
+    if (isNew && !beginTokenSession(penId, task, method)) return;
+    if (!isNew && (!activeSession || activeSession.hits.length >= getSessionHitLimit(activeSession))) {
+        return showCustomModal("Session limit reached", "No more hits are available in this session.", [{text:"OK"}]);
+    }
     if (method === 'vape') {
         executeVapeSequence(isNew, penId, doseSize, feeling, task, method, drawSecs);
     } else {
         let hitObj = { time: Date.now(), dose: doseSize, feelingPreHit: feeling, drawSeconds: method==='joint'?drawSecs:0, penId: penId };
         if (method === 'edible') {
-            hitObj.directMg = parseFloat(document.getElementById('config-edible-mg').value) || 10;
+            const edibleMg = Number(document.getElementById('config-edible-mg').value);
+            if (!Number.isFinite(edibleMg) || edibleMg <= 0) {
+                return showCustomModal("Invalid THC amount", "Enter the positive THC amount shown on the edible label.", [{text:"OK"}]);
+            }
+            hitObj.directMg = edibleMg;
         } else if (method === 'joint') {
             hitObj.drawSeconds = drawSecs; 
         }
 
-        if (isNew) {
-          activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task, isQuickHit: pendingConfigType === 'quick' };
-        }
         finishHitDirect(hitObj);
     }
 }
 
 function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs) {
-  if (isNew) activeSession = { id: Date.now().toString(), ts: Date.now(), penId, mode: currentMode, method, hits: [], notes: "", media: [], focusTask: task, isQuickHit: pendingConfigType === 'quick' };
-  
+  const thcPercent = validTHCPercent(penById(penId).thc);
   const modal = document.getElementById('draw-modal');
   const circle = document.getElementById('draw-circle');
   modal.classList.add('open');
@@ -1144,9 +1222,9 @@ function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs
                     else {
                         clearInterval(drawSequenceState.interval);
                         circle.className = 'draw-circle exhaling'; document.getElementById('draw-instruction').innerText = "Release"; circle.innerText = "Ah";
-                        setTimeout(() => {
+                        drawSequenceState.timeout = setTimeout(() => {
                             document.getElementById('draw-modal').classList.remove('open');
-                            finishHitDirect({ time: Date.now(), dose, feelingPreHit: feeling, drawSeconds: drawSecs, penId: penId });
+                            finishHitDirect({ time: Date.now(), dose, feelingPreHit: feeling, drawSeconds: drawSecs, penId: penId, thcPercent });
                         }, 2000);
                     }
                 }, 1000);
@@ -1158,8 +1236,13 @@ function executeVapeSequence(isNew, penId, dose, feeling, task, method, drawSecs
 
 function cancelDraw() {
   clearInterval(drawSequenceState.interval);
+  clearTimeout(drawSequenceState.timeout);
   document.getElementById('draw-modal').classList.remove('open');
-  if (activeSession && activeSession.hits.length === 0) activeSession = null;
+  if (activeSession && activeSession.hits.length === 0) {
+    activeSession = null;
+    sv('t2_activeSession', null);
+    showToast('The session was cancelled; its token remains used.');
+  }
   renderDashboard();
 }
 
@@ -1255,13 +1338,13 @@ function renderRecap() {
   if (!activeSession) { empty.style.display = 'block'; form.style.display = 'none'; return; }
   empty.style.display = 'none'; form.style.display = 'block';
   document.getElementById('recap-hits').innerText = activeSession.hits.length;
-  document.getElementById('recap-thc').innerText = sumTHC(activeSession.hits, penById(activeSession.penId), activeSession.method) + 'mg';
+  document.getElementById('recap-thc').innerText = formatTHCSummary(calculateTHC([activeSession]));
   document.getElementById('recap-time').innerText = formatDuration(Date.now() - activeSession.ts);
   selectFeel(5, 'recap-feel-grid');
 }
 
 function cancelRecap() {
-  showCustomModal("Discard Session", "Discard session? History will not be saved.", [
+  showCustomModal("Discard Session", "Discard session? History will not be saved, and the token remains used.", [
     {text: "No, Keep it"},
     {text: "Discard", cls: "btn-danger", onClick: () => {
        activeSession = null; sv('t2_activeSession', null);
@@ -1278,21 +1361,7 @@ function saveRecap() {
   activeSession.notes = document.getElementById('recap-notes').value.trim();
   activeSession.taskCompleted = document.getElementById('recap-task-done').checked;
   
-  if (fuckIts.includes(today())) {
-      let tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      setTimeOnDate(tomorrow, getModeStart('day'));
-      fuckItLockoutUntil = tomorrow.getTime() + ((settings.fuckItTBreak || 3) * 86400000);
-      sv('t2_fi_lockout', fuckItLockoutUntil);
-  }
-
   sessions.push(activeSession); sv('t2_sessions', sessions);
-  if (activeSession.isQuickHit) {
-      quickHitLockoutUntil = Date.now() + ((parseInt(settings.quickHitTBreak, 10) || 0) * 86400000);
-      quickHitTimerUntil = Date.now() + ((getActiveLimits().wait || 15) * 60000);
-      sv('t2_qh_lockout', quickHitLockoutUntil);
-      sv('t2_qh_timer', quickHitTimerUntil);
-  }
   activeSession = null; sv('t2_activeSession', null);
   routineChecks.forEach(c=>c.done=false); 
   sv('t2_routine', routineChecks); 
@@ -1395,7 +1464,7 @@ function renderHistory() {
     const p = penById(s.penId) || {name: 'Deleted Profile', type: 'other'};
     const fColor = getFeelColorObj(s.finalFeeling);
     const durStr = s.endTime ? formatDuration(s.endTime - s.ts) : '0m';
-    const sThc = sumTHC(s.hits, p, s.method);
+    const sThc = formatTHCSummary(calculateTHC([s]));
     
     let mediaHtml = '';
     if(s.media && s.media.length > 0) {
@@ -1409,18 +1478,18 @@ function renderHistory() {
       <div class="glass" style="padding:16px; background:var(--bg3); border:0.5px solid var(--border2); border-radius:var(--radius); margin-bottom:12px;">
         <div class="flex-row" style="margin-bottom:8px">
             <strong style="color:var(--accent); font-size:16px;">${p.name}</strong> 
-            <span class="mode-badge ${s.mode} ml-auto" style="padding:2px 6px;font-size:8px">${s.mode}</span>
+            <span class="mode-badge ${s.isQuickHit ? 'day' : 'night'} ml-auto" style="padding:2px 6px;font-size:8px">${s.isQuickHit ? 'MINI' : (s.isFuckIt ? 'FUCK IT' : 'SESSION')}</span>
         </div>
         <div class="text-sm text-muted mb-16">
             ${new Date(s.ts).toLocaleDateString()} • Started: ${fmtTime(new Date(s.ts))} 
-            ${s.isQuickHit ? '⚡ Mini Session' : `• Method: ${s.method}`}
+            ${s.isQuickHit ? '⚡ Mini Session' : `• Method: ${s.method || 'Not recorded'}`}
         </div>
         
         <div style="border-top:1px dashed var(--border2); padding-top:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
           <div class="text-sm text-muted"><strong>Focus:</strong> ${s.focusTask || 'N/A'} ${s.taskCompleted ? '✅' : ''}</div>
           <div class="ml-auto flex-row" style="gap:8px;">
             <div style="padding:4px 10px; border-radius:8px; background:var(--bg2); color:var(--text2); font-weight:700; font-size:12px;">⏱ ${durStr}</div>
-            <div style="padding:4px 10px; border-radius:8px; background:rgba(92,170,127,0.15); color:#5caa7f; font-weight:700; font-size:12px;">~${sThc}mg</div>
+            <div style="padding:4px 10px; border-radius:8px; background:rgba(92,170,127,0.15); color:#5caa7f; font-weight:700; font-size:12px;">${sThc}</div>
             <div style="padding:4px 10px; border-radius:8px; background:${fColor.bg}; color:${fColor.text}; font-weight:700; font-size:12px;">Feel: ${s.finalFeeling||'-'}/10</div>
           </div>
         </div>
@@ -1433,7 +1502,7 @@ function renderHistory() {
 }
 
 function deleteSession(id) {
-  showCustomModal("Delete Record", "Permanently remove this session?", [
+  showCustomModal("Delete Record", "Permanently remove this session? Its token use and cooldown will remain.", [
     {text: "Cancel"},
     {text: "Delete", cls: "btn-danger-solid", onClick: () => {
        const deleted = sessions.find(s => s.id === id);
@@ -1506,14 +1575,15 @@ function getFavoritePen() {
 function renderStats() {
   const totalSess = sessions.length;
   const totalHits = sessions.reduce((acc, s) => acc + s.hits.length, 0);
-  const totalThc = sessions.reduce((acc, s) => acc + sumTHC(s.hits, penById(s.penId), s.method), 0);
+  const totalThc = calculateTHC(sessions);
   const qhCount = sessions.filter(s=>s.isQuickHit).length;
   const feelingValues = sessions.filter(s => typeof s.finalFeeling === 'number').map(s => s.finalFeeling);
   const avgFeel = feelingValues.length ? (feelingValues.reduce((a, b) => a + b, 0) / feelingValues.length) : 0;
   const longestBreak = getLongestBreak();
   const favoritePen = getFavoritePen();
   const avgHitsPerSess = totalSess ? totalHits / totalSess : 0;
-  const avgThcPerSess = totalSess ? totalThc / totalSess : 0;
+  const completeCartSessions = sessions.map(s => calculateTHC([s])).filter(result => result.vapeHits && !result.unavailable);
+  const cartAverage = completeCartSessions.reduce((total, result) => ({ low: total.low + result.low, high: total.high + result.high }), { low: 0, high: 0 });
   const quickHitRate = totalSess ? (qhCount / totalSess) * 100 : 0;
 
   const uniqueDaysLogged = new Set(sessions.map(s => ds(new Date(s.ts)))).size;
@@ -1525,7 +1595,7 @@ function renderStats() {
       stats: [
         { label: 'Total Sessions', value: totalSess },
         { label: 'Total Hits / Doses', value: totalHits },
-        { label: 'Est. Total THC', value: `${Math.round(totalThc)}<span class="text-sm text-muted">mg</span>` },
+        { label: 'Cart THC Vaporized (Estimate)', value: `<span style="font-size:16px">${totalThc.vapeHits ? formatTHCRange(totalThc.low, totalThc.high) : 'N/A'}${totalThc.unavailable ? ' (incomplete)' : ''}</span>` },
         { label: 'Total Mini Sessions', value: `<span style="color:var(--amber)">${qhCount}</span>` },
       ]
     },
@@ -1533,7 +1603,8 @@ function renderStats() {
       title: 'Session Quality',
       stats: [
         { label: 'Avg Hits / Session', value: avgHitsPerSess.toFixed(1) },
-        { label: 'Avg THC / Session', value: `${avgThcPerSess.toFixed(1)}<span class="text-sm text-muted">mg</span>` },
+        { label: 'Edible THC (Label Amounts)', value: `${totalThc.edibleMg.toFixed(2)}<span class="text-sm text-muted">mg</span>` },
+        { label: 'Avg Cart THC / Complete Cart Session', value: `<span style="font-size:16px">${completeCartSessions.length ? formatTHCRange(cartAverage.low / completeCartSessions.length, cartAverage.high / completeCartSessions.length) : 'N/A'}</span>` },
         { label: 'Avg Feel', value: `${avgFeel.toFixed(1)}<span class="text-sm text-muted">/10</span>` },
         { label: 'Mini Session Rate', value: `${quickHitRate.toFixed(0)}<span class="text-sm text-muted">%</span>` },
       ]
@@ -1561,21 +1632,22 @@ function renderStats() {
         `).join('')}
       </div>
     </div>
-  `).join('');
+  `).join('') + `<div class="text-sm text-muted">Cart values estimate THC vaporized, not absorbed. Edible label amounts are separate. Cart averages exclude sessions with unestimated hits. ${totalThc.unavailable} hit${totalThc.unavailable === 1 ? '' : 's'} could not be estimated${thcMissingDetails(totalThc)}. ${totalThc.profilePercentHits} hits use the linked profile's current THC percentage; ${totalThc.inferredMethodHits} methodless hits are inferred as cart hits.</div>`;
 }
 
 // ── Calendar ────────────────────────────────────────────────────────────────
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 
 function getPlannedDayStatus(dStr) {
-  if (plannedBreaks.includes(dStr)) return { key: 'no-smoke', label: 'No-Smoke 🚭Day', icon: '🚭' };
-  if (sessionAllowedDays.includes(dStr)) return { key: 'session', label: 'Session🔥Day', icon: '🔥' };
-  return { key: 'quick-hit', label: 'Mini-Session⚡only Day', icon: '⚡' };
+  if (plannedBreaks.includes(dStr)) return { key: 'no-smoke', label: 'No-Smoke 🚭 Plan Day', icon: '🚭' };
+  if (sessionAllowedDays.includes(dStr)) return { key: 'session', label: 'Session 🔥 Plan Day', icon: '🔥' };
+  return { key: 'quick-hit', label: 'Mini-Session ⚡ Plan Day', icon: '⚡' };
 }
 
 function renderCalendar() {
   const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
   document.getElementById('cal-month-lbl').textContent=months[calMonth]+' '+calYear;
+  document.getElementById('calendar-token-status').innerHTML = renderTokenStatus();
   
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const offset = (firstDay + 6) % 7; 
@@ -1584,15 +1656,16 @@ function renderCalendar() {
   const todayStr=today();
   const dayMap={};
   
-  sessions.forEach(s=>{
+  const calendarSessions = activeSession && activeSession.hits.length ? [...sessions, activeSession] : sessions;
+  calendarSessions.forEach(s=>{
     const d=ds(new Date(s.ts));
-    if(!dayMap[d])dayMap[d]={ day:false, night:false, dayHits:0, nightHits:0, quickHitHits:0, sList:[], hasQuickHit:false };
+    if(!dayMap[d])dayMap[d]={ sessionHits:0, quickHitHits:0, sList:[], hasQuickHit:false, hasSession:false };
     if(s.isQuickHit) {
       dayMap[d].hasQuickHit=true;
       dayMap[d].quickHitHits += s.hits.length;
-    } else if(s.mode === 'day' || s.mode === 'night') {
-      dayMap[d][s.mode]=true;
-      dayMap[d][`${s.mode}Hits`] += s.hits.length;
+    } else {
+      dayMap[d].hasSession=true;
+      dayMap[d].sessionHits += s.hits.length;
     }
     dayMap[d].sList.push(s);
   });
@@ -1608,40 +1681,43 @@ function renderCalendar() {
     let bg = 'var(--bg3)', border = 'transparent';
     let extraCls = dStr === selectedCalDate ? 'selected-cal-day' : '';
     
-    if(dm.day && dm.night) { bg = 'rgba(224,94,94,0.15)'; border = 'var(--red)'; }
+    if(dm.hasSession && dm.hasQuickHit) { bg = 'rgba(224,94,94,0.15)'; border = 'var(--red)'; }
     else if(dm.hasQuickHit) { bg = 'rgba(162,117,255,0.15)'; border = 'var(--purple)'; }
-    else if(dm.day) { bg = 'rgba(74,159,196,0.15)'; border = '#4a9fc4'; }
-    else if(dm.night) { bg = 'rgba(212,168,67,0.15)'; border = 'var(--amber)'; }
+    else if(dm.hasSession) { bg = 'rgba(212,168,67,0.15)'; border = 'var(--amber)'; }
     
     let style = `background:${bg}; border:1px solid ${border}; color:var(--text);`;
     if(isT && dStr !== selectedCalDate) style += `box-shadow: 0 0 0 2px var(--border2);`;
     if(isF) style += `opacity: 0.5;`;
 
     const status = getPlannedDayStatus(dStr);
-    const icon = status.icon + (fuckIts.includes(dStr) ? '⚠️' : '');
+    const rechargeCount = tokenUses.filter(use => use.readyAt > use.startedAt && ds(new Date(use.readyAt)) === dStr).length;
+    const breakAt = isT ? Date.now() : new Date(dStr + 'T00:00:00').getTime();
+    const icon = status.icon + (rechargeCount ? '🔄' : '') + (dStr >= todayStr && getBreakReasons(breakAt).length ? '🔒' : '');
     const activity = [
-      { label: 'DAY', hits: dm.dayHits || 0, color: 'day' },
-      { label: 'NIGHT', hits: dm.nightHits || 0, color: 'night' },
-      { label: 'MS', hits: dm.quickHitHits || 0, color: 'quick-hit' }
+      { label: 'Session', icon: '🔥', hits: dm.sessionHits || 0, color: 'night' },
+      { label: 'Mini Session', icon: '⚡', hits: dm.quickHitHits || 0, color: 'quick-hit' }
     ].filter(item => item.hits > 0);
-    const activityLabel = activity.length ? activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`).join(', ') : 'No recorded use';
+    const activityLabel = activity.length ? activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`).join(', ') : (isF ? 'Future day' : 'Rest day');
     const activityHtml = activity.map(item => `
       <div class="cal-activity-row ${item.color}" title="${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}">
-        <span>${item.label}</span>
+        <span aria-hidden="true">${item.icon}</span>
         <span class="cal-activity-track"><span class="cal-activity-fill" style="width:${Math.min(item.hits, 4) * 25}%;"></span></span>
       </div>`).join('');
+    const futureLabel = isF ? 'Future' : 'Rest';
 
     cells+=`
     <div class="cal-cell" style="aspect-ratio:1;">
       <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')" title="${dStr}: ${activityLabel}" aria-label="${dStr}: ${activityLabel}">
         <div class="cal-date-num">${d}</div>
         ${activityHtml ? `<div class="cal-activity">${activityHtml}</div>` : ''}
+        ${!activity.length ? `<div class="cal-day-label">${futureLabel}</div>` : ''}
       </div>
       ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML=cells;
   if (selectedCalDate) showCalDetailsPane(selectedCalDate);
+  else clearCalPreview();
 }
 
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;} selectedCalDate=null; renderCalendar();}
@@ -1655,10 +1731,11 @@ function showCalDetails(dStr) { selectedCalDate = dStr; renderCalendar(); }
 
 function showCalDetailsPane(dStr) {
   const dObj = new Date(dStr + "T12:00:00");
-  const dSess = sessions.filter(s => ds(new Date(s.ts)) === dStr);
+  const calendarSessions = activeSession && activeSession.hits.length ? [...sessions, activeSession] : sessions;
+  const dSess = calendarSessions.filter(s => ds(new Date(s.ts)) === dStr);
   const pane = document.getElementById('cal-details-pane');
   const status = getPlannedDayStatus(dStr);
-  const statusHtml = `<div class="calendar-plan-status ${status.key}">This Day is a ${status.label}</div>`;
+  const statusHtml = `<div class="calendar-plan-status ${status.key}">${status.label}</div>`;
   
   const noSmokeDay = plannedBreaks.includes(dStr);
   let planBtn = `
@@ -1668,37 +1745,40 @@ function showCalDetailsPane(dStr) {
   </div>`;
   const allowSession = !noSmokeDay ? `
     <div class="toggle-row" style="border-top:1px dashed var(--border2);">
-      <label class="toggle-label" for="cal-allow-session">Allow Session 🔥</label>
+      <label class="toggle-label" for="cal-allow-session">Plan Session Day 🔥</label>
       <label class="toggle"><input type="checkbox" id="cal-allow-session" ${sessionAllowedDays.includes(dStr) ? 'checked' : ''} onchange="toggleSessionAllowed('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
     </div>
   ` : '';
   const calendarControls = planBtn + allowSession;
 
-  let blockHtml = '';
-  let blockReasons = getBlockingReasons(dStr, 'all').reasons.filter(r => r !== 'Manually Planned No-Smoke Day');
-  if (blockReasons.length > 0) {
-      blockHtml = `<div class="alert warn mt-16" style="flex-direction:column; align-items:flex-start; background:rgba(212,168,67,0.1);">
-        <strong style="margin-bottom:4px; font-size:12px;"><span style="font-size:14px;">🚭</span> Blocked By:</strong>
-        ${blockReasons.map(r => `<div style="font-size:11px;">• ${r}</div>`).join('')}
-      </div>`;
-  }
+  const events = tokenUses.filter(use => use.readyAt > use.startedAt && ds(new Date(use.readyAt)) === dStr);
+  const rechargeHtml = events.length ? `<div class="text-sm mt-16">${events.map(use =>
+    `🔄 ${use.type === 'mini' ? 'Mini Session' : (use.type === 'fuckit' ? 'Fuck It' : 'Session')} token${use.slot === null ? '' : ` ${use.slot + 1}`} recharges at ${fmtTime(new Date(use.readyAt))}`
+  ).join('<br>')}</div>` : '';
+  const future = dStr >= today();
+  const at = dStr === today() ? Date.now() : new Date(dStr + 'T00:00:00').getTime();
+  const breaks = future ? getBreakReasons(at) : [];
+  const breakHtml = breaks.length ? `<div class="alert warn mt-16">🔒 ${dStr === today() ? 'Active now' : 'At start of day'}: ${breaks.join(', ')}</div>` : '';
+  const availability = future ? `<div class="mt-16"><strong>Token status ${dStr === today() ? 'now' : 'at start of day'}</strong>${renderTokenStatus(at, dStr === today())}<div class="text-sm text-muted">Projection assumes no additional sessions or settings changes; breaks may prevent use.</div></div>` : '';
 
   if(dSess.length === 0) { 
-    const badge = fuckIts.includes(dStr) ? '⚠️ Bypassed' : (dStr > today() ? 'Future Day' : 'Sober day!');
-    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${statusHtml}${blockHtml}${calendarControls}`; 
+    const badge = dStr > today() ? 'Future day' : 'No recorded use (rest day)';
+    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${statusHtml}${breakHtml}${rechargeHtml}${availability}${calendarControls}`;
     return; 
   }
   
-  const totalThc = Math.round(dSess.reduce((a, s) => a + sumTHC(s.hits, penById(s.penId), s.method), 0));
+  const totalThc = formatTHCSummary(calculateTHC(dSess));
   pane.innerHTML = `
-    <div class="card-title">${dObj.toDateString()} ${fuckIts.includes(dStr) ? '<span style="color:var(--amber);">⚠️ Bypassed Lock</span>' : ''}</div>
-    <div class="flex-row mb-16"><div class="stat glass" style="flex:1;padding:10px;">Est. THC: ${totalThc}mg</div></div>
+    <div class="card-title">${dObj.toDateString()}</div>
+    <div class="flex-row mb-16"><div class="stat glass" style="flex:1;padding:10px;">${totalThc}</div></div>
     ${dSess.map(s=>{
-      const qb = s.isQuickHit ? '⚡ Mini Session' : s.method;
-      return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name||'Unknown'} (${s.mode}) [${qb}] - ${s.hits.length} doses</div>`;
+      const qb = s.isQuickHit ? '⚡ Mini Session' : (s.isFuckIt ? '⚠️ Fuck It Session' : 'Session');
+      return `<div class="text-sm text-muted mb-8">• ${penById(s.penId)?.name||'Unknown'} [${qb}] - ${s.hits.length} doses${s === activeSession ? ' (in progress)' : ''}</div>`;
     }).join('')}
     ${statusHtml}
-    ${blockHtml}
+    ${breakHtml}
+    ${rechargeHtml}
+    ${availability}
     ${calendarControls}
   `;
 }
@@ -1727,71 +1807,25 @@ function toggleSessionAllowed(dStr) {
 // ── Clearance Tests Tab ─────────────────────────────────────────────────────
 function renderClearance() {
     const lastHit = getLastHitInfo();
+    const lastUseEl = document.getElementById('cl-last-use');
     const salivaStatusEl = document.getElementById('cl-saliva-status');
     const urineStatusEl = document.getElementById('cl-urine-status');
-    const salivaBar = document.getElementById('cl-saliva-bar');
-    const urineBar = document.getElementById('cl-urine-bar');
-    const salivaMarkers = document.getElementById('cl-saliva-markers');
-    const urineMarkers = document.getElementById('cl-urine-markers');
+    const frequencyEl = document.getElementById('cl-frequency');
+    const windows = { single: 'About 2 days', weekly: 'About 2 weeks', daily: '2–4 weeks', heavy: '4–6 weeks; up to 12 weeks' };
+    const frequency = Object.prototype.hasOwnProperty.call(windows, settings.clearanceFrequency) ? settings.clearanceFrequency : '';
 
-    if (lastHit.time === 0) {
-        salivaStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
-        urineStatusEl.innerHTML = `<span style="color:var(--green)">CLEAR</span>`;
-        salivaBar.style.width = '100%'; salivaBar.style.background = 'var(--green)';
-        urineBar.style.width = '100%'; urineBar.style.background = 'var(--green)';
-        salivaMarkers.innerHTML = ''; urineMarkers.innerHTML = '';
-        document.getElementById('cl-saliva-desc').innerText = 'Safe window reached.';
-        document.getElementById('cl-urine-desc').innerText = 'Safe window reached.';
-        return;
+    if (lastUseEl) {
+        lastUseEl.innerText = lastHit.time ? new Date(lastHit.time).toLocaleString() : 'No use logged';
     }
+    frequencyEl.value = frequency;
+    if (salivaStatusEl) salivaStatusEl.innerText = 'Published example: up to 24 hours';
+    if (urineStatusEl) urineStatusEl.innerText = frequency ? windows[frequency] : 'Select usage frequency for an example';
+}
 
-    const now = Date.now();
-    const hoursSince = (now - lastHit.time) / 3600000;
-    const pen = penById(lastHit.penId);
-    
-    let M = 1.0;
-    if (settings.tolerance === 'low') M = 0.6;
-    if (settings.tolerance === 'high') M = 1.6;
-    const penTHC = pen ? (pen.thc || 75) : 75;
-    
-    let weight = parseFloat(settings.weight) || 150;
-    let bodyFat = parseFloat(settings.bodyFat) || 20;
-    
-    M = Math.max(0.4, Math.min(3.0, M + ((penTHC - 50) / 100 * 0.3) + ((weight - 150) / 500) + ((bodyFat - 20) / 100))); 
-
-    const sMed = 48 * Math.min(1.5, M); 
-    const uMed2 = 60 * Math.min(1.6, M); 
-    
-    let sStatus = '', sColor = '';
-    if (hoursSince < (24*M)) { sStatus = 'HIGH RISK'; sColor = 'var(--red)'; }
-    else if (hoursSince < sMed) { sStatus = 'MEDIUM RISK'; sColor = 'var(--amber)'; }
-    else { sStatus = 'CLEAR'; sColor = 'var(--green)'; }
-    salivaStatusEl.innerHTML = `<span style="color:${sColor}">${sStatus}</span>`;
-    
-    let sPct = Math.min(100, (hoursSince / sMed) * 100);
-    salivaBar.style.width = `${sPct}%`; salivaBar.style.background = sColor;
-
-    let salivaLevel = 'Med';
-    if (sStatus === 'CLEAR') salivaLevel = 'Pass';
-    else if (sStatus === 'HIGH RISK') salivaLevel = 'High';
-    salivaMarkers.innerHTML = `<span class="clearance-marker" style="color:${sColor};">▼ ${salivaLevel}</span>`;
-    document.getElementById('cl-saliva-desc').innerText = hoursSince >= sMed ? 'Safe window reached.' : `Est. time to pass: ${(sMed - hoursSince).toFixed(1)} hrs`;
-
-    let uStatus = '', uColor = '';
-    if (hoursSince < (12*M)) { uStatus = 'MEDIUM RISK (Delay)'; uColor = 'var(--amber)'; }
-    else if (hoursSince < (36*M)) { uStatus = 'HIGH RISK'; uColor = 'var(--red)'; }
-    else if (hoursSince < uMed2) { uStatus = 'MEDIUM RISK (Clearing)'; uColor = 'var(--amber)'; }
-    else { uStatus = 'CLEAR'; uColor = 'var(--green)'; }
-    urineStatusEl.innerHTML = `<span style="color:${uColor}">${uStatus}</span>`;
-    
-    let uPct = Math.min(100, (hoursSince / uMed2) * 100);
-    urineBar.style.width = `${uPct}%`; urineBar.style.background = uColor;
-
-    let urineLevel = 'Med';
-    if (uStatus === 'CLEAR') urineLevel = 'Pass';
-    else if (uStatus.includes('HIGH RISK')) urineLevel = 'High';
-    urineMarkers.innerHTML = `<span class="clearance-marker" style="color:${uColor};">▼ ${urineLevel}</span>`;
-    document.getElementById('cl-urine-desc').innerText = hoursSince >= uMed2 ? 'Safe window reached.' : `Est. time to pass: ${(uMed2 - hoursSince).toFixed(1)} hrs`;
+function saveClearanceFrequency() {
+    settings.clearanceFrequency = document.getElementById('cl-frequency').value;
+    sv('t2_settings', settings);
+    renderClearance();
 }
 
 // ── Tab Management ──────────────────────────────────────────────────────────
@@ -1892,8 +1926,8 @@ function removeTodo(id) { todos = todos.filter(t=>t.id!==id); sv('t2_todos', tod
 function renderRoutine() {
   const list = document.getElementById('routine-list');
   const all = routineChecks.filter(c => c.mode === 'all');
-  const day = routineChecks.filter(c => c.mode === 'day');
-  const night = routineChecks.filter(c => c.mode === 'night');
+  const mini = routineChecks.filter(c => c.mode === 'mini');
+  const full = routineChecks.filter(c => c.mode === 'session');
 
   const renderGroup = (title, items, badgeClass, badgeText) => {
      if (!items.length) return '';
@@ -1907,7 +1941,7 @@ function renderRoutine() {
      `).join('');
      return groupHtml;
   };
-  list.innerHTML = renderGroup('Every Session', all, '', '') + renderGroup('Day Mode Only', day, 'day', 'DAY') + renderGroup('Night Mode Only', night, 'night', 'NIGHT') || '<div class="empty">No requirements added.</div>';
+  list.innerHTML = renderGroup('Both', all, '', '') + renderGroup('Mini Session', mini, 'day', 'MINI') + renderGroup('Session', full, 'night', 'SESSION') || '<div class="empty">No requirements added.</div>';
 }
 function toggleHabit(id) { const h = routineChecks.find(x => x.id === id); if(h) h.done = !h.done; sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 function addHabit() { const val = document.getElementById('new-habit-input').value.trim(); const mode = document.getElementById('new-habit-mode').value; if(val) { routineChecks.push({ id:'r'+Date.now(), text: val, done: false, mode: mode }); sv('t2_routine', routineChecks); document.getElementById('new-habit-input').value = ''; renderRoutine(); renderDashboard(); } }
@@ -1958,13 +1992,14 @@ function saveJournal() { const el = document.getElementById('journal-text'); if(
 
 // ── Pens / Profiles ─────────────────────────────────────────────────────────
 function getCompoundsHtml(p, seconds) {
-  let html = `<div class="mt-8" style="display:inline-block; font-family:var(--app-font); font-size:11px; text-align:left; margin:0 auto;">`;
-  const thcMg = ((p.thc || 0) / 100 * seconds).toFixed(1);
-  html += `<div style="margin-bottom:2px;">- ${thcMg}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[thc]</span></div>`;
-  if (p.cbd > 0) { html += `<div style="margin-bottom:2px;">- ${((p.cbd) / 100 * seconds).toFixed(1)}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[cbd]</span></div>`; }
-  if (p.customCVal > 0) { html += `<div style="margin-bottom:2px;">- ${((p.customCVal) / 100 * seconds).toFixed(1)}mg <span style="color:var(--text3); font-weight:bold; font-size:10px; text-transform:uppercase;">[${(p.customCName || 'CBN').toLowerCase()}]</span></div>`; }
-  html += `</div>`;
-  return html;
+  if (p.type !== 'cart') return '<div class="mt-8 text-sm text-muted">No cartridge estimate for this profile type.</div>';
+  const compounds = [['THC', p.thc], ['CBD', p.cbd], [p.customCName || 'Other', p.customCVal]];
+  const text = compounds.filter(([, value]) => validTHCPercent(value) !== null).map(([name, value]) => {
+    const safeName = String(name).replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
+    const percent = validTHCPercent(value);
+    return `~${formatTHCRange(seconds * OIL_RATE_LOW * percent / 100, seconds * OIL_RATE_HIGH * percent / 100)} ${safeName} estimate for this draw time`;
+  });
+  return `<div class="mt-8 text-sm text-muted">${text.length ? text.join('<br>') + '<br>Estimated vaporized, not absorbed.' : 'Add a valid compound percentage to estimate.'}</div>`;
 }
 
 function renderPens() {
@@ -1986,11 +2021,12 @@ function renderPens() {
           colContent += `<div class="empty" style="padding: 20px 10px;">Nothing here yet.</div>`;
       } else {
           colContent += colPens.map(p => {
+              getPenDrawSettings(p);
               let diabloHtml = '';
-              if (settings.diabloEnabled) {
+              if (p.diabloEnabled) {
                 diabloHtml = `<div class="text-center" style="background:rgba(162,117,255,0.05); padding:12px; border-radius:8px; flex:1; min-width:80px; border:1px solid rgba(162,117,255,0.2); margin-top:8px;">
-                    <div style="color:var(--purple); font-weight:700; font-size:12px;">Diablo (${settings.doseDiablo}s)</div>
-                    ${getCompoundsHtml(p, settings.doseDiablo)}
+                    <div style="color:var(--purple); font-weight:700; font-size:12px;">Diablo Draw (${p.drawDiablo}s)</div>
+                    ${getCompoundsHtml(p, p.drawDiablo)}
                 </div>`;
               }
               return `
@@ -2006,18 +2042,18 @@ function renderPens() {
                  ${p.notes ? `<div class="text-sm text-muted mb-12" style="font-style:italic;">Notes: ${p.notes}</div>` : ''}
                  
                  <div style="background:var(--bg2); padding:12px; border-radius:8px;">
-                   <div class="flex-col" style="gap:8px; align-items:stretch;">
+                   <div class="pen-draw-row">
                       <div class="text-center" style="background:rgba(92,170,127,0.05); padding:8px; border-radius:8px; border:1px solid rgba(92,170,127,0.2);">
-                          <div style="color:var(--green); font-weight:700; font-size:11px;">Low (${settings.doseLow}s)</div>
-                          ${getCompoundsHtml(p, settings.doseLow)}
+                          <div style="color:var(--green); font-weight:700; font-size:11px;">Low Draw (${p.drawLow}s)</div>
+                          ${getCompoundsHtml(p, p.drawLow)}
                       </div>
                       <div class="text-center" style="background:rgba(212,168,67,0.05); padding:8px; border-radius:8px; border:1px solid rgba(212,168,67,0.2);">
-                          <div style="color:var(--amber); font-weight:700; font-size:11px;">Med (${settings.doseMed}s)</div>
-                          ${getCompoundsHtml(p, settings.doseMed)}
+                          <div style="color:var(--amber); font-weight:700; font-size:11px;">Medium Draw (${p.drawMed}s)</div>
+                          ${getCompoundsHtml(p, p.drawMed)}
                       </div>
                       <div class="text-center" style="background:rgba(224,94,94,0.05); padding:8px; border-radius:8px; border:1px solid rgba(224,94,94,0.2);">
-                          <div style="color:var(--red); font-weight:700; font-size:11px;">High (${settings.doseHigh}s)</div>
-                          ${getCompoundsHtml(p, settings.doseHigh)}
+                          <div style="color:var(--red); font-weight:700; font-size:11px;">High Draw (${p.drawHigh}s)</div>
+                          ${getCompoundsHtml(p, p.drawHigh)}
                       </div>
                    </div>
                    ${diabloHtml}
@@ -2047,14 +2083,16 @@ function renderPens() {
 function addPen() {
   const name = document.getElementById('pen-name').value.trim();
   const type = document.getElementById('pen-type').value;
-  const thc = parseFloat(document.getElementById('pen-thc').value) || 0;
+  const thcInput = document.getElementById('pen-thc').value;
+  const thc = thcInput === '' ? 0 : Number(thcInput);
   if(!name) return showCustomModal("Error", "Required: Strain / Profile Name", [{text: "OK"}]);
+  if (!Number.isFinite(thc) || thc < 0 || thc > 100) return showCustomModal("Invalid THC percentage", "Enter a THC percentage from 0 to 100, or leave it blank.", [{text:"OK"}]);
   const cbd = parseFloat(document.getElementById('pen-cbd').value) || 0;
   const cVal = parseFloat(document.getElementById('pen-c-val').value) || 0;
   const cName = document.getElementById('pen-c-name').value.trim() || 'CBN';
   const notes = document.getElementById('pen-notes').value.trim();
 
-  pens.push({id:'p'+Date.now(), name, type, thc, cbd, customCVal: cVal, customCName: cName, notes});
+  pens.push({id:'p'+Date.now(), name, type, thc, cbd, customCVal: cVal, customCName: cName, notes, ...DEFAULT_PEN_DRAW_SETTINGS});
   sv('t2_pens', pens); 
   document.getElementById('pen-name').value=''; document.getElementById('pen-thc').value='';
   document.getElementById('pen-cbd').value=''; document.getElementById('pen-c-val').value=''; document.getElementById('pen-notes').value='';
@@ -2064,10 +2102,16 @@ function addPen() {
 function editPen(id) {
   const p = pens.find(x => x.id === id);
   if (!p) return;
+  getPenDrawSettings(p);
   document.getElementById('edit-pen-id').value = p.id;
   document.getElementById('edit-pen-name').value = p.name || '';
   document.getElementById('edit-pen-type').value = p.type || 'other';
   document.getElementById('edit-pen-thc').value = p.thc || 0;
+  document.getElementById('edit-pen-draw-low').value = p.drawLow;
+  document.getElementById('edit-pen-draw-med').value = p.drawMed;
+  document.getElementById('edit-pen-draw-high').value = p.drawHigh;
+  document.getElementById('edit-pen-diablo-enabled').checked = p.diabloEnabled;
+  document.getElementById('edit-pen-draw-diablo').value = p.drawDiablo;
   document.getElementById('edit-pen-cbd').value = p.cbd || 0;
   document.getElementById('edit-pen-c-val').value = p.customCVal || 0;
   document.getElementById('edit-pen-c-name').value = p.customCName || 'CBN';
@@ -2079,9 +2123,29 @@ function savePenEdit() {
   const id = document.getElementById('edit-pen-id').value;
   const p = pens.find(x => x.id === id);
   if (p) {
+      const thcInput = document.getElementById('edit-pen-thc').value;
+      const thc = thcInput === '' ? 0 : Number(thcInput);
+      if (!Number.isFinite(thc) || thc < 0 || thc > 100) return showCustomModal("Invalid THC percentage", "Enter a THC percentage from 0 to 100, or leave it blank.", [{text:"OK"}]);
+      const drawFields = [
+        ['drawLow', 'edit-pen-draw-low'],
+        ['drawMed', 'edit-pen-draw-med'],
+        ['drawHigh', 'edit-pen-draw-high'],
+        ['drawDiablo', 'edit-pen-draw-diablo']
+      ];
+      const drawValues = {};
+      for (const [key, elementId] of drawFields) {
+        const value = Number(document.getElementById(elementId).value);
+        if (!Number.isInteger(value) || value < 1 || value > 60) {
+          showToast("Draw times must be whole seconds from 1 to 60.");
+          return;
+        }
+        drawValues[key] = value;
+      }
       p.name = document.getElementById('edit-pen-name').value.trim();
       p.type = document.getElementById('edit-pen-type').value;
-      p.thc = parseFloat(document.getElementById('edit-pen-thc').value) || 0;
+      p.thc = thc;
+      Object.assign(p, drawValues);
+      p.diabloEnabled = document.getElementById('edit-pen-diablo-enabled').checked;
       p.cbd = parseFloat(document.getElementById('edit-pen-cbd').value) || 0;
       p.customCVal = parseFloat(document.getElementById('edit-pen-c-val').value) || 0;
       p.customCName = document.getElementById('edit-pen-c-name').value.trim() || 'CBN';
@@ -2111,36 +2175,28 @@ function renderSettings() {
   const setCheck = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val; };
 
   setVal('s-username', username);
-  setVal('s-tolerance', settings.tolerance || 'medium');
   setVal('s-theme', settings.theme || 'auto');
   setVal('s-font', settings.font || "'Space Mono', monospace");
-  setVal('s-weight', settings.weight || '');
-  setVal('s-bodyfat', settings.bodyFat || '');
 
   setVal('s-maxHits', settings.maxHits);
   setVal('s-maxMiniSessionHits', settings.maxMiniSessionHits);
   setVal('s-sessPerWeek', settings.sessPerWeek);
   setVal('s-quickHitsPerWeek', settings.quickHitsPerWeek);
   setVal('s-quickHitTBreak', settings.quickHitTBreak);
-  setVal('s-nightWait', settings.nightWait);
-  setVal('s-dayWait', settings.dayWait);
+  setVal('s-sessionTokensPerWeek', settings.sessionTokensPerWeek);
+  setVal('s-miniTokensPerWeek', settings.miniTokensPerWeek);
+  setVal('s-tokenMaxHits', settings.maxHits);
+  setVal('s-tokenMiniHits', settings.maxMiniSessionHits);
+  setVal('s-tokenCooldownHours', settings.tokenCooldownHours);
+  setVal('s-globalCooldownHours', settings.globalCooldownHours);
+  setCheck('s-globalCooldownEnabled', settings.globalCooldownEnabled);
+  setVal('s-sessionWait', settings.sessionWait);
+  setVal('s-miniWait', settings.miniWait);
+  setVal('s-fuckItTokensPerMonth', settings.fuckItTokensPerMonth);
+  setVal('s-fuckItPenaltyDays', settings.fuckItPenaltyDays);
+  setCheck('s-fuckItPenaltyEnabled', settings.fuckItPenaltyEnabled);
   setVal('s-dayStart', getModeStart('day'));
   setVal('s-nightStart', getModeStart('night'));
-  
-  setVal('s-doseLow', settings.doseLow);
-  setVal('s-doseMed', settings.doseMed);
-  setVal('s-doseHigh', settings.doseHigh);
-  setVal('s-doseDiablo', settings.doseDiablo);
-
-  setCheck('s-autoTuneDosing', !!settings.autoTuneDosing);
-  setCheck('s-diabloEnabled', !!settings.diabloEnabled);
-  document.getElementById('diablo-row').style.display = settings.diabloEnabled ? 'flex' : 'none';
-
-const isAuto = !!settings.autoTuneDosing;
-  ['s-doseLow', 's-doseMed', 's-doseHigh'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) { el.disabled = isAuto; el.style.opacity = isAuto ? '0.5' : '1'; }
-  });
   
   setCheck('s-enforceWeeklyLimit', !!settings.enforceWeeklyLimit);
   setCheck('s-enforceRestDays', !!settings.enforceRestDays);
@@ -2176,34 +2232,46 @@ function saveSettings(silent = false) {
     renderSettings();
     return;
   }
+  const tokenFields = [
+    ['sessionTokensPerWeek', 's-sessionTokensPerWeek', 0, 20],
+    ['miniTokensPerWeek', 's-miniTokensPerWeek', 0, 20],
+    ['maxHits', 's-tokenMaxHits', 1, 20],
+    ['maxMiniSessionHits', 's-tokenMiniHits', 1, 20],
+    ['tokenCooldownHours', 's-tokenCooldownHours', 0, 720],
+    ['globalCooldownHours', 's-globalCooldownHours', 0, 720],
+    ['sessionWait', 's-sessionWait', 1, 240],
+    ['miniWait', 's-miniWait', 1, 240],
+    ['fuckItTokensPerMonth', 's-fuckItTokensPerMonth', 0, 20],
+    ['fuckItPenaltyDays', 's-fuckItPenaltyDays', 1, 30]
+  ];
+  const tokenValues = {};
+  const breakStart = getVal('s-breakStart');
+  const breakEnd = getVal('s-breakEnd');
+  if (breakStart && breakEnd && breakStart > breakEnd) {
+    showToast('Break end date must be on or after the start date.');
+    renderSettings();
+    return;
+  }
+  for (const [key, id, min, max] of tokenFields) {
+    const raw = getVal(id);
+    const value = Number(raw);
+    if (raw === '' || !Number.isInteger(value) || value < min || value > max) {
+      showToast(`Enter a whole number between ${min} and ${max} for ${document.getElementById(id).closest('.settings-group').querySelector('.settings-title').textContent}.`);
+      renderSettings();
+      return;
+    }
+    tokenValues[key] = value;
+  }
 
   username = getVal('s-username'); sv('t2_username', username);
-  settings.tolerance = getVal('s-tolerance');
   settings.theme = getVal('s-theme');
   settings.font = getVal('s-font');
 
-  settings.maxHits = getInt('s-maxHits', settings.maxHits);
-  const maxMiniSessionHits = getInt('s-maxMiniSessionHits', settings.maxMiniSessionHits);
-  settings.maxMiniSessionHits = Number.isFinite(maxMiniSessionHits)
-    ? Math.min(20, Math.max(1, maxMiniSessionHits))
-    : DEFAULT_SETTINGS.maxMiniSessionHits;
-  settings.sessPerWeek = getInt('s-sessPerWeek', settings.sessPerWeek);
-  settings.quickHitsPerWeek = getInt('s-quickHitsPerWeek', settings.quickHitsPerWeek);
-  settings.quickHitTBreak = getInt('s-quickHitTBreak', settings.quickHitTBreak);
-  settings.nightWait = getInt('s-nightWait', settings.nightWait);
-  settings.dayWait = getInt('s-dayWait', settings.dayWait);
+  Object.assign(settings, tokenValues);
+  settings.globalCooldownEnabled = getCheck('s-globalCooldownEnabled');
+  settings.fuckItPenaltyEnabled = getCheck('s-fuckItPenaltyEnabled');
   settings.dayStart = dayStart;
   settings.nightStart = nightStart;
-  
-  settings.diabloEnabled = getCheck('s-diabloEnabled');
-  settings.doseDiablo = getInt('s-doseDiablo', settings.doseDiablo);
-
-  settings.autoTuneDosing = getCheck('s-autoTuneDosing');
-  if (!settings.autoTuneDosing) {
-      settings.doseLow = getInt('s-doseLow', settings.doseLow);
-      settings.doseMed = getInt('s-doseMed', settings.doseMed);
-      settings.doseHigh = getInt('s-doseHigh', settings.doseHigh);
-  } else { applyAutoDosing(); }
   
   settings.enforceWeeklyLimit = getCheck('s-enforceWeeklyLimit');
   settings.enforceRestDays = getCheck('s-enforceRestDays');
@@ -2218,8 +2286,8 @@ function saveSettings(silent = false) {
   settings.autoTBreak = getCheck('s-autoTBreak');
   settings.autoTBreakWeek = getInt('s-autoTBreakWeek', settings.autoTBreakWeek);
 
-  settings.breakStart = getVal('s-breakStart');
-  settings.breakEnd = getVal('s-breakEnd');
+  settings.breakStart = breakStart;
+  settings.breakEnd = breakEnd;
   settings.hardcoreLockout = getCheck('s-hardcoreLockout');
   settings.allowQuickHit = getCheck('s-allowQuickHit');
 
@@ -2228,6 +2296,7 @@ function saveSettings(silent = false) {
   applyTheme();
   if (!silent) showToast("Settings saved!");
   renderDashboard();
+  renderCalendar();
   renderSettings(); 
 }
 
@@ -2263,6 +2332,8 @@ function resetToDefaults() {
             showToast("Settings reverted.");
             renderSettings();
             applyTheme();
+            renderDashboard();
+            renderCalendar();
         }}
     ]);
 }
@@ -2318,12 +2389,13 @@ function importDataJSON(e) {
 
 function exportCSV() {
   if(!sessions.length) return showToast("No data to export.");
-  let csv = "Date,Time,Pen,Method,Mode,Hits,Est_THC_mg,Final_Feeling,Is_Quick_Hit,Focus_Task,Task_Done,Notes\n";
+  const csvRow = values => values.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',') + '\n';
+  let csv = csvRow(['Date', 'Time', 'Pen', 'Method', 'Mode', 'Hits', 'Cart_THC_low_mg', 'Cart_THC_high_mg', 'Edible_label_THC_mg', 'Unestimated_hits', 'Missing_method_hits', 'Missing_THC_percent_hits', 'Final_Feeling', 'Is_Quick_Hit', 'Focus_Task', 'Task_Done', 'Notes', 'Session_Type']);
   sessions.forEach(s => {
     const p = penById(s.penId) || {name: 'Deleted Profile', type: 'other'};
     const d = new Date(s.ts);
-    const n = (s.notes||'').replace(/\n/g, ' ').replace(/,/g, ';');
-    csv += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${p.name},${s.method||'vape'},${s.mode},${s.hits.length},${s.thc||0},${s.finalFeeling||''},${s.isQuickHit?"Yes":"No"},${s.focusTask||'None'},${s.taskCompleted?"Yes":"No"},${n}\n`;
+    const thc = calculateTHC([s]);
+    csv += csvRow([d.toLocaleDateString(), d.toLocaleTimeString(), p.name, s.method || 'Unknown', s.mode, s.hits.length, thc.vapeHits ? thc.low.toFixed(2) : '', thc.vapeHits ? thc.high.toFixed(2) : '', thc.edibleHits ? thc.edibleMg.toFixed(2) : '', thc.unavailable, thc.missingMethod, thc.missingPercent, s.finalFeeling || '', s.isQuickHit ? 'Yes' : 'No', s.focusTask || 'None', s.taskCompleted ? 'Yes' : 'No', s.notes || '', s.isQuickHit ? 'Mini Session' : (s.isFuckIt ? 'Fuck It Session' : 'Session')]);
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
