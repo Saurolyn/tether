@@ -1997,9 +1997,9 @@ function getCompoundsHtml(p, seconds) {
   const text = compounds.filter(([, value]) => validTHCPercent(value) !== null).map(([name, value]) => {
     const safeName = String(name).replace(/[&<>"']/g, char => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
     const percent = validTHCPercent(value);
-    return `~${formatTHCRange(seconds * OIL_RATE_LOW * percent / 100, seconds * OIL_RATE_HIGH * percent / 100)} ${safeName} estimate for this draw time`;
+    return `~${formatTHCRange(seconds * OIL_RATE_LOW * percent / 100, seconds * OIL_RATE_HIGH * percent / 100)} ${safeName}`;
   });
-  return `<div class="mt-8 text-sm text-muted">${text.length ? text.join('<br>') + '<br>Estimated vaporized, not absorbed.' : 'Add a valid compound percentage to estimate.'}</div>`;
+  return `<div class="mt-8 text-sm text-muted">${text.length ? text.join('<br>') : 'Add a valid compound percentage to estimate.'}</div>`;
 }
 
 function renderPens() {
