@@ -436,6 +436,7 @@ function beginTokenSession(penId, task, method) {
   const slot = type === 'fuckit' ? null : state.slots.find(item => item.readyAt <= now).slot;
   const monthlyReset = new Date(new Date(now).getFullYear(), new Date(now).getMonth() + 1, 1).getTime();
   const use = {
+    id: `${now}-${Math.random().toString(36).slice(2)}`,
     type, slot, startedAt: now,
     readyAt: type === 'fuckit' ? monthlyReset : now + settings.tokenCooldownHours * 3600000,
     globalUntil: settings.globalCooldownEnabled ? now + settings.globalCooldownHours * 3600000 : 0,
@@ -443,8 +444,23 @@ function beginTokenSession(penId, task, method) {
   };
   tokenUses.push(use);
   sv('t2_token_uses', tokenUses);
-  activeSession = { id: now.toString(), ts: now, penId, mode: currentMode, method, hits: [], notes: '', media: [], focusTask: task, isQuickHit: type === 'mini', isFuckIt: type === 'fuckit' };
+  activeSession = { id: now.toString(), tokenUseId: use.id, ts: now, penId, mode: currentMode, method, hits: [], notes: '', media: [], focusTask: task, isQuickHit: type === 'mini', isFuckIt: type === 'fuckit' };
   sv('t2_activeSession', activeSession);
+  return true;
+}
+
+function refundCancelledSessionToken(session) {
+  if (!session || (session.hits || []).length > 0) return false;
+  const type = session.isQuickHit ? 'mini' : (session.isFuckIt ? 'fuckit' : 'session');
+  let matches;
+  if (session.tokenUseId) {
+    matches = tokenUses.filter(use => use.id === session.tokenUseId);
+  } else {
+    matches = tokenUses.filter(use => use.startedAt === session.ts && use.type === type);
+  }
+  if (matches.length !== 1) return false;
+  tokenUses = tokenUses.filter(use => use !== matches[0]);
+  sv('t2_token_uses', tokenUses);
   return true;
 }
 
@@ -1239,9 +1255,12 @@ function cancelDraw() {
   clearTimeout(drawSequenceState.timeout);
   document.getElementById('draw-modal').classList.remove('open');
   if (activeSession && activeSession.hits.length === 0) {
+    const refunded = refundCancelledSessionToken(activeSession);
     activeSession = null;
     sv('t2_activeSession', null);
-    showToast('The session was cancelled; its token remains used.');
+    showToast(refunded
+      ? 'The session was cancelled; its token and cooldown were refunded.'
+      : 'The session was cancelled before any hits were taken.');
   }
   renderDashboard();
 }
@@ -1344,11 +1363,17 @@ function renderRecap() {
 }
 
 function cancelRecap() {
-  showCustomModal("Discard Session", "Discard session? History will not be saved, and the token remains used.", [
+  const noHitsTaken = activeSession && activeSession.hits.length === 0;
+  const message = noHitsTaken
+    ? "Discard session? History will not be saved, and the token will be refunded because no hits were taken."
+    : "Discard session? History will not be saved, and the token remains used.";
+  showCustomModal("Discard Session", message, [
     {text: "No, Keep it"},
     {text: "Discard", cls: "btn-danger", onClick: () => {
+       const refunded = refundCancelledSessionToken(activeSession);
        activeSession = null; sv('t2_activeSession', null);
        if(waitTimerInterval) clearInterval(waitTimerInterval);
+       if (refunded) showToast('Session discarded; its token and cooldown were refunded.');
        switchTab('dashboard');
     }}
   ]);
