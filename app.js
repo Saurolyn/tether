@@ -991,19 +991,16 @@ function renderDashboard() {
     document.getElementById('session-card-idle').style.display = 'block';
     document.getElementById('session-card-active').style.display = 'none';
     
-    const applicableChecks = routineChecks;
-    
-    document.getElementById('preflight-list').innerHTML = applicableChecks.map(c => {
-      let badge = '';
-      if (c.mode === 'mini') badge = '<span class="mode-badge day" style="margin-left:8px; padding:2px 6px; font-size:8px;">MINI</span>';
-      if (c.mode === 'session') badge = '<span class="mode-badge night" style="margin-left:8px; padding:2px 6px; font-size:8px;">SESSION</span>';
-      if (c.mode === 'all') badge = '<span class="mode-badge" style="margin-left:8px; padding:2px 6px; font-size:8px;">BOTH</span>';
+    document.getElementById('preflight-list').innerHTML = renderRoutineGroups((c, group) => {
+      const badge = group.badgeText
+        ? `<span class="mode-badge ${group.badgeClass}" style="margin-left:8px; padding:2px 6px; font-size:8px;">${group.badgeText}</span>`
+        : '';
       return `
-      <div class="check-row" onclick="togglePreflight('${c.id}')">
-        <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
-        <div class="check-text" style="${c.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${c.text}${badge}</div>
-      </div>
-    `}).join('') || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
+        <div class="check-row" onclick="togglePreflight('${c.id}')">
+          <div class="check-box ${c.done ? 'checked' : ''}">${c.done ? '✓' : ''}</div>
+          <div class="check-text" style="${c.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${c.text}${badge}</div>
+        </div>`;
+    }) || '<div class="text-sm text-muted mb-8">No routine configured. Start session right away.</div>';
 
     const sessionState = getTokenStartState('session');
     document.getElementById('btn-start-session').disabled = sessionState.disabled;
@@ -1681,10 +1678,11 @@ function renderCalendar() {
   const todayStr=today();
   const dayMap={};
   
-  const calendarSessions = activeSession && activeSession.hits.length ? [...sessions, activeSession] : sessions;
+  const calendarSessions = activeSession && (activeSession.hits.length || activeSession.isFuckIt) ? [...sessions, activeSession] : sessions;
   calendarSessions.forEach(s=>{
     const d=ds(new Date(s.ts));
-    if(!dayMap[d])dayMap[d]={ sessionHits:0, quickHitHits:0, sList:[], hasQuickHit:false, hasSession:false };
+    if(!dayMap[d])dayMap[d]={ sessionHits:0, quickHitHits:0, fuckItCount:0, sList:[], hasQuickHit:false, hasSession:false };
+    if(s.isFuckIt) dayMap[d].fuckItCount++;
     if(s.isQuickHit) {
       dayMap[d].hasQuickHit=true;
       dayMap[d].quickHitHits += s.hits.length;
@@ -1722,7 +1720,13 @@ function renderCalendar() {
       { label: 'Session', icon: '🔥', hits: dm.sessionHits || 0, color: 'night' },
       { label: 'Mini Session', icon: '⚡', hits: dm.quickHitHits || 0, color: 'quick-hit' }
     ].filter(item => item.hits > 0);
-    const activityLabel = activity.length ? activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`).join(', ') : (isF ? 'Future day' : 'Rest day');
+    const activityLabel = [
+      ...activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`),
+      ...(dm.fuckItCount ? [`Fuck It passes used: ${dm.fuckItCount}`] : [])
+    ].join(', ') || (isF ? 'Future day' : 'Rest day');
+    const fuckItIndicator = dm.fuckItCount
+      ? `<div class="cal-fuckit-indicator" title="Fuck It passes used: ${dm.fuckItCount}" aria-hidden="true">⚠️×${dm.fuckItCount}</div>`
+      : '';
     const activityHtml = activity.map(item => `
       <div class="cal-activity-row ${item.color}" title="${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}">
         <span aria-hidden="true">${item.icon}</span>
@@ -1734,8 +1738,9 @@ function renderCalendar() {
     <div class="cal-cell" style="aspect-ratio:1;">
       <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')" title="${dStr}: ${activityLabel}" aria-label="${dStr}: ${activityLabel}">
         <div class="cal-date-num">${d}</div>
+        ${fuckItIndicator}
         ${activityHtml ? `<div class="cal-activity">${activityHtml}</div>` : ''}
-        ${!activity.length ? `<div class="cal-day-label">${futureLabel}</div>` : ''}
+        ${!activity.length && !dm.fuckItCount ? `<div class="cal-day-label">${futureLabel}</div>` : ''}
       </div>
       ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
@@ -1756,7 +1761,7 @@ function showCalDetails(dStr) { selectedCalDate = dStr; renderCalendar(); }
 
 function showCalDetailsPane(dStr) {
   const dObj = new Date(dStr + "T12:00:00");
-  const calendarSessions = activeSession && activeSession.hits.length ? [...sessions, activeSession] : sessions;
+  const calendarSessions = activeSession && (activeSession.hits.length || activeSession.isFuckIt) ? [...sessions, activeSession] : sessions;
   const dSess = calendarSessions.filter(s => ds(new Date(s.ts)) === dStr);
   const pane = document.getElementById('cal-details-pane');
   const status = getPlannedDayStatus(dStr);
@@ -1948,25 +1953,33 @@ function renderTodo() { document.getElementById('todo-list').innerHTML = todos.m
 function addTodo() { const val = document.getElementById('new-todo-input').value.trim(); if(val) { todos.push({ id:'t'+Date.now(), text: val }); sv('t2_todos', todos); document.getElementById('new-todo-input').value = ''; renderTodo(); } }
 function removeTodo(id) { todos = todos.filter(t=>t.id!==id); sv('t2_todos', todos); renderTodo(); }
 
+const ROUTINE_GROUPS = [
+  { title: 'Both', mode: 'all', badgeClass: '', badgeText: '' },
+  { title: 'Mini Session', mode: 'mini', badgeClass: 'day', badgeText: 'MINI' },
+  { title: 'Session', mode: 'session', badgeClass: 'night', badgeText: 'SESSION' }
+];
+
+function renderRoutineGroups(renderItem) {
+  return ROUTINE_GROUPS.map(group => {
+    const items = routineChecks.filter(check => check.mode === group.mode);
+    if (!items.length) return '';
+    return `
+      <section class="routine-group">
+        <div class="routine-group-title text-sm text-muted">${group.title}</div>
+        ${items.map(item => renderItem(item, group)).join('')}
+      </section>`;
+  }).join('');
+}
+
 function renderRoutine() {
   const list = document.getElementById('routine-list');
-  const all = routineChecks.filter(c => c.mode === 'all');
-  const mini = routineChecks.filter(c => c.mode === 'mini');
-  const full = routineChecks.filter(c => c.mode === 'session');
-
-  const renderGroup = (title, items, badgeClass, badgeText) => {
-     if (!items.length) return '';
-     let groupHtml = `<div class="text-sm text-muted mt-16 mb-8" style="font-weight:bold; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border2); padding-bottom:4px;">${title}</div>`;
-     groupHtml += items.map(h => `
-        <div class="check-row" onclick="toggleHabit('${h.id}')">
-          <div class="check-box ${h.done ? 'checked' : ''}">${h.done ? '✓' : ''}</div>
-          <div class="check-text" style="${h.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${h.text} ${badgeText ? `<span class="mode-badge ${badgeClass}" style="margin-left:8px; padding:2px 6px; font-size:8px;">${badgeText}</span>` : ''}</div>
-          <button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeHabit('${h.id}')">Del</button>
-        </div>
-     `).join('');
-     return groupHtml;
-  };
-  list.innerHTML = renderGroup('Both', all, '', '') + renderGroup('Mini Session', mini, 'day', 'MINI') + renderGroup('Session', full, 'night', 'SESSION') || '<div class="empty">No requirements added.</div>';
+  list.innerHTML = renderRoutineGroups((h, group) => `
+    <div class="check-row" onclick="toggleHabit('${h.id}')">
+      <div class="check-box ${h.done ? 'checked' : ''}">${h.done ? '✓' : ''}</div>
+      <div class="check-text" style="${h.done ? 'text-decoration:line-through;opacity:0.6;' : ''}">${h.text} ${group.badgeText ? `<span class="mode-badge ${group.badgeClass}" style="margin-left:8px; padding:2px 6px; font-size:8px;">${group.badgeText}</span>` : ''}</div>
+      <button class="btn btn-ghost btn-sm ml-auto" onclick="event.stopPropagation(); removeHabit('${h.id}')">Del</button>
+    </div>
+  `) || '<div class="empty">No requirements added.</div>';
 }
 function toggleHabit(id) { const h = routineChecks.find(x => x.id === id); if(h) h.done = !h.done; sv('t2_routine', routineChecks); renderRoutine(); renderDashboard(); }
 function addHabit() { const val = document.getElementById('new-habit-input').value.trim(); const mode = document.getElementById('new-habit-mode').value; if(val) { routineChecks.push({ id:'r'+Date.now(), text: val, done: false, mode: mode }); sv('t2_routine', routineChecks); document.getElementById('new-habit-input').value = ''; renderRoutine(); renderDashboard(); } }
