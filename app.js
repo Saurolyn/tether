@@ -92,6 +92,26 @@ routineChecks.forEach(check => {
 if (routineMigrated) sv('t2_routine', routineChecks);
 let plannedBreaks = ld('t2_planned_breaks', []); 
 let sessionAllowedDays = ld('t2_session_allowed_days', []);
+let miniSessionAllowedDays = ld('t2_mini_session_allowed_days', []);
+let strictBreakDays = ld('t2_strict_break_days', []);
+const strictDays = new Set(strictBreakDays);
+const conflictingNoSmokeDays = plannedBreaks.some(day => strictDays.has(day));
+if (conflictingNoSmokeDays) {
+  plannedBreaks = plannedBreaks.filter(day => !strictDays.has(day));
+  sv('t2_planned_breaks', plannedBreaks);
+}
+const noSmokeDays = new Set(plannedBreaks);
+const disabledPlanDays = new Set([...noSmokeDays, ...strictDays]);
+const conflictingSessionDays = sessionAllowedDays.some(day => disabledPlanDays.has(day));
+const conflictingMiniSessionDays = miniSessionAllowedDays.some(day => disabledPlanDays.has(day));
+if (conflictingSessionDays) {
+  sessionAllowedDays = sessionAllowedDays.filter(day => !disabledPlanDays.has(day));
+  sv('t2_session_allowed_days', sessionAllowedDays);
+}
+if (conflictingMiniSessionDays) {
+  miniSessionAllowedDays = miniSessionAllowedDays.filter(day => !disabledPlanDays.has(day));
+  sv('t2_mini_session_allowed_days', miniSessionAllowedDays);
+}
 let fuckIts = ld('t2_fuckits', []); 
 let quickHitLockoutUntil = ld('t2_qh_lockout', 0);
 let quickHitTimerUntil = ld('t2_qh_timer', 0);
@@ -107,6 +127,7 @@ let drawSequenceState = { timeout: null, interval: null };
 let selectedCalDate = null; 
 let emStep = 0; 
 let pendingConfigType = 'normal'; 
+let pendingUsePass = false;
 
 // ── Helper Functions ────────────────────────────────────────────────────────
 const OIL_RATE_LOW = 1.2;
@@ -133,6 +154,17 @@ function weekStartFromDate(d) {
   return date.getTime();
 }
 function weekStart() { return weekStartFromDate(new Date()); }
+function tokenWeekStartFromDate(d) {
+  const start = new Date(weekStartFromDate(d));
+  start.setHours(6, 0, 0, 0);
+  if (d.getTime() < start.getTime()) start.setDate(start.getDate() - 7);
+  return start.getTime();
+}
+function nextTokenWeekReset(at = Date.now()) {
+  const next = new Date(tokenWeekStartFromDate(new Date(at)));
+  next.setDate(next.getDate() + 7);
+  return next.getTime();
+}
 function penById(id) { return pens.find(p=>p.id===id) || graveyard.find(p=>p.id===id); }
 function isFuckItDay(dStr = today()) { return fuckIts.includes(dStr); }
 function getModeStart(mode) {
@@ -327,6 +359,7 @@ function getBreakReasons(at = Date.now()) {
   const date = new Date(at);
   const day = ds(date);
   const reasons = [];
+  if (strictBreakDays.includes(day)) reasons.push('Strict break');
   if (settings.hardcoreLockout) reasons.push('Hardcore Lockout');
   if (settings.breakStart && settings.breakEnd && day >= settings.breakStart && day <= settings.breakEnd) reasons.push('Scheduled break');
   if (settings.yearlyBreakMonth !== 'none' && Number(settings.yearlyBreakMonth) === date.getMonth()) reasons.push('Yearly T-Break');
@@ -343,7 +376,7 @@ function getBreakReasons(at = Date.now()) {
 
 function getTokenPool(type, at = Date.now()) {
   if (type === 'fuckit') {
-    const capacity = settings.fuckItTokensPerMonth;
+    const capacity = 1;
     const d = new Date(at);
     const start = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
     const used = tokenUses.filter(use => use.type === type && use.startedAt >= start && use.startedAt <= at).length;
@@ -352,7 +385,7 @@ function getTokenPool(type, at = Date.now()) {
   }
   const configured = type === 'mini' ? settings.miniTokensPerWeek : settings.sessionTokensPerWeek;
   const capacity = isWeenOffActive(new Date(at)) && configured > 0 ? Math.max(1, Math.floor(configured / 2)) : configured;
-  const start = weekStartFromDate(new Date(at));
+  const start = tokenWeekStartFromDate(new Date(at));
   const uses = tokenUses.filter(use => use.type === type && use.startedAt <= at);
   const weeklyRemaining = Math.max(0, capacity - uses.filter(use => use.startedAt >= start).length);
   const slots = Array.from({ length: capacity }, (_, slot) => {
@@ -367,35 +400,24 @@ function getGlobalCooldownUntil(at = Date.now()) {
   return tokenUses.reduce((end, use) => use.startedAt <= at ? Math.max(end, use.globalUntil || 0) : end, 0);
 }
 
-function getTokenStartState(type) {
+function getTokenStartState(type, bypassChecklist = false) {
   const pool = getTokenPool(type);
   const globalUntil = getGlobalCooldownUntil();
   let reason = '';
   const breaks = getBreakReasons();
-  if (settings.hardcoreLockout) reason = 'Hardcore Lockout is active';
-  else if (!checkAllPreflight(type === 'mini' ? 'mini' : 'session')) reason = 'Complete the applicable checklist first';
-  else if (type !== 'fuckit' && breaks.length) reason = breaks.join(', ');
-  else if (type !== 'fuckit' && globalUntil > Date.now()) reason = `Global cooldown until ${new Date(globalUntil).toLocaleString()}`;
-  else if (type === 'fuckit' && !pool.available) reason = 'Monthly Fuck It tokens used; resets on the first';
-  else if (!pool.weeklyRemaining) reason = 'Weekly token allowance used; resets Monday';
+  if (strictBreakDays.includes(today())) reason = 'Strict break is active';
+  else if (settings.hardcoreLockout) reason = 'Hardcore Lockout is active';
+  else if (!bypassChecklist && !checkAllPreflight(type === 'mini' ? 'mini' : 'session')) reason = 'Complete the applicable checklist first';
+  else if (breaks.length) reason = breaks.join(', ');
+  else if (globalUntil > Date.now()) reason = `Global cooldown until ${new Date(globalUntil).toLocaleString()}`;
+  else if (!pool.weeklyRemaining) reason = 'Weekly token allowance used; resets Monday at 6 a.m.';
   else if (!pool.available) reason = 'All tokens are cooling down';
   return { ...pool, remaining: pool.available, disabled: !!reason, reason };
 }
 
-function nextTokenRefresh(type, at, pool) {
-  if (pool.available >= pool.capacity) return null;
-  if (type === 'fuckit') {
-    const date = new Date(at);
-    return new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
-  }
-  const nextWeek = new Date(weekStartFromDate(new Date(at)));
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  const date = new Date(at);
-  const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1).getTime();
-  const candidates = [nextWeek.getTime(), nextMonth, ...pool.slots.map(slot => slot.readyAt)]
-    .filter(time => time > at)
-    .sort((a, b) => a - b);
-  return candidates.find(time => getTokenPool(type, time).available > pool.available) || null;
+function canUseFuckItPass() {
+  return !activeSession && pens.length > 0 && getTokenPool('fuckit').available > 0 &&
+    ['session', 'mini'].some(type => !getTokenStartState(type, true).disabled);
 }
 
 function formatCountdown(ms) {
@@ -405,46 +427,110 @@ function formatCountdown(ms) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function refreshTokenCountdowns() {
-  document.querySelectorAll('[data-token-refresh]').forEach(element => {
-    element.textContent = `${formatCountdown(Number(element.dataset.tokenRefresh) - Date.now())} Until Refresh`;
-  });
+function formatDayCountdown(ms) {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${days}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function renderTokenStatus(at = Date.now(), live = true) {
+function refreshTokenCountdowns() {
+  document.querySelectorAll('[data-token-refresh]').forEach(element => {
+    element.textContent = formatDayCountdown(Number(element.dataset.tokenRefresh) - Date.now());
+  });
+  document.querySelectorAll('[data-token-cooldown]').forEach(element => {
+    element.textContent = formatCountdown(Number(element.dataset.tokenCooldown) - Date.now());
+  });
+  const lockCountdown = document.getElementById('lock-countdown');
+  if (lockCountdown && lockCountdown.dataset.nextSessionAt) {
+    const remaining = Number(lockCountdown.dataset.nextSessionAt) - Date.now();
+    if (remaining <= 0) renderDashboard();
+    else lockCountdown.textContent = formatDayCountdown(remaining);
+  }
+}
+
+function renderTokenStatus(at = Date.now(), showRefresh = false) {
   const globalUntil = getGlobalCooldownUntil(at);
-  const pools = ['session', 'mini', 'fuckit'].map(type => {
+  const pools = ['session', 'mini'].map(type => {
     const pool = getTokenPool(type, at);
     const name = type === 'mini' ? 'Mini Session' : (type === 'fuckit' ? 'Fuck It' : 'Session');
-    const refresh = nextTokenRefresh(type, at, pool);
+    const refresh = showRefresh ? nextTokenWeekReset(at) : null;
     const color = pool.available === pool.capacity ? 'ready' : 'used';
-    const countdown = refresh ? `<div class="token-countdown"${live ? ` data-token-refresh="${refresh}"` : ''}>${formatCountdown(refresh - at)} Until Refresh</div>` : '';
-    return `<div class="token-status-item ${color}"><div><span aria-hidden="true">${type === 'mini' ? '⚡' : (type === 'fuckit' ? '⚠️' : '🔥')}</span> ${name} Tokens: ${pool.available}/${pool.capacity}</div>${countdown}</div>`;
+    const refreshDate = refresh ? new Date(refresh).toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}) : '';
+    const countdown = refresh ? `<div class="token-countdown">Token refresh: <span data-token-refresh="${refresh}">${formatDayCountdown(refresh - at)}</span> (${refreshDate}, 6:00 AM)</div>` : '';
+    const cooldowns = showRefresh ? pool.slots.filter(slot => slot.readyAt > at).map(slot =>
+      `<div class="token-countdown">Token ${slot.slot + 1} cooldown: <span data-token-cooldown="${slot.readyAt}">${formatCountdown(slot.readyAt - at)}</span></div>`
+    ).join('') : '';
+    return `<div class="token-status-item ${color}"><div><span aria-hidden="true">${type === 'mini' ? '⚡' : '🔥'}</span> ${name} Tokens: ${pool.available}/${pool.capacity}</div>${countdown}${cooldowns}</div>`;
   }).join('');
   const global = globalUntil > at ? `<div class="text-sm text-muted">Global cooldown until ${new Date(globalUntil).toLocaleString()}</div>` : '';
   return `<div class="token-status-list">${pools}${global}</div>`;
 }
 
+function nextSessionAvailability(at = Date.now()) {
+  if (settings.hardcoreLockout) return null;
+  const candidates = new Set([at]);
+  const end = new Date(at);
+  end.setFullYear(end.getFullYear() + 5);
+  const day = new Date(at);
+  day.setHours(0, 0, 0, 0);
+  while (day.getTime() <= end.getTime()) {
+    if (day.getTime() > at) candidates.add(day.getTime());
+    const reset = new Date(day);
+    reset.setHours(6, 0, 0, 0);
+    if (reset.getTime() > at && reset.getTime() <= end.getTime()) candidates.add(reset.getTime());
+    day.setDate(day.getDate() + 1);
+  }
+  tokenUses.filter(use => use.startedAt <= at).forEach(use => {
+    [use.readyAt, use.globalUntil, use.penaltyUntil].forEach(time => {
+      if (time > at && time <= end.getTime()) candidates.add(time);
+    });
+  });
+  for (const time of [...candidates].sort((a, b) => a - b)) {
+    if (strictBreakDays.includes(ds(new Date(time)))) continue;
+    for (const type of ['session', 'mini']) {
+      if (!getTokenPool(type, time).available) continue;
+      if (getBreakReasons(time).length || getGlobalCooldownUntil(time) > time) continue;
+      return { time, type };
+    }
+  }
+  return null;
+}
+
 function beginTokenSession(penId, task, method) {
-  const type = pendingConfigType === 'quick' ? 'mini' : (pendingConfigType === 'fuckit' ? 'fuckit' : 'session');
-  const state = getTokenStartState(type);
+  if (strictBreakDays.includes(today())) {
+    showCustomModal('Strict Break', 'A Strict Break is active today. Sessions and hits are blocked.', [{text: 'OK'}]);
+    return false;
+  }
+  const type = pendingConfigType === 'quick' ? 'mini' : 'session';
+  const state = getTokenStartState(type, pendingUsePass);
   if (state.disabled) {
     showCustomModal('Token unavailable', state.reason, [{text: 'OK'}]);
     return false;
   }
+  if (pendingUsePass && !getTokenPool('fuckit').available) {
+    showCustomModal('Pass unavailable', 'The monthly Fuck It pass has already been used.', [{text: 'OK'}]);
+    return false;
+  }
   const now = Date.now();
-  const slot = type === 'fuckit' ? null : state.slots.find(item => item.readyAt <= now).slot;
+  const slot = state.slots.find(item => item.readyAt <= now).slot;
   const monthlyReset = new Date(new Date(now).getFullYear(), new Date(now).getMonth() + 1, 1).getTime();
   const use = {
     id: `${now}-${Math.random().toString(36).slice(2)}`,
     type, slot, startedAt: now,
-    readyAt: type === 'fuckit' ? monthlyReset : now + settings.tokenCooldownHours * 3600000,
+    readyAt: now + settings.tokenCooldownHours * 3600000,
     globalUntil: settings.globalCooldownEnabled ? now + settings.globalCooldownHours * 3600000 : 0,
-    penaltyUntil: type === 'fuckit' && settings.fuckItPenaltyEnabled ? now + settings.fuckItPenaltyDays * 86400000 : 0
+    penaltyUntil: 0
   };
   tokenUses.push(use);
+  const passUse = pendingUsePass ? {
+    id: `${use.id}-pass`, type: 'fuckit', slot: null, startedAt: now,
+    readyAt: monthlyReset, globalUntil: 0, penaltyUntil: 0
+  } : null;
+  if (passUse) tokenUses.push(passUse);
   sv('t2_token_uses', tokenUses);
-  activeSession = { id: now.toString(), tokenUseId: use.id, ts: now, penId, mode: currentMode, method, hits: [], notes: '', media: [], focusTask: task, isQuickHit: type === 'mini', isFuckIt: type === 'fuckit' };
+  activeSession = { id: now.toString(), tokenUseId: use.id, passUseId: passUse ? passUse.id : null, ts: now, penId, mode: currentMode, method, hits: [], notes: '', media: [], focusTask: task, isQuickHit: type === 'mini', isFuckIt: !!passUse };
   sv('t2_activeSession', activeSession);
   return true;
 }
@@ -459,7 +545,7 @@ function refundCancelledSessionToken(session) {
     matches = tokenUses.filter(use => use.startedAt === session.ts && use.type === type);
   }
   if (matches.length !== 1) return false;
-  tokenUses = tokenUses.filter(use => use !== matches[0]);
+  tokenUses = tokenUses.filter(use => use !== matches[0] && (!session.passUseId || use.id !== session.passUseId));
   sv('t2_token_uses', tokenUses);
   return true;
 }
@@ -631,7 +717,7 @@ function updateGlobalClock() {
   if (clTab && clTab.classList.contains('active')) renderClearance();
   refreshTokenCountdowns();
   const tokenClockKey = [
-    today(), weekStart(), ...['session', 'mini'].flatMap(type => getTokenPool(type).slots.map(slot => slot.readyAt > Date.now())),
+    today(), tokenWeekStartFromDate(new Date()), ...['session', 'mini'].flatMap(type => getTokenPool(type).slots.map(slot => slot.readyAt > Date.now())),
     getTokenPool('session').available, getTokenPool('mini').available,
     getTokenPool('fuckit').available, getGlobalCooldownUntil() > Date.now(), getBreakReasons().join(',')
   ].join(':');
@@ -920,10 +1006,12 @@ function renderDashboard() {
   const grt = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
   document.getElementById('greeting-txt').innerText = `${grt}, ${username}.`;
   
-  const dayStatus = getPlannedDayStatus(today());
+  const dayPlans = getPlannedDayOptions(today());
+  const dayStatus = dayPlans.length ? dayPlans.map(option => option.label).join(' · ') : 'No plan selected';
   const globalCooling = getGlobalCooldownUntil() > Date.now();
-  const activityStatus = activeSession ? 'IN PROGRESS' : (globalCooling ? 'COOLDOWN' : 'IDLE');
-  const activityStatusClass = activeSession || globalCooling ? 'warn' : 'ok';
+  const strictBreak = strictBreakDays.includes(today());
+  const activityStatus = strictBreak ? 'STRICT BREAK' : (activeSession ? 'IN PROGRESS' : (globalCooling ? 'COOLDOWN' : 'IDLE'));
+  const activityStatusClass = strictBreak ? 'danger' : (activeSession || globalCooling ? 'warn' : 'ok');
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat glass">
       <div class="stat-label">THC Logged Today</div>
@@ -940,10 +1028,32 @@ function renderDashboard() {
       <div class="stat-value ${activityStatusClass}" style="font-size:20px;">
         ${activityStatus}
       </div>
-      <div class="text-sm text-muted" style="font-size:10px; font-weight:700; margin-top:6px;">${dayStatus.label}</div>
+      <div class="text-sm text-muted" style="font-size:10px; font-weight:700; margin-top:6px;">${dayStatus}</div>
     </div>
   `;
-  document.getElementById('dash-token-status').innerHTML = renderTokenStatus();
+  document.getElementById('dash-token-status').innerHTML = renderTokenStatus(Date.now(), true);
+  const lockPane = document.getElementById('dashboard-lock');
+  lockPane.style.display = strictBreak ? 'block' : 'none';
+  document.getElementById('dashboard-main-content').style.display = strictBreak && !activeSession ? 'none' : '';
+  if (strictBreak) {
+    const next = nextSessionAvailability();
+    const countdown = document.getElementById('lock-countdown');
+    const detail = document.getElementById('lock-next-session');
+    if (next) {
+      const name = next.type === 'mini' ? 'Mini Session' : 'Session';
+      countdown.dataset.nextSessionAt = next.time;
+      countdown.textContent = formatDayCountdown(next.time - Date.now());
+      detail.textContent = `Next ${name}: ${new Date(next.time).toLocaleString()}. Projection assumes no new sessions or settings changes; the checklist is still required unless a pass is used.${activeSession ? ' End the current session before starting another.' : ''}`;
+    } else {
+      delete countdown.dataset.nextSessionAt;
+      countdown.textContent = 'Unavailable';
+      detail.textContent = settings.hardcoreLockout
+        ? 'Hardcore Lockout must be disabled before starting a session.'
+        : 'No session availability projected within the next five years with current settings.';
+    }
+  } else {
+    delete document.getElementById('lock-countdown').dataset.nextSessionAt;
+  }
 
   if (activeSession) {
     document.getElementById('session-card-idle').style.display = 'none';
@@ -1006,15 +1116,13 @@ function renderDashboard() {
     document.getElementById('btn-start-session').disabled = sessionState.disabled;
     document.getElementById('btn-start-session').title = sessionState.reason || 'Session token available';
     const miniState = getTokenStartState('mini');
-    const fuckItState = getTokenStartState('fuckit');
     const fuckItButton = document.getElementById('btn-fuck-it');
-    fuckItButton.disabled = fuckItState.disabled;
-    fuckItButton.title = fuckItState.reason || 'Start an extra Session';
-    fuckItButton.innerText = `Fuck It ⚠️ (${fuckItState.available} left)`;
+    fuckItButton.style.display = canUseFuckItPass() ? 'block' : 'none';
+    fuckItButton.title = 'Use the monthly pass to bypass the checklist';
+    fuckItButton.innerText = 'Fuck It Pass ⚠️';
     document.getElementById('token-start-reasons').innerText = [
       sessionState.reason ? `Session: ${sessionState.reason}.` : '',
-      miniState.reason ? `Mini Session: ${miniState.reason}.` : '',
-      fuckItState.reason ? `Fuck It: ${fuckItState.reason}.` : ''
+      miniState.reason ? `Mini Session: ${miniState.reason}.` : ''
     ].filter(Boolean).join(' ');
     
     const btnQhIdle = document.getElementById('btn-quick-hit-idle');
@@ -1093,45 +1201,57 @@ function openQuickHitModal() {
     openConfigModal(true, 'quick');
 }
 
-function openConfigModal(isNewSession, type = 'normal', planConfirmed = false) {
+function openFuckItPass() {
+  if (!canUseFuckItPass()) {
+    return showCustomModal('Pass unavailable', 'A pass and an eligible Session or Mini Session token are required. Breaks and cooldowns still apply.', [{text:'OK'}]);
+  }
+  const buttons = [{text:'Cancel'}];
+  if (!getTokenStartState('session', true).disabled) {
+    buttons.push({text:'Session', cls:'btn-primary', onClick:() => openConfigModal(true, 'normal', false, true)});
+  }
+  if (!getTokenStartState('mini', true).disabled) {
+    buttons.push({text:'Mini Session', cls:'btn-primary', onClick:() => openConfigModal(true, 'quick', false, true)});
+  }
+  showCustomModal('Use Fuck It Pass', 'Choose a session type. The monthly pass skips the checklist; a regular token is used, and breaks and cooldowns still apply.', buttons);
+}
+
+function openConfigModal(isNewSession, type = 'normal', planConfirmed = false, usePass = false) {
   if (pens.length === 0) return showCustomModal("Add Profile", "Add a strain or profile in the Profiles tab first.", [{text:"OK"}]);
   if (isNewSession) {
-      const state = getTokenStartState(type === 'quick' ? 'mini' : (type === 'fuckit' ? 'fuckit' : 'session'));
+      if (usePass && !getTokenPool('fuckit').available) return showCustomModal('Pass unavailable', 'The monthly Fuck It pass has already been used.', [{text:'OK'}]);
+      const state = getTokenStartState(type === 'quick' ? 'mini' : 'session', usePass);
       if (state.disabled) return showCustomModal("Token unavailable", state.reason, [{text:"OK"}]);
-      const plan = getPlannedDayStatus(today()).key;
-      const againstPlan = plan === 'no-smoke' || (plan === 'session' && type === 'quick') || (plan === 'quick-hit' && type !== 'quick');
-      if (type === 'fuckit' && !planConfirmed) {
-        const penalty = settings.fuckItPenaltyEnabled ? ` A ${settings.fuckItPenaltyDays}-day penalty starts when the session begins.` : '';
-        const planWarning = againstPlan ? " You're going against your plan for today." : '';
-        return showCustomModal('Use Fuck It Token', `Start an extra Session and bypass active breaks and cooldowns?${penalty}${planWarning}`, [
-          {text:'Cancel'}, {text:'Continue', cls:'btn-primary', onClick:() => openConfigModal(isNewSession, type, true)}
-        ]);
-      }
+      const plans = getPlannedDayOptions(today());
+      const consumptionPlans = plans.filter(option => option.key === 'session' || option.key === 'quick-hit');
+      const chosenPlan = type === 'quick' ? 'quick-hit' : 'session';
+      const againstPlan = plans.some(option => option.key === 'no-smoke') ||
+        (consumptionPlans.length > 0 && !consumptionPlans.some(option => option.key === chosenPlan));
       if (againstPlan && !planConfirmed) {
         return showCustomModal("Plan Reminder", "You're going against your plan for today. Continue?", [
           {text: "Cancel"},
-          {text: "Continue", cls: "btn-primary", onClick: () => openConfigModal(isNewSession, type, true)}
+          {text: "Continue", cls: "btn-primary", onClick: () => openConfigModal(isNewSession, type, true, usePass)}
         ]);
       }
   }
   if (isNewSession && emergencyLinks.length === 0 && !ld('t2_ignored_safety', false)) {
       return showCustomModal("Safety First", "You have not set any emergency safety links in Settings. These are crucial if you experience anxiety while elevated.", [
-          {text: "Ignore for now", onClick: () => { sv('t2_ignored_safety', true); openConfigModalBypass(isNewSession, type); }},
+          {text: "Ignore for now", onClick: () => { sv('t2_ignored_safety', true); openConfigModalBypass(isNewSession, type, usePass); }},
           {text: "Add Links", cls: "btn-primary", onClick: () => { document.getElementById('custom-modal').classList.remove('open'); switchTab('settings'); }}
       ]);
   }
   if (activeSession && activeSession.nextHitReadyAt && Date.now() < activeSession.nextHitReadyAt) {
       return showCustomModal("Wait Timer", "Your wait timer is not finished yet. Are you sure you want to take a hit early?", [
           {text: "Cancel"},
-          {text: "Yes, Hit Early", cls: "btn-primary", onClick: () => openConfigModalBypass(isNewSession, type)}
+          {text: "Yes, Hit Early", cls: "btn-primary", onClick: () => openConfigModalBypass(isNewSession, type, usePass)}
       ]);
   }
-  openConfigModalBypass(isNewSession, type);
+  openConfigModalBypass(isNewSession, type, usePass);
 }
 
-function openConfigModalBypass(isNewSession, type) {
+function openConfigModalBypass(isNewSession, type, usePass = false) {
   pendingConfigType = type;
-  document.getElementById('config-title').innerText = type === 'quick' ? "Mini Session" : (type === 'fuckit' ? "Fuck It Session" : (isNewSession ? "Start Session" : "Log a Dose"));
+  pendingUsePass = usePass;
+  document.getElementById('config-title').innerText = type === 'quick' ? "Mini Session" : (isNewSession ? "Start Session" : "Log a Dose");
   
   document.getElementById('config-method-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
@@ -1155,6 +1275,10 @@ function openConfigModalBypass(isNewSession, type) {
 function closeConfigModal() { document.getElementById('config-modal').classList.remove('open'); }
 
 function startDrawSequence() {
+  if (strictBreakDays.includes(today())) {
+    closeConfigModal();
+    return showCustomModal('Strict Break', 'A Strict Break is active today. Sessions and hits are blocked.', [{text: 'OK'}]);
+  }
   const isNew = !activeSession;
   const method = isNew ? document.getElementById('config-method').value : activeSession.method;
   const penId = isNew ? document.getElementById('config-pen').value : activeSession.penId;
@@ -1173,6 +1297,9 @@ function startDrawSequence() {
 }
 
 function executeHitLogic(isNew, penId, feeling, task, method) {
+    if (strictBreakDays.includes(today())) {
+        return showCustomModal('Strict Break', 'A Strict Break is active today. Sessions and hits are blocked.', [{text:'OK'}]);
+    }
     let doseSize = document.getElementById('config-dose').value;
     const pen = penById(penId);
     if (!pen) return showCustomModal("Profile unavailable", "The selected pen/profile could not be found. Select a profile and try again.", [{text:"OK"}]);
@@ -1264,6 +1391,11 @@ function cancelDraw() {
 
 function finishHitDirect(hitObj) {
     if (!activeSession) return;
+    if (strictBreakDays.includes(today())) {
+        cancelDraw();
+        showCustomModal('Strict Break', 'A Strict Break is active today. The hit was not logged.', [{text:'OK'}]);
+        return;
+    }
     activeSession.hits.push(hitObj);
     const limits = getActiveLimits();
     activeSession.nextHitReadyAt = Date.now() + (limits.wait * 60000);
@@ -1660,10 +1792,13 @@ function renderStats() {
 // ── Calendar ────────────────────────────────────────────────────────────────
 let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
 
-function getPlannedDayStatus(dStr) {
-  if (plannedBreaks.includes(dStr)) return { key: 'no-smoke', label: 'No-Smoke 🚭 Plan Day', icon: '🚭' };
-  if (sessionAllowedDays.includes(dStr)) return { key: 'session', label: 'Session 🔥 Plan Day', icon: '🔥' };
-  return { key: 'quick-hit', label: 'Mini-Session ⚡ Plan Day', icon: '⚡' };
+function getPlannedDayOptions(dStr) {
+  return [
+    ...(sessionAllowedDays.includes(dStr) ? [{ key: 'session', label: 'Session 🔥 Plan Day', icon: '🔥' }] : []),
+    ...(miniSessionAllowedDays.includes(dStr) ? [{ key: 'quick-hit', label: 'Mini-Session ⚡ Plan Day', icon: '⚡' }] : []),
+    ...(plannedBreaks.includes(dStr) ? [{ key: 'no-smoke', label: 'No-Smoke 🚭 Plan Day', icon: '🚭' }] : []),
+    ...(strictBreakDays.includes(dStr) ? [{ key: 'strict-break', label: 'Strict Break 🔒', icon: '🔒' }] : [])
+  ];
 }
 
 function renderCalendar() {
@@ -1712,15 +1847,21 @@ function renderCalendar() {
     if(isT && dStr !== selectedCalDate) style += `box-shadow: 0 0 0 2px var(--border2);`;
     if(isF) style += `opacity: 0.5;`;
 
-    const status = getPlannedDayStatus(dStr);
-    const rechargeCount = tokenUses.filter(use => use.readyAt > use.startedAt && ds(new Date(use.readyAt)) === dStr).length;
+    const planOptions = getPlannedDayOptions(dStr);
     const breakAt = isT ? Date.now() : new Date(dStr + 'T00:00:00').getTime();
-    const icon = status.icon + (rechargeCount ? '🔄' : '') + (dStr >= todayStr && getBreakReasons(breakAt).length ? '🔒' : '');
+    const hasOtherBreak = dStr >= todayStr && getBreakReasons(breakAt).length > 0;
+    const icons = [
+      ...planOptions.map(option => option.icon),
+      ...(hasOtherBreak && !strictBreakDays.includes(dStr) ? ['🔒'] : [])
+    ];
+    const icon = [...new Set(icons)].join('');
+    const planLabels = planOptions.map(option => option.label);
     const activity = [
       { label: 'Session', icon: '🔥', hits: dm.sessionHits || 0, color: 'night' },
       { label: 'Mini Session', icon: '⚡', hits: dm.quickHitHits || 0, color: 'quick-hit' }
     ].filter(item => item.hits > 0);
     const activityLabel = [
+      ...planLabels,
       ...activity.map(item => `${item.label}: ${item.hits} hit${item.hits === 1 ? '' : 's'}`),
       ...(dm.fuckItCount ? [`Fuck It passes used: ${dm.fuckItCount}`] : [])
     ].join(', ') || (isF ? 'Future day' : 'Rest day');
@@ -1739,10 +1880,10 @@ function renderCalendar() {
       <div class="cal-cell-inner glass ${extraCls}" style="${style}" onclick="showCalDetails('${dStr}')" title="${dStr}: ${activityLabel}" aria-label="${dStr}: ${activityLabel}">
         <div class="cal-date-num">${d}</div>
         ${fuckItIndicator}
+        ${icon ? `<div class="cal-badge" aria-hidden="true">${icon}</div>` : ''}
         ${activityHtml ? `<div class="cal-activity">${activityHtml}</div>` : ''}
-        ${!activity.length && !dm.fuckItCount ? `<div class="cal-day-label">${futureLabel}</div>` : ''}
+        ${!activity.length && !dm.fuckItCount && !icon ? `<div class="cal-day-label">${futureLabel}</div>` : ''}
       </div>
-      ${icon ? `<div class="cal-badge">${icon}</div>` : ''}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML=cells;
@@ -1764,36 +1905,45 @@ function showCalDetailsPane(dStr) {
   const calendarSessions = activeSession && (activeSession.hits.length || activeSession.isFuckIt) ? [...sessions, activeSession] : sessions;
   const dSess = calendarSessions.filter(s => ds(new Date(s.ts)) === dStr);
   const pane = document.getElementById('cal-details-pane');
-  const status = getPlannedDayStatus(dStr);
-  const statusHtml = `<div class="calendar-plan-status ${status.key}">${status.label}</div>`;
+  const planOptions = getPlannedDayOptions(dStr);
+  const statusHtml = planOptions.length
+    ? planOptions.map(option => `<div class="calendar-plan-status ${option.key}">${option.label}</div>`).join('')
+    : '<div class="calendar-plan-status unplanned">No plan selected</div>';
   
   const noSmokeDay = plannedBreaks.includes(dStr);
-  let planBtn = `
-  <div class="toggle-row mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
-      <label class="toggle-label" for="cal-planned-break">No-Smoke Day 🚭</label>
-      <label class="toggle"><input type="checkbox" id="cal-planned-break" ${noSmokeDay ? 'checked' : ''} onchange="togglePlannedBreak('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+  const sessionDay = sessionAllowedDays.includes(dStr);
+  const miniSessionDay = miniSessionAllowedDays.includes(dStr);
+  const strictBreak = strictBreakDays.includes(dStr);
+  const planOptionsDisabled = strictBreak;
+  const consumptionPlansDisabled = noSmokeDay || strictBreak;
+  let calendarControls = `
+  <div class="toggle-row${planOptionsDisabled ? ' disabled' : ''} mt-16" style="border-top:1px dashed var(--border2); padding-top:16px;">
+      <label class="toggle-label" for="cal-planned-break">No-Smoke Day 🚭<span class="text-sm text-muted" style="display:block;font-weight:400;">A plan reminder only; sessions remain available.</span></label>
+      <label class="toggle"><input type="checkbox" id="cal-planned-break" ${noSmokeDay ? 'checked' : ''} ${planOptionsDisabled ? 'disabled' : ''} onchange="togglePlannedBreak('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
   </div>`;
-  const allowSession = !noSmokeDay ? `
-    <div class="toggle-row" style="border-top:1px dashed var(--border2);">
+  calendarControls += `
+    <div class="toggle-row${consumptionPlansDisabled ? ' disabled' : ''}" style="border-top:1px dashed var(--border2);">
       <label class="toggle-label" for="cal-allow-session">Plan Session Day 🔥</label>
-      <label class="toggle"><input type="checkbox" id="cal-allow-session" ${sessionAllowedDays.includes(dStr) ? 'checked' : ''} onchange="toggleSessionAllowed('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      <label class="toggle"><input type="checkbox" id="cal-allow-session" ${sessionDay ? 'checked' : ''} ${consumptionPlansDisabled ? 'disabled' : ''} onchange="toggleSessionAllowed('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
     </div>
-  ` : '';
-  const calendarControls = planBtn + allowSession;
+    <div class="toggle-row${consumptionPlansDisabled ? ' disabled' : ''}" style="border-top:1px dashed var(--border2);">
+      <label class="toggle-label" for="cal-allow-mini-session">Plan Mini Session Day ⚡</label>
+      <label class="toggle"><input type="checkbox" id="cal-allow-mini-session" ${miniSessionDay ? 'checked' : ''} ${consumptionPlansDisabled ? 'disabled' : ''} onchange="toggleMiniSessionAllowed('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>
+    <div class="toggle-row" style="border-top:1px dashed var(--border2);">
+      <label class="toggle-label" for="cal-strict-break">Strict Break 🔒<span class="text-sm text-muted" style="display:block;font-weight:400;">Blocks all sessions and hits for the entire day.</span></label>
+      <label class="toggle"><input type="checkbox" id="cal-strict-break" ${strictBreak ? 'checked' : ''} onchange="toggleStrictBreak('${dStr}')"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+    </div>`;
 
-  const events = tokenUses.filter(use => use.readyAt > use.startedAt && ds(new Date(use.readyAt)) === dStr);
-  const rechargeHtml = events.length ? `<div class="text-sm mt-16">${events.map(use =>
-    `🔄 ${use.type === 'mini' ? 'Mini Session' : (use.type === 'fuckit' ? 'Fuck It' : 'Session')} token${use.slot === null ? '' : ` ${use.slot + 1}`} recharges at ${fmtTime(new Date(use.readyAt))}`
-  ).join('<br>')}</div>` : '';
   const future = dStr >= today();
   const at = dStr === today() ? Date.now() : new Date(dStr + 'T00:00:00').getTime();
   const breaks = future ? getBreakReasons(at) : [];
   const breakHtml = breaks.length ? `<div class="alert warn mt-16">🔒 ${dStr === today() ? 'Active now' : 'At start of day'}: ${breaks.join(', ')}</div>` : '';
-  const availability = future ? `<div class="mt-16"><strong>Token status ${dStr === today() ? 'now' : 'at start of day'}</strong>${renderTokenStatus(at, dStr === today())}<div class="text-sm text-muted">Projection assumes no additional sessions or settings changes; breaks may prevent use.</div></div>` : '';
+  const availability = future ? `<div class="mt-16"><strong>Token status ${dStr === today() ? 'now' : 'at start of day'}</strong>${renderTokenStatus(at)}<div class="text-sm text-muted">Projection assumes no additional sessions or settings changes; breaks may prevent use.</div></div>` : '';
 
   if(dSess.length === 0) { 
     const badge = dStr > today() ? 'Future day' : 'No recorded use (rest day)';
-    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${statusHtml}${breakHtml}${rechargeHtml}${availability}${calendarControls}`;
+    pane.innerHTML = `<div class="flex-row"><div class="card-title" style="margin:0;">${dObj.toDateString()}</div></div><div class="empty mt-16 mb-16">${badge}</div>${statusHtml}${breakHtml}${availability}${calendarControls}`;
     return; 
   }
   
@@ -1807,29 +1957,58 @@ function showCalDetailsPane(dStr) {
     }).join('')}
     ${statusHtml}
     ${breakHtml}
-    ${rechargeHtml}
     ${availability}
     ${calendarControls}
   `;
 }
 
 function togglePlannedBreak(dStr) {
+  if (strictBreakDays.includes(dStr)) return;
   if (plannedBreaks.includes(dStr)) {
       plannedBreaks = plannedBreaks.filter(d => d !== dStr);
   } else {
       plannedBreaks.push(dStr);
-      sessionAllowedDays = sessionAllowedDays.filter(d => d !== dStr);
+      sessionAllowedDays = sessionAllowedDays.filter(day => day !== dStr);
+      miniSessionAllowedDays = miniSessionAllowedDays.filter(day => day !== dStr);
       sv('t2_session_allowed_days', sessionAllowedDays);
+      sv('t2_mini_session_allowed_days', miniSessionAllowedDays);
   }
   sv('t2_planned_breaks', plannedBreaks); renderCalendar(); renderDashboard();
 }
 
 function toggleSessionAllowed(dStr) {
-  if (plannedBreaks.includes(dStr)) return;
+  if (plannedBreaks.includes(dStr) || strictBreakDays.includes(dStr)) return;
   sessionAllowedDays = sessionAllowedDays.includes(dStr)
       ? sessionAllowedDays.filter(d => d !== dStr)
       : [...sessionAllowedDays, dStr];
   sv('t2_session_allowed_days', sessionAllowedDays);
+  renderCalendar();
+  renderDashboard();
+}
+
+function toggleMiniSessionAllowed(dStr) {
+  if (plannedBreaks.includes(dStr) || strictBreakDays.includes(dStr)) return;
+  miniSessionAllowedDays = miniSessionAllowedDays.includes(dStr)
+      ? miniSessionAllowedDays.filter(d => d !== dStr)
+      : [...miniSessionAllowedDays, dStr];
+  sv('t2_mini_session_allowed_days', miniSessionAllowedDays);
+  renderCalendar();
+  renderDashboard();
+}
+
+function toggleStrictBreak(dStr) {
+  if (strictBreakDays.includes(dStr)) {
+      strictBreakDays = strictBreakDays.filter(d => d !== dStr);
+  } else {
+      strictBreakDays.push(dStr);
+      plannedBreaks = plannedBreaks.filter(d => d !== dStr);
+      sessionAllowedDays = sessionAllowedDays.filter(d => d !== dStr);
+      miniSessionAllowedDays = miniSessionAllowedDays.filter(d => d !== dStr);
+      sv('t2_planned_breaks', plannedBreaks);
+      sv('t2_session_allowed_days', sessionAllowedDays);
+      sv('t2_mini_session_allowed_days', miniSessionAllowedDays);
+  }
+  sv('t2_strict_break_days', strictBreakDays);
   renderCalendar();
   renderDashboard();
 }
@@ -2230,9 +2409,6 @@ function renderSettings() {
   setCheck('s-globalCooldownEnabled', settings.globalCooldownEnabled);
   setVal('s-sessionWait', settings.sessionWait);
   setVal('s-miniWait', settings.miniWait);
-  setVal('s-fuckItTokensPerMonth', settings.fuckItTokensPerMonth);
-  setVal('s-fuckItPenaltyDays', settings.fuckItPenaltyDays);
-  setCheck('s-fuckItPenaltyEnabled', settings.fuckItPenaltyEnabled);
   setVal('s-dayStart', getModeStart('day'));
   setVal('s-nightStart', getModeStart('night'));
   
@@ -2278,9 +2454,7 @@ function saveSettings(silent = false) {
     ['tokenCooldownHours', 's-tokenCooldownHours', 0, 720],
     ['globalCooldownHours', 's-globalCooldownHours', 0, 720],
     ['sessionWait', 's-sessionWait', 1, 240],
-    ['miniWait', 's-miniWait', 1, 240],
-    ['fuckItTokensPerMonth', 's-fuckItTokensPerMonth', 0, 20],
-    ['fuckItPenaltyDays', 's-fuckItPenaltyDays', 1, 30]
+    ['miniWait', 's-miniWait', 1, 240]
   ];
   const tokenValues = {};
   const breakStart = getVal('s-breakStart');
@@ -2307,7 +2481,6 @@ function saveSettings(silent = false) {
 
   Object.assign(settings, tokenValues);
   settings.globalCooldownEnabled = getCheck('s-globalCooldownEnabled');
-  settings.fuckItPenaltyEnabled = getCheck('s-fuckItPenaltyEnabled');
   settings.dayStart = dayStart;
   settings.nightStart = nightStart;
   

@@ -41,12 +41,12 @@
     </div>
     <p class="text-sm text-muted mb-24">Tether is a mindful consumption tracker. It is designed to help you pace yourself, reflect on your usage, and prevent automatic or excessive habits.</p>
     <h3 class="mb-8" style="color:var(--accent);">1. The Core Loop & Intentions</h3>
-    <p class="text-sm text-muted mb-24">Complete the checklist for your chosen Session or Mini Session. Each pool resets Monday. A token is refunded if you cancel or discard a session before taking any hits; once a hit is taken, the token begins cooling when the session starts. Fuck It tokens start extra full Sessions and reset on the first of each month. They bypass breaks and cooldowns, but never Hardcore Lockout or the Session checklist.</p>
+    <p class="text-sm text-muted mb-24">Complete the checklist for your chosen Session or Mini Session. Each pool resets Monday at 6 a.m. A token is refunded if you cancel or discard a session before taking any hits; once a hit is taken, the token begins cooling when the session starts. One Fuck It pass resets on the first of each month and skips the checklist for either session type. It still uses a regular token and cannot bypass breaks or cooldowns.</p>
     <h3 class="mb-8" style="color:var(--accent);">2. Methods (Vape, Joint, Edible)</h3>
     <p class="text-sm text-muted mb-24">Tether adapts to your method. Vapes use timed breathing cycles. Joints log generic hits and duration. Edibles ask for straight milligram dosage and bypass breathing visuals entirely.</p>
     <p class="text-sm text-muted mb-24">Cart THC vaporized is estimated using draw seconds × 1.2–2.2 mg oil per second × THC fraction. The displayed average is the midpoint of this illustrative range, not a measured value or a prediction of absorbed THC. Flower hits have no timed estimate, and edible label amounts are shown separately. Hits with a recorded THC percentage retain it; older hits use their linked profile's current percentage, so editing that profile can change past estimates. Methodless hits linked to a cart profile are treated as cart hits. Missing or invalid data cannot produce an estimate.</p>
     <h3 class="mb-8" style="color:var(--accent);">3. Tokens &amp; Calendar</h3>
-    <p class="text-sm text-muted mb-24">Configure tokens, per-session waits, hit limits, cooldowns and strict breaks in Settings. An optional Fuck It penalty begins when the session starts. Calendar day plans remain reminders, not restrictions. Future availability assumes no new sessions or settings changes. Existing history is preserved.</p>
+    <p class="text-sm text-muted mb-24">Configure tokens, per-session waits, hit limits and cooldowns in Settings. Token refresh times appear on the dashboard. Calendar Session and Mini Session plans are reminders; selecting No-Smoke clears and disables those plan options. A Strict Break clears other day selections, disables those options, and blocks all sessions and hits for that day; the dashboard counts down to the next projected session. Future availability assumes no new sessions or settings changes and requires the applicable checklist unless a pass is used. Existing history is preserved.</p>
   </div>
 </div>
 
@@ -240,6 +240,13 @@
 
     <div class="stat-grid" id="dash-stats"></div>
     <div class="card glass"><div class="card-title">Token Status</div><div id="dash-token-status"></div></div>
+    <div class="card glass text-center" id="dashboard-lock" style="display:none; border-color:var(--red);">
+      <h2 style="font-family:'Unbounded',sans-serif; color:var(--red); font-size:28px; margin-bottom:12px;">Strict Break</h2>
+      <p style="color:var(--text2); margin-bottom:24px;">Sessions and hits are blocked today.</p>
+      <div class="text-sm text-muted">Time until the next session is available</div>
+      <div class="timer-display" id="lock-countdown">--:--:--</div>
+      <div class="text-sm text-muted" id="lock-next-session"></div>
+    </div>
     
     <div class="two-col" id="dashboard-main-content">
       <div>
@@ -252,7 +259,7 @@
           <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="btn-start-session" style="flex:1; min-width:140px; padding:16px;font-size:16px;" disabled onclick="openConfigModal(true, 'normal')">Start Session</button>
             <button class="btn btn-ghost" id="btn-quick-hit-idle" style="flex:1; min-width:140px; padding:16px;font-size:16px; border-color:var(--accent); color:var(--accent);" onclick="openQuickHitModal()">Mini Session ⚡</button>
-            <button class="btn btn-ghost" id="btn-fuck-it" style="flex:1; min-width:140px; padding:16px;font-size:16px;" onclick="openConfigModal(true, 'fuckit')">Fuck It ⚠️</button>
+            <button class="btn btn-ghost" id="btn-fuck-it" style="display:none; flex:1; min-width:140px; padding:16px;font-size:16px;" onclick="openFuckItPass()">Fuck It Pass ⚠️</button>
           </div>
         </div>
 
@@ -392,7 +399,7 @@
   
   <div class="content" id="tab-calendar">
       <div class="card glass"><div class="card-title">Token Status Now</div><div id="calendar-token-status"></div></div>
-      <div class="alert warn mb-16">Weekly token allowances reset Monday at midnight; token cooldowns continue through the reset.</div>
+      <div class="alert warn mb-16">Weekly token allowances reset Monday at 6 a.m.; token cooldowns continue through the reset.</div>
       <div class="two-col">
           <div class="card glass">
             <div class="flex-row mb-24"><button class="btn btn-ghost" onclick="calPrev()">← Prev</button><div style="flex:1;text-align:center;font-family:'Unbounded',sans-serif;font-weight:700;font-size:18px" id="cal-month-lbl"></div><button class="btn btn-ghost" onclick="calNext()">Next →</button></div>
@@ -410,7 +417,6 @@
                     <span><b>⚡</b>Mini Session plan</span>
                     <span><b>🔥</b>Session plan</span>
                     <span><b>🚭</b>No-smoke plan</span>
-                    <span><b>🔄</b>Token cooldown ends / monthly reset</span>
                     <span><b>🔒</b>Strict break</span>
                 </div>
             </div>
@@ -654,12 +660,9 @@
 
         <div class="settings-card glass" style="border-top: 4px solid var(--amber);">
           <div class="card-title" style="color:var(--amber);">Tokens &amp; Cooldowns</div>
-          <p class="text-sm text-muted mb-16">Weekly allowances reset Monday. Existing cooldowns continue even if settings change or a new week starts.</p>
+          <p class="text-sm text-muted mb-16">Weekly allowances reset Monday at 6 a.m. Existing cooldowns continue even if settings change or a new week starts. One monthly Fuck It pass bypasses the checklist only.</p>
           <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Session Tokens per Week</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-sessionTokensPerWeek" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
           <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Mini Session Tokens per Week</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-miniTokensPerWeek" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
-          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Tokens per Month</div><div class="settings-desc">Reset on the first of each month; start an extra full Session.</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-fuckItTokensPerMonth" min="0" max="20" step="1" onchange="saveSettings(true)"></div></div>
-          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Penalty</div><div class="settings-desc">Optional break starting when a Fuck It session starts.</div></div><div class="settings-control-col"><label class="toggle"><input type="checkbox" id="s-fuckItPenaltyEnabled" onchange="saveSettings(true)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div></div>
-          <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Fuck It Penalty (days)</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-fuckItPenaltyDays" min="1" max="30" step="1" onchange="saveSettings(true)"></div></div>
           <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Hits per Session</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenMaxHits" min="1" max="20" step="1" onchange="saveSettings(true)"></div></div>
           <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Hits per Mini Session</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenMiniHits" min="1" max="20" step="1" onchange="saveSettings(true)"></div></div>
           <div class="settings-group"><div class="settings-label-col"><div class="settings-title">Token Cooldown (hours)</div><div class="settings-desc">Applies to each newly used token.</div></div><div class="settings-control-col"><input class="num-input glass" type="number" id="s-tokenCooldownHours" min="0" max="720" step="1" onchange="saveSettings(true)"></div></div>
