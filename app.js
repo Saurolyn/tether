@@ -298,7 +298,12 @@ function getConfigPen() {
 function updateConfigDoseOptions() {
   const doseSelect = document.getElementById('config-dose');
   const pen = getConfigPen();
-  if (!doseSelect || !pen) return;
+  if (!doseSelect) return;
+  if (!pen) {
+    doseSelect.innerHTML = '';
+    checkDoseWarning();
+    return;
+  }
   const selected = doseSelect.value;
   const options = [
     ['low', 'Low Draw', pen.drawLow],
@@ -332,8 +337,10 @@ function getTodayTHCEstimate() {
 
 function getLastHitInfo() {
   let lastHitTime = 0; let lastPenId = null;
-  sessions.forEach(s => { s.hits.forEach(h => { if (h.time > lastHitTime) { lastHitTime = h.time; lastPenId = s.penId; } }); });
-  if (activeSession) { activeSession.hits.forEach(h => { if (h.time > lastHitTime) { lastHitTime = h.time; lastPenId = activeSession.penId; } }); }
+  const allSessions = activeSession ? [...sessions, activeSession] : sessions;
+  allSessions.forEach(s => { (s.hits || []).forEach(h => {
+    if (h.time > lastHitTime) { lastHitTime = h.time; lastPenId = h.penId || s.penId; }
+  }); });
   return { time: lastHitTime, penId: lastPenId };
 }
 
@@ -1256,8 +1263,15 @@ function openConfigModalBypass(isNewSession, type, usePass = false) {
   document.getElementById('config-method-group').style.display = isNewSession ? 'flex' : 'none';
   document.getElementById('config-pen-group').style.display = isNewSession ? 'flex' : 'none';
   const penSelect = document.getElementById('config-pen');
-  penSelect.innerHTML = pens.map(p=>`<option value="${p.id}">[${p.type.toUpperCase()}] ${p.name}</option>`).join('');
-  if (activeSession) penSelect.value = activeSession.penId;
+  penSelect.innerHTML = '<option value="">Select a profile</option>';
+  pens.forEach(p => {
+    const option = document.createElement('option');
+    option.value = p.id;
+    option.textContent = `[${p.type.toUpperCase()}] ${p.name}`;
+    penSelect.appendChild(option);
+  });
+  const lastPenId = activeSession ? activeSession.penId : getLastHitInfo().penId;
+  penSelect.value = pens.some(p => p.id === lastPenId) ? lastPenId : '';
   updateConfigDoseOptions();
 
   document.getElementById('config-task-group').style.display = isNewSession ? 'flex' : 'none';
@@ -1284,6 +1298,7 @@ function startDrawSequence() {
   const penId = isNew ? document.getElementById('config-pen').value : activeSession.penId;
   const feeling = parseInt(document.getElementById('config-feel-val').value);
   const task = isNew ? document.getElementById('config-task-select').value : activeSession.focusTask;
+  if (!penById(penId)) return showCustomModal("Profile unavailable", "Select an available pen/profile and try again.", [{text:"OK"}]);
   
   if (feeling <= 3) {
       return showCustomModal("Mood Check", "⚠️ Low headspace detected. Getting elevated right now might worsen your mood. Are you sure you want to continue?", [
@@ -1649,10 +1664,50 @@ function renderHistory() {
         </div>
         ${mediaHtml}
         ${s.notes ? `<div class="text-sm text-muted mt-16" style="font-style:italic; white-space:pre-wrap;">"${s.notes}"</div>` : ''}
+        <button class="btn btn-ghost btn-sm mt-16" onclick="editSession('${s.id}')">Edit Session</button>
         <button class="btn btn-ghost btn-sm mt-16" onclick="deleteSession('${s.id}')">Delete Session</button>
       </div>
     `;
   }).join('');
+}
+
+function editSession(id) {
+  const session = sessions.find(s => s.id === id);
+  if (!session) return showCustomModal('Session unavailable', 'This session could not be found.', [{text:'OK'}]);
+  const select = document.getElementById('edit-session-pen');
+  select.innerHTML = '<option value="">Select a profile</option>';
+  [...pens, ...graveyard].forEach(p => {
+    const option = document.createElement('option');
+    option.value = p.id;
+    option.textContent = `${p.name}${graveyard.includes(p) ? ' (retired)' : ''}`;
+    select.appendChild(option);
+  });
+  select.value = penById(session.penId) ? session.penId : '';
+  document.getElementById('edit-session-id').value = id;
+  document.getElementById('edit-session-modal').classList.add('open');
+}
+
+function closeEditSessionModal() {
+  document.getElementById('edit-session-modal').classList.remove('open');
+}
+
+function saveSessionEdit() {
+  const id = document.getElementById('edit-session-id').value;
+  const session = sessions.find(s => s.id === id);
+  if (!session) return showCustomModal('Session unavailable', 'This session could not be found.', [{text:'OK'}]);
+  const pen = penById(document.getElementById('edit-session-pen').value);
+  if (!pen) return showCustomModal('Profile unavailable', 'Select an available pen/profile and try again.', [{text:'OK'}]);
+  if (session.penId !== pen.id) {
+    session.penId = pen.id;
+    (session.hits || []).forEach(hit => {
+      hit.penId = pen.id;
+      hit.thcPercent = validTHCPercent(pen.thc);
+    });
+    sv('t2_sessions', sessions);
+    renderHistory(); renderDashboard(); renderCalendar(); renderStats();
+  }
+  closeEditSessionModal();
+  showToast('Session updated.');
 }
 
 function deleteSession(id) {

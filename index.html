@@ -45,6 +45,7 @@
     <h3 class="mb-8" style="color:var(--accent);">2. Methods (Vape, Joint, Edible)</h3>
     <p class="text-sm text-muted mb-24">Tether adapts to your method. Vapes use timed breathing cycles. Joints log generic hits and duration. Edibles ask for straight milligram dosage and bypass breathing visuals entirely.</p>
     <p class="text-sm text-muted mb-24">Cart THC vaporized is estimated using draw seconds × 1.2–2.2 mg oil per second × THC fraction. The displayed average is the midpoint of this illustrative range, not a measured value or a prediction of absorbed THC. Flower hits have no timed estimate, and edible label amounts are shown separately. Hits with a recorded THC percentage retain it; older hits use their linked profile's current percentage, so editing that profile can change past estimates. Methodless hits linked to a cart profile are treated as cart hits. Missing or invalid data cannot produce an estimate.</p>
+    <p class="text-sm text-muted mb-24">New sessions select the profile from the latest logged hit when it is still active; otherwise, choose a profile. In History, Edit Session can correct the profile for every hit in a session. Changing it replaces the recorded THC percentages with the selected profile's current percentage; edible label amounts and draw times stay unchanged.</p>
     <h3 class="mb-8" style="color:var(--accent);">3. Tokens &amp; Calendar</h3>
     <p class="text-sm text-muted mb-24">Configure tokens, per-session waits, hit limits and cooldowns in Settings. Token refresh times appear on the dashboard. Calendar Session and Mini Session plans are reminders; selecting No-Smoke clears and disables those plan options. A Strict Break clears other day selections, disables those options, and blocks all sessions and hits for that day; the dashboard counts down to the next projected session. Future availability assumes no new sessions or settings changes and requires the applicable checklist unless a pass is used. Existing history is preserved.</p>
   </div>
@@ -115,6 +116,22 @@
     <div class="flex-row" style="justify-content: flex-end;">
       <button class="btn btn-ghost" onclick="closeConfigModal()">Cancel</button>
       <button class="btn btn-primary" onclick="startDrawSequence()">Begin Sequence →</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay glass" id="edit-session-modal">
+  <div class="modal glass">
+    <div class="modal-title">Edit Session</div>
+    <input type="hidden" id="edit-session-id">
+    <div class="form-group mb-16">
+      <label for="edit-session-pen">Profile/Pen Used</label>
+      <select id="edit-session-pen" class="glass"></select>
+    </div>
+    <p class="text-sm text-muted mb-24">Changing the profile updates every hit's profile and THC percentage using the selected profile's current percentage. Draw times and edible label amounts stay unchanged.</p>
+    <div class="flex-row" style="justify-content: flex-end;">
+      <button class="btn btn-ghost" onclick="closeEditSessionModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSessionEdit()">Save Session</button>
     </div>
   </div>
 </div>
